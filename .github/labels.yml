@@ -1,0 +1,215 @@
+# GitHub Labels Configuration
+# Este archivo puede usarse con herramientas como github-label-sync
+# Para aplicar: npx github-label-sync --access-token <token> owner/repo
+
+## 🐛 Bug Labels
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "critical-bug"
+  color: "B60205"
+  description: "Critical bug that needs immediate attention"
+
+- name: "regression"
+  color: "d73a4a"
+  description: "Bug that used to work but now doesn't"
+
+## ✨ Feature Labels
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "feature-request"
+  color: "a2eeef"
+  description: "Request for new functionality"
+
+- name: "breaking-change"
+  color: "B60205"
+  description: "Breaking change that requires major version bump"
+
+## 📖 Documentation Labels
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "readme"
+  color: "0075ca"
+  description: "Changes to README files"
+
+- name: "api-docs"
+  color: "0075ca"
+  description: "API documentation updates"
+
+## 🔧 Maintenance Labels
+- name: "refactor"
+  color: "fbca04"
+  description: "Code refactoring without functional changes"
+
+- name: "dependencies"
+  color: "0366d6"
+  description: "Dependencies updates"
+
+- name: "security"
+  color: "B60205"
+  description: "Security related issue or improvement"
+
+- name: "performance"
+  color: "fbca04"
+  description: "Performance improvements"
+
+## 🧪 Testing Labels
+- name: "tests"
+  color: "0e8a16"
+  description: "Testing related changes"
+
+- name: "coverage"
+  color: "0e8a16"
+  description: "Test coverage improvements"
+
+## 🚀 CI/CD & DevOps Labels
+- name: "ci-cd"
+  color: "1d76db"
+  description: "CI/CD pipeline changes"
+
+- name: "deployment"
+  color: "1d76db"
+  description: "Deployment related changes"
+
+- name: "docker"
+  color: "1d76db"
+  description: "Docker related changes"
+
+## 🏷️ Priority Labels
+- name: "priority: critical"
+  color: "B60205"
+  description: "Critical priority - must be done ASAP"
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: "High priority"
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: "Medium priority"
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: "Low priority"
+
+## 📊 Status Labels
+- name: "status: needs-triage"
+  color: "ededed"
+  description: "Needs initial triage and assignment"
+
+- name: "status: in-progress"
+  color: "fbca04"
+  description: "Currently being worked on"
+
+- name: "status: blocked"
+  color: "d73a4a"
+  description: "Blocked by external dependency"
+
+- name: "status: ready-for-review"
+  color: "0e8a16"
+  description: "Ready for code review"
+
+- name: "status: needs-discussion"
+  color: "d4c5f9"
+  description: "Needs team discussion before proceeding"
+
+- name: "status: waiting-for-feedback"
+  color: "fbca04"
+  description: "Waiting for user or stakeholder feedback"
+
+## 🎯 Area Labels
+- name: "area: auth"
+  color: "5319e7"
+  description: "Authentication & Authorization"
+
+- name: "area: orders"
+  color: "5319e7"
+  description: "Orders processing system"
+
+- name: "area: payments"
+  color: "5319e7"
+  description: "Payment processing"
+
+- name: "area: inventory"
+  color: "5319e7"
+  description: "Inventory management"
+
+- name: "area: notifications"
+  color: "5319e7"
+  description: "Notification system"
+
+- name: "area: queues"
+  color: "5319e7"
+  description: "Queue processing (Bull/Redis)"
+
+- name: "area: database"
+  color: "5319e7"
+  description: "Database related changes"
+
+- name: "area: api"
+  color: "5319e7"
+  description: "API endpoints and controllers"
+
+- name: "area: monitoring"
+  color: "5319e7"
+  description: "Monitoring, logging, health checks"
+
+## 🏢 Project Management Labels
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "question"
+  color: "d876e3"
+  description: "Further information is requested"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+
+## 🔄 Lifecycle Labels
+- name: "needs-reproduction"
+  color: "fef2c0"
+  description: "Bug needs steps to reproduce"
+
+- name: "confirmed"
+  color: "0e8a16"
+  description: "Issue confirmed and reproduced"
+
+- name: "fixed"
+  color: "0e8a16"
+  description: "Issue has been fixed"
+
+- name: "released"
+  color: "0e8a16"
+  description: "Fix/feature has been released"
+
+## 💼 Business Labels
+- name: "customer-impact"
+  color: "B60205"
+  description: "Directly impacts customers"
+
+- name: "business-critical"
+  color: "B60205"
+  description: "Critical for business operations"
+
+- name: "technical-debt"
+  color: "fbca04"
+  description: "Technical debt that should be addressed"
