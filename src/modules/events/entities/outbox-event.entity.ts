@@ -193,7 +193,7 @@ export class OutboxEvent {
   @BeforeInsert()
   generateIdempotencyKey(): void {
     if (!this.idempotencyKey) {
-      this.idempotencyKey = `${this.aggregateType}_${this.aggregateId}_${this.eventType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      this.idempotencyKey = `${this.aggregateType}_${this.aggregateId}_${this.eventType}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
   }
 

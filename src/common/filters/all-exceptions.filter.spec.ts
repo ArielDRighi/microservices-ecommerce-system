@@ -58,7 +58,10 @@ describe('AllExceptionsFilter', () => {
     });
 
     it('should handle HttpException with array message', () => {
-      const exception = new HttpException({ message: ['Error 1', 'Error 2'] }, HttpStatus.UNPROCESSABLE_ENTITY);
+      const exception = new HttpException(
+        { message: ['Error 1', 'Error 2'] },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
 
       filter.catch(exception, mockHost);
 

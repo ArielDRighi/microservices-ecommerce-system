@@ -267,7 +267,7 @@ export class SagaState {
   @BeforeInsert()
   initializeSaga(): void {
     if (!this.correlationId) {
-      this.correlationId = `saga_${this.sagaType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      this.correlationId = `saga_${this.sagaType}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     if (!this.startedAt) {

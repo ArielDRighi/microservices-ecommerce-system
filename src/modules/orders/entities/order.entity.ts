@@ -283,7 +283,7 @@ export class Order {
   @BeforeInsert()
   generateIdempotencyKey(): void {
     if (!this.idempotencyKey) {
-      this.idempotencyKey = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      this.idempotencyKey = `order_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
   }
 
