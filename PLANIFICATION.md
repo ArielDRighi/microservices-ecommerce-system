@@ -255,15 +255,15 @@ CREATE TABLE saga_state (
 
 ```typescript
 export enum OrderStatus {
-  PENDING = "PENDING",
-  PROCESSING = "PROCESSING",
-  PAYMENT_PENDING = "PAYMENT_PENDING",
-  PAYMENT_FAILED = "PAYMENT_FAILED",
-  CONFIRMED = "CONFIRMED",
-  SHIPPED = "SHIPPED",
-  DELIVERED = "DELIVERED",
-  CANCELLED = "CANCELLED",
-  REFUNDED = "REFUNDED",
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  PAYMENT_PENDING = 'PAYMENT_PENDING',
+  PAYMENT_FAILED = 'PAYMENT_FAILED',
+  CONFIRMED = 'CONFIRMED',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED',
 }
 ```
 
@@ -350,7 +350,7 @@ El repositorio debe seguir las mejores prácticas de open source y facilitar la 
 - Revisar que templates de PR e Issues estén configurados
 - Asegurar que labels estén categorizados correctamente
 
-#### Tarea 2: Configuración Inicial del Proyecto
+#### Tarea 1.1 Configuración Inicial del Proyecto
 
 **Prompt para GitHub Copilot:**
 

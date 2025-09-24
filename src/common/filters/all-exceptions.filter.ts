@@ -33,7 +33,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const errorResponse = exception.getResponse();
-      errorMessage = (errorResponse as any)?.message || exception.message;
+      errorMessage =
+        (errorResponse as { message?: string | string[] })?.message || exception.message;
     } else if (exception instanceof QueryFailedError) {
       status = HttpStatus.BAD_REQUEST;
       errorMessage = this.handleDatabaseError(exception);
