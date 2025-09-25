@@ -7,7 +7,8 @@
   "license": "MIT",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -36,7 +37,7 @@
     "docker:run": "docker run -p 3000:3000 ecommerce-async-resilient-system",
     "docker:run:prod": "docker run -p 3000:3000 ecommerce-async-resilient-system:prod",
     "ci:lint": "npm run lint",
-    "ci:format:check": "prettier --check \"src/**/*.ts\"",
+    "ci:format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "ci:type-check": "npm run type-check",
     "ci:test": "npm run test",
     "ci:test:e2e": "npm run test:e2e",
@@ -51,7 +52,6 @@
     "migrate:dev": "bash ./scripts/migrate.sh development run",
     "migrate:staging": "bash ./scripts/migrate.sh staging run",
     "migrate:prod": "bash ./scripts/migrate.sh production run",
-    "format:check": "prettier --check \"src/**/*.ts\"",
     "prepare": "husky install",
     "precommit": "lint-staged"
   },

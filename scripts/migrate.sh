@@ -207,13 +207,48 @@ validate_migrations() {
     local migration_count=$(find "$MIGRATION_DIR" -name "*.ts" -type f | wc -l)
     log_info "Found $migration_count migration files"
     
+    # Configuration for migration filename patterns
+    # Default TypeORM pattern: timestamp_description.ts
+    local DEFAULT_PATTERN='^[0-9]{13,14}_[A-Za-z0-9_-]+\.ts$'
+    # Alternative patterns (add more as needed)
+    local ALTERNATIVE_PATTERNS=(
+        '^[0-9]{10,14}[-_][A-Za-z0-9_-]+\.ts$'  # timestamp-description.ts
+        '^V[0-9]+_[0-9]+__[A-Za-z0-9_-]+\.ts$'  # Flyway style: V1_1__description.ts
+    )
+    
+    # Use custom pattern if provided via environment variable
+    local validation_pattern="${MIGRATION_NAME_PATTERN:-$DEFAULT_PATTERN}"
+    
     # Check for naming conventions
+    local invalid_files=0
     find "$MIGRATION_DIR" -name "*.ts" -type f | while read -r migration_file; do
         local filename=$(basename "$migration_file")
-        if [[ ! $filename =~ ^[0-9]{14}_[A-Za-z0-9_]+\.ts$ ]]; then
-            log_warning "Migration file doesn't follow naming convention: $filename"
+        local is_valid=false
+        
+        # Check against main pattern
+        if [[ $filename =~ $validation_pattern ]]; then
+            is_valid=true
+        else
+            # Check against alternative patterns
+            for pattern in "${ALTERNATIVE_PATTERNS[@]}"; do
+                if [[ $filename =~ $pattern ]]; then
+                    is_valid=true
+                    break
+                fi
+            done
+        fi
+        
+        if [[ "$is_valid" == "false" ]]; then
+            log_warning "Migration file doesn't follow expected naming conventions: $filename"
+            log_info "Expected pattern: $validation_pattern (or alternatives)"
+            invalid_files=$((invalid_files + 1))
         fi
     done
+    
+    if [[ $invalid_files -gt 0 ]]; then
+        log_warning "Found $invalid_files files with non-standard names"
+        log_info "Tip: Set MIGRATION_NAME_PATTERN env var to customize validation"
+    fi
     
     log_success "Migration validation completed"
 }

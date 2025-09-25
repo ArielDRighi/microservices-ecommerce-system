@@ -46,7 +46,10 @@ list_available_backups() {
         exit 1
     fi
     
-    local backups=($(ls -1t "$BACKUP_DIR" 2>/dev/null || true))
+    local backups=()
+    while IFS= read -r -d '' file; do
+        backups+=("$(basename "$file")")
+    done < <(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %P\0' 2>/dev/null | sort -rz | cut -d' ' -f2- --output-delimiter='' )
     
     if [ ${#backups[@]} -eq 0 ]; then
         log_error "No backups found in $BACKUP_DIR"

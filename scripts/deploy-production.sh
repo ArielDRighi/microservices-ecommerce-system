@@ -154,17 +154,21 @@ run_health_checks_on_green() {
     while [ $attempt -le $max_attempts ]; do
         log_info "Green health check attempt $attempt/$max_attempts"
         
-        # In a real deployment, check green environment health endpoint
-        if [ $((RANDOM % 15)) -eq 0 ]; then
-            log_warning "Green health check failed on attempt $attempt"
-            if [ $attempt -eq $max_attempts ]; then
-                log_error "Green environment health checks failed"
-                return 1
-            fi
-        else
-            log_success "Green environment is healthy"
-            return 0
-        fi
+        # TODO: Replace the following placeholder with a real health check, e.g.:
+        # if curl -fsS "http://$GREEN_ENVIRONMENT_URL/health/live" -o /dev/null; then
+        #     log_success "Green environment is healthy"
+        #     return 0
+        # else
+        #     log_warning "Green health check failed on attempt $attempt"
+        #     if [ $attempt -eq $max_attempts ]; then
+        #         log_error "Green environment health checks failed"
+        #         return 1
+        #     fi
+        # fi
+        
+        # Placeholder: always succeed for now
+        log_success "Green environment is healthy (placeholder check)"
+        return 0
         
         sleep 15
         attempt=$((attempt + 1))
