@@ -30,18 +30,18 @@ Los **secrets** son variables de entorno seguras que el CI/CD necesita para func
 3. En el menú lateral izquierdo, busca **"Secrets and variables"**
 4. Haz clic en **"Actions"**
 
-### 1.2 Crear Secrets Requeridos
+### 1.2 Secrets Disponibles
 
-Haz clic en **"New repository secret"** para cada uno de estos:
+Todos los secrets son **OPCIONALES**. El pipeline funcionará sin ellos, pero con funcionalidad limitada.
 
-#### Secrets Obligatorios:
+#### ✅ Secrets para Funcionalidades Adicionales (OPCIONALES):
 
-| Nombre del Secret   | Valor                         | Descripción                                             |
-| ------------------- | ----------------------------- | ------------------------------------------------------- |
-| `CODECOV_TOKEN`     | `tu-token-de-codecov`         | Token para subir coverage reports (opcional)            |
-| `SLACK_WEBHOOK_URL` | `https://hooks.slack.com/...` | URL del webhook de Slack para notificaciones (opcional) |
+| Nombre del Secret   | Valor Ejemplo                 | Descripción                                           | ¿Dónde Obtenerlo?                    |
+| ------------------- | ----------------------------- | ----------------------------------------------------- | ------------------------------------ |
+| `CODECOV_TOKEN`     | `ejemplo: 12345678-abcd-...`  | Token para reportes de coverage en codecov.io        | [codecov.io](https://codecov.io) después de registrarte |
+| `SLACK_WEBHOOK_URL` | `https://hooks.slack.com/...` | URL del webhook para notificaciones en Slack         | Configurar en tu workspace de Slack  |
 
-#### Secrets Opcionales (para deployment real):
+#### 🔧 Secrets para Deployment Real (SOLO SI TIENES INFRAESTRUCTURA):
 
 | Nombre del Secret      | Valor Ejemplo      | Descripción                        |
 | ---------------------- | ------------------ | ---------------------------------- |
@@ -53,10 +53,17 @@ Haz clic en **"New repository secret"** para cada uno de estos:
 
 ### 1.3 Cómo Crear un Secret
 
+**⚠️ IMPORTANTE**: Estos secrets son OPCIONALES. Solo configúralos si quieres usar esas funcionalidades específicas.
+
 1. Haz clic en **"New repository secret"**
 2. **Name**: Escribe exactamente el nombre del secret (ej: `CODECOV_TOKEN`)
-3. **Secret**: Pega el valor correspondiente
+3. **Secret**: Pega el valor **REAL** que obtuviste del servicio correspondiente
 4. Haz clic en **"Add secret"**
+
+#### ❌ ¿Qué pasa si NO configuro secrets?
+- Sin `CODECOV_TOKEN`: El pipeline funciona, pero no sube reportes de coverage a Codecov
+- Sin `SLACK_WEBHOOK_URL`: El pipeline funciona, pero no envía notificaciones a Slack
+- **El CI/CD seguirá funcionando perfectamente sin ningún secret configurado**
 
 ---
 
