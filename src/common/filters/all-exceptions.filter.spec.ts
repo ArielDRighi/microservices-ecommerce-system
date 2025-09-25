@@ -1,6 +1,7 @@
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
+import { WinstonLoggerService } from '../utils/winston-logger.service';
 
 interface MockResponse {
   status: jest.Mock;
@@ -17,9 +18,15 @@ describe('AllExceptionsFilter', () => {
   let mockResponse: MockResponse;
   let mockRequest: MockRequest;
   let mockHost: ArgumentsHost;
+  let mockLogger: WinstonLoggerService;
 
   beforeEach(() => {
-    filter = new AllExceptionsFilter();
+    mockLogger = {
+      error: jest.fn(),
+      warn: jest.fn(),
+    } as Partial<WinstonLoggerService> as WinstonLoggerService;
+
+    filter = new AllExceptionsFilter(mockLogger);
 
     mockResponse = {
       status: jest.fn().mockReturnThis(),
@@ -166,7 +173,7 @@ describe('AllExceptionsFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Database error occurred',
+          message: 'Database operation failed',
           error: 'BAD_REQUEST',
         }),
       );

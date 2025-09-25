@@ -3,21 +3,20 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 // Configuration
 import { appConfig, databaseConfig, bullConfig, jwtConfig } from './config';
+import { validate } from './config/env.validation';
 
 // Common providers
-import {
-  AllExceptionsFilter,
-  ResponseInterceptor,
-  LoggingInterceptor,
-  JwtAuthGuard,
-} from './common';
+import { AllExceptionsFilter, ResponseInterceptor, LoggingInterceptor } from './common';
+
+// Logger module
+import { LoggerModule } from './common/utils/logger.module';
 
 // Modules (to be added as we develop them)
 // import { AuthModule } from './modules/auth/auth.module';
@@ -32,12 +31,20 @@ import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
-    // Configuration
+    // Configuration with validation
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, databaseConfig, bullConfig, jwtConfig],
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: ['.env.local', '.env.development', '.env'],
+      validate,
+      validationOptions: {
+        allowUnknown: true,
+        abortEarly: false,
+      },
     }),
+
+    // Winston Logger Module (Global)
+    LoggerModule,
 
     // Database
     TypeOrmModule.forRootAsync({
@@ -96,11 +103,11 @@ import { HealthModule } from './health/health.module';
       useClass: LoggingInterceptor,
     },
 
-    // Global JWT guard
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
+    // Global JWT guard (commented out for now until auth is implemented)
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: JwtAuthGuard,
+    // },
   ],
 })
 export class AppModule {}
