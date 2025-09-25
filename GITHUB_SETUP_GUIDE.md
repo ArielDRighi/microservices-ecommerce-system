@@ -36,10 +36,10 @@ Todos los secrets son **OPCIONALES**. El pipeline funcionará sin ellos, pero co
 
 #### ✅ Secrets para Funcionalidades Adicionales (OPCIONALES):
 
-| Nombre del Secret   | Valor Ejemplo                 | Descripción                                           | ¿Dónde Obtenerlo?                    |
-| ------------------- | ----------------------------- | ----------------------------------------------------- | ------------------------------------ |
-| `CODECOV_TOKEN`     | `ejemplo: 12345678-abcd-...`  | Token para reportes de coverage en codecov.io        | [codecov.io](https://codecov.io) después de registrarte |
-| `SLACK_WEBHOOK_URL` | `https://hooks.slack.com/...` | URL del webhook para notificaciones en Slack         | Configurar en tu workspace de Slack  |
+| Nombre del Secret   | Valor Ejemplo                 | Descripción                                   | ¿Dónde Obtenerlo?                                       |
+| ------------------- | ----------------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| `CODECOV_TOKEN`     | `ejemplo: 12345678-abcd-...`  | Token para reportes de coverage en codecov.io | [codecov.io](https://codecov.io) después de registrarte |
+| `SLACK_WEBHOOK_URL` | `https://hooks.slack.com/...` | URL del webhook para notificaciones en Slack  | Configurar en tu workspace de Slack                     |
 
 #### 🔧 Secrets para Deployment Real (SOLO SI TIENES INFRAESTRUCTURA):
 
@@ -61,6 +61,7 @@ Todos los secrets son **OPCIONALES**. El pipeline funcionará sin ellos, pero co
 4. Haz clic en **"Add secret"**
 
 #### ❌ ¿Qué pasa si NO configuro secrets?
+
 - Sin `CODECOV_TOKEN`: El pipeline funciona, pero no sube reportes de coverage a Codecov
 - Sin `SLACK_WEBHOOK_URL`: El pipeline funciona, pero no envía notificaciones a Slack
 - **El CI/CD seguirá funcionando perfectamente sin ningún secret configurado**
