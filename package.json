@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -31,6 +31,27 @@
     "docker:full": "docker-compose up -d",
     "docker:full:stop": "docker-compose down",
     "docker:full:clean": "docker-compose down -v --remove-orphans",
+    "docker:build": "docker build -t ecommerce-async-resilient-system .",
+    "docker:build:prod": "docker build --target production -t ecommerce-async-resilient-system:prod .",
+    "docker:run": "docker run -p 3000:3000 ecommerce-async-resilient-system",
+    "docker:run:prod": "docker run -p 3000:3000 ecommerce-async-resilient-system:prod",
+    "ci:lint": "npm run lint",
+    "ci:format:check": "prettier --check \"src/**/*.ts\"",
+    "ci:type-check": "npm run type-check",
+    "ci:test": "npm run test",
+    "ci:test:e2e": "npm run test:e2e",
+    "ci:test:cov": "npm run test:cov",
+    "ci:build": "npm run build",
+    "ci:security": "npm audit --audit-level=high",
+    "ci:all": "npm run ci:lint && npm run ci:format:check && npm run ci:type-check && npm run ci:test && npm run ci:build",
+    "deploy:staging": "bash ./scripts/deploy-staging.sh",
+    "deploy:production": "bash ./scripts/deploy-production.sh",
+    "rollback": "bash ./scripts/rollback.sh",
+    "migrate": "bash ./scripts/migrate.sh",
+    "migrate:dev": "bash ./scripts/migrate.sh development run",
+    "migrate:staging": "bash ./scripts/migrate.sh staging run",
+    "migrate:prod": "bash ./scripts/migrate.sh production run",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "prepare": "husky install",
     "precommit": "lint-staged"
   },
@@ -116,6 +137,14 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
+    "coverageThreshold": {
+      "global": {
+        "branches": 18,
+        "functions": 11,
+        "lines": 25,
+        "statements": 25
+      }
+    },
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
     }

@@ -45,26 +45,29 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-      target: development
-    container_name: ecommerce-app
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ecommerce-app-dev
     restart: unless-stopped
     environment:
-      NODE_ENV: development
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: password
-      DATABASE_NAME: ecommerce_async
-      DATABASE_SSL: false
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ''
-      JWT_SECRET: dev-jwt-secret-key
-      JWT_REFRESH_SECRET: dev-refresh-secret-key
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=ecommerce_async
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=development-jwt-secret-key
+      - ENCRYPTION_KEY=dev-encryption-key-32-characters
+      - LOG_LEVEL=debug
+      - LOG_COLORIZE=true
+      - ENABLE_SWAGGER=true
+      - HELMET_ENABLED=false
     volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./src:/app/src:ro
+      - ./package*.json:/app/
+      - /app/node_modules
     ports:
       - '3000:3000'
       - '9229:9229' # Debug port
@@ -76,6 +79,12 @@ services:
       redis:
         condition: service_healthy
     command: npm run start:dev
+    healthcheck:
+      test: ['CMD', 'node', 'health-check.js']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Database Management Tool (optional)
   pgadmin:
