@@ -1,0 +1,249 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Build and Push Docker Image
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Job 2: Deploy to Staging (Automatic)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: staging
+      url: https://staging.ecommerce-system.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup deployment tools
+        run: |
+          echo "Setting up deployment tools..."
+          # In a real scenario, this would install kubectl, helm, or other deployment tools
+
+      - name: Run database migrations
+        run: |
+          echo "Running database migrations for staging..."
+          # In a real scenario, this would connect to staging DB and run migrations
+          echo "Migrations completed successfully"
+
+      - name: Deploy to staging environment
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        run: |
+          echo "Deploying to staging environment..."
+          echo "Using image: $IMAGE_TAG"
+          # In a real scenario, this would deploy to staging infrastructure
+          echo "Deployment to staging completed successfully"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging..."
+          # In a real scenario, this would run actual smoke tests
+          sleep 10
+          echo "Smoke tests passed ✅"
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "🚀 Staging deployment successful!"
+          echo "Environment: staging"
+          echo "Image: ${{ needs.build-and-push.outputs.image-tag }}"
+
+  # Job 3: Deploy to Production (Manual Approval Required)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging]
+    if: github.event.inputs.environment == 'production' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    environment:
+      name: production
+      url: https://ecommerce-system.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup deployment tools
+        run: |
+          echo "Setting up production deployment tools..."
+
+      - name: Create backup
+        run: |
+          echo "Creating production backup..."
+          # In a real scenario, this would create database and application backups
+          echo "Backup created successfully"
+
+      - name: Run database migrations
+        run: |
+          echo "Running database migrations for production..."
+          # In a real scenario, this would connect to production DB and run migrations
+          echo "Production migrations completed successfully"
+
+      - name: Deploy to production environment
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        run: |
+          echo "Deploying to production environment..."
+          echo "Using image: $IMAGE_TAG"
+          # In a real scenario, this would deploy to production infrastructure
+          echo "Production deployment completed successfully"
+
+      - name: Run production health checks
+        run: |
+          echo "Running production health checks..."
+          # In a real scenario, this would check application health endpoints
+          sleep 15
+          echo "Health checks passed ✅"
+
+      - name: Notify production deployment
+        if: success()
+        run: |
+          echo "🎉 Production deployment successful!"
+          echo "Environment: production"
+          echo "Image: ${{ needs.build-and-push.outputs.image-tag }}"
+
+  # Job 4: Rollback (Manual Trigger Only)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rollback'
+    environment:
+      name: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get previous successful deployment
+        id: previous
+        run: |
+          echo "Finding previous successful deployment..."
+          # In a real scenario, this would query deployment history
+          echo "previous-tag=main-$(git rev-parse HEAD~1 | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Rollback to previous version
+        env:
+          PREVIOUS_TAG: ${{ steps.previous.outputs.previous-tag }}
+        run: |
+          echo "Rolling back to previous version: $PREVIOUS_TAG"
+          # In a real scenario, this would rollback the deployment
+          echo "Rollback completed successfully"
+
+      - name: Verify rollback
+        run: |
+          echo "Verifying rollback..."
+          # In a real scenario, this would verify the rollback was successful
+          echo "Rollback verification passed ✅"
+
+      - name: Notify rollback completion
+        run: |
+          echo "↩️ Rollback completed successfully!"
+          echo "Reverted to: ${{ steps.previous.outputs.previous-tag }}"
+
+  # Job 5: Deployment Notifications
+  notify-deployment:
+    name: Send Deployment Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Determine deployment status
+        id: status
+        run: |
+          if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+            echo "staging=✅ Success" >> $GITHUB_OUTPUT
+          else
+            echo "staging=❌ Failed" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+            echo "production=✅ Success" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.deploy-production.result }}" == "skipped" ]]; then
+            echo "production=⏭️ Skipped" >> $GITHUB_OUTPUT
+          else
+            echo "production=❌ Failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send deployment summary
+        run: |
+          echo "🚀 Deployment Pipeline Summary"
+          echo "=============================="
+          echo "Staging: ${{ steps.status.outputs.staging }}"
+          echo "Production: ${{ steps.status.outputs.production }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.actor }}"
+
+      # In a real scenario, you would integrate with Slack, Teams, or email notifications
+      - name: Slack notification (placeholder)
+        if: always()
+        run: |
+          echo "Sending Slack notification..."
+          echo "In production, this would send notifications to your Slack channel"

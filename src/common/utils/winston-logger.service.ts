@@ -84,7 +84,7 @@ export class WinstonLoggerService implements LoggerService {
     // File transports for production and when explicitly enabled
     if (logToFile || environment === 'production') {
       const errorFileLevel = this.configService.get<string>('app.logging.errorFileLevel');
-      
+
       // Error/Warning logs (configurable level)
       transports.push(
         new DailyRotateFile({
