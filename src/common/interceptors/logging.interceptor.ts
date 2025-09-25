@@ -86,6 +86,11 @@ export class LoggingInterceptor implements NestInterceptor {
       return data;
     }
 
+    // Type guard to ensure data is actually an object
+    if (Array.isArray(data) || data === null) {
+      return data;
+    }
+
     const sensitiveFields = [
       'password',
       'passwordHash',
@@ -126,6 +131,7 @@ export class LoggingInterceptor implements NestInterceptor {
       return sanitized;
     };
 
+    // Now we can safely cast to Record<string, unknown> after type checks
     return sanitize(data as Record<string, unknown>);
   }
 

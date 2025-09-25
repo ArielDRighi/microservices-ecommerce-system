@@ -83,7 +83,9 @@ export class WinstonLoggerService implements LoggerService {
 
     // File transports for production and when explicitly enabled
     if (logToFile || environment === 'production') {
-      // Error logs
+      const errorFileLevel = this.configService.get<string>('app.logging.errorFileLevel');
+      
+      // Error/Warning logs (configurable level)
       transports.push(
         new DailyRotateFile({
           filename: `${logDir}/error-%DATE%.log`,
@@ -91,7 +93,7 @@ export class WinstonLoggerService implements LoggerService {
           zippedArchive: this.configService.get<boolean>('app.logging.zippedArchive'),
           maxSize: this.configService.get<string>('app.logging.maxSize'),
           maxFiles: this.configService.get<string>('app.logging.maxFiles'),
-          level: 'error',
+          level: errorFileLevel, // Now configurable (default: 'warn' to include warnings)
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.errors({ stack: true }),

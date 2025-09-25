@@ -112,7 +112,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private handleDatabaseError(error: QueryFailedError): string {
-    const message = error.message.toLowerCase();
+    const message = (error.message ?? '').toLowerCase();
 
     // PostgreSQL specific error handling
     if (message.includes('duplicate key value')) {

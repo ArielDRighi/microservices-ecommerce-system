@@ -57,8 +57,13 @@ export class EnvironmentVariables {
   @IsOptional()
   LOG_MAX_FILES: string = '14d';
 
+  @IsString()
+  @IsIn(['error', 'warn'])
+  @IsOptional()
+  LOG_ERROR_FILE_LEVEL: string = 'warn';
+
   @IsBoolean()
-  @Transform(({ value }) => value !== 'false')
+  @Transform(({ value }) => value === 'true')
   LOG_COLORIZE: boolean = true;
 
   @IsString()
@@ -78,7 +83,7 @@ export class EnvironmentVariables {
   CORS_CREDENTIALS: boolean = false;
 
   @IsBoolean()
-  @Transform(({ value }) => value !== 'false')
+  @Transform(({ value }) => value === 'true')
   ENABLE_SWAGGER: boolean = true;
 
   @IsString()
@@ -92,7 +97,7 @@ export class EnvironmentVariables {
   REQUEST_TIMEOUT: number = 30000;
 
   @IsBoolean()
-  @Transform(({ value }) => value !== 'false')
+  @Transform(({ value }) => value === 'true')
   HELMET_ENABLED: boolean = true;
 
   @IsNumber()

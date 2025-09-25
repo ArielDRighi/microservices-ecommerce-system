@@ -33,6 +33,7 @@ export const appConfig = registerAs('app', () => ({
     colorize: process.env['LOG_COLORIZE'] !== 'false',
     datePattern: process.env['LOG_DATE_PATTERN'] || 'YYYY-MM-DD',
     zippedArchive: process.env['LOG_ZIPPED_ARCHIVE'] === 'true',
+    errorFileLevel: process.env['LOG_ERROR_FILE_LEVEL'] || 'warn',
   },
   request: {
     timeout: parseInt(process.env['REQUEST_TIMEOUT'] || '30000', 10), // 30 seconds
