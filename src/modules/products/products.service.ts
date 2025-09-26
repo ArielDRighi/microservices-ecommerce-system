@@ -414,7 +414,16 @@ export class ProductsService {
     sortBy?: string,
     sortOrder?: 'ASC' | 'DESC',
   ): void {
-    const validSortFields = ['name', 'price', 'createdAt', 'updatedAt', 'brand', 'sku', 'popularity', 'discountPercentage'];
+    const validSortFields = [
+      'name',
+      'price',
+      'createdAt',
+      'updatedAt',
+      'brand',
+      'sku',
+      'popularity',
+      'discountPercentage',
+    ];
 
     const field = validSortFields.includes(sortBy || '') ? sortBy : 'createdAt';
     const order = sortOrder || 'DESC';
