@@ -17,11 +17,11 @@ RUN addgroup -g 1001 -S nodejs && \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production --silent && \
+# Install all dependencies (needed for build)
+RUN npm ci --silent && \
     npm cache clean --force
 
 # Copy source code
@@ -30,9 +30,19 @@ COPY . .
 # Build application
 RUN npm run build
 
-# Remove dev dependencies and source files
-RUN rm -rf src test node_modules && \
-    npm ci --only=production --silent && \
+# ======================
+# Production Dependencies Stage
+# ======================
+FROM node:20-alpine AS deps
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies, ignoring scripts to avoid Husky
+RUN npm ci --only=production --silent --ignore-scripts && \
     npm cache clean --force
 
 # ======================
@@ -50,9 +60,13 @@ RUN addgroup -g 1001 -S nodejs && \
 # Set working directory
 WORKDIR /app
 
+# Copy production dependencies from deps stage
+COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+
 # Copy built application from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Copy package files (needed for runtime)
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
 
 # Create logs directory
@@ -66,7 +80,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node dist/health-check.js || exit 1
+    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

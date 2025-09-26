@@ -24,7 +24,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 // import { OrdersModule } from './modules/orders/orders.module';
-// import { InventoryModule } from './modules/inventory/inventory.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 // import { PaymentsModule } from './modules/payments/payments.module';
 // import { NotificationsModule } from './modules/notifications/notifications.module';
 // import { EventsModule } from './modules/events/events.module';
@@ -75,10 +75,10 @@ import { HealthModule } from './health/health.module';
     UsersModule,
     ProductsModule,
     CategoriesModule,
+    InventoryModule,
 
     // TODO: Add modules as they are developed
     // OrdersModule,
-    // InventoryModule,
     // PaymentsModule,
     // NotificationsModule,
     // EventsModule,
