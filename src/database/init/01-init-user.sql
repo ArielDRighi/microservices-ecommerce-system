@@ -18,8 +18,8 @@ ALTER ROLE postgres WITH SUPERUSER CREATEDB CREATEROLE REPLICATION;
 ALTER USER postgres PASSWORD 'password';
 
 -- Crear la base de datos si no existe
-SELECT 'CREATE DATABASE ecommerce_async'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'ecommerce_async')\gexec
+SELECT 'CREATE DATABASE ecommerce_async_dev'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'ecommerce_async_dev')\gexec
 
 -- Conceder permisos
-GRANT ALL PRIVILEGES ON DATABASE ecommerce_async TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE ecommerce_async_dev TO postgres;

@@ -352,7 +352,7 @@ export class ProductsService {
       minPrice?: number;
       maxPrice?: number;
       onSale?: boolean;
-      tags?: string;
+      tags?: string[];
     },
   ): void {
     const { search, brand, status, minPrice, maxPrice, onSale, tags } = filters;
@@ -404,9 +404,8 @@ export class ProductsService {
     }
 
     // Tags filter
-    if (tags && typeof tags === 'string') {
-      const tagArray = tags.split(',').map((tag) => tag.trim().toLowerCase());
-      queryBuilder.andWhere('product.tags && :tags', { tags: tagArray });
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      queryBuilder.andWhere('product.tags && :tags', { tags });
     }
   }
 
@@ -415,7 +414,7 @@ export class ProductsService {
     sortBy?: string,
     sortOrder?: 'ASC' | 'DESC',
   ): void {
-    const validSortFields = ['name', 'price', 'createdAt', 'updatedAt', 'brand', 'sku'];
+    const validSortFields = ['name', 'price', 'createdAt', 'updatedAt', 'brand', 'sku', 'popularity', 'discountPercentage'];
 
     const field = validSortFields.includes(sortBy || '') ? sortBy : 'createdAt';
     const order = sortOrder || 'DESC';

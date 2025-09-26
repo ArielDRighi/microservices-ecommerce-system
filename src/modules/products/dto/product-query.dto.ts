@@ -75,12 +75,11 @@ export class ProductQueryDto {
   onSale?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Filter by specific tags (comma-separated)',
+    description: 'Filter by specific tags (comma-separated string or array)',
     example: 'wireless,bluetooth,premium',
     type: String,
   })
   @IsOptional()
-  @IsString({ message: 'Tags must be a string' })
   @Transform(({ value }) =>
     typeof value === 'string'
       ? value
@@ -89,7 +88,7 @@ export class ProductQueryDto {
           .filter(Boolean)
       : value,
   )
-  tags?: string;
+  tags?: string[];
 
   @ApiPropertyOptional({
     description: 'Page number for pagination (starts from 1)',

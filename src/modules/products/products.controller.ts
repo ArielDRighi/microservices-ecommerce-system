@@ -86,12 +86,6 @@ export class ProductsController {
     type: String,
   })
   @ApiQuery({
-    name: 'category',
-    required: false,
-    description: 'Filter by product category',
-    type: String,
-  })
-  @ApiQuery({
     name: 'brand',
     required: false,
     description: 'Filter by product brand',
@@ -148,7 +142,6 @@ export class ProductsController {
       'price',
       'createdAt',
       'updatedAt',
-      'category',
       'brand',
       'sku',
       'popularity',
