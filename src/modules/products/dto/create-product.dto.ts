@@ -78,18 +78,6 @@ export class CreateProductDto {
   sku: string;
 
   @ApiPropertyOptional({
-    description: 'Product category',
-    example: 'Electronics',
-    type: String,
-    maxLength: 100,
-  })
-  @IsOptional()
-  @IsString({ message: 'Category must be a string' })
-  @MaxLength(100, { message: 'Category must not exceed 100 characters' })
-  @Transform(({ value }) => value?.trim())
-  category?: string;
-
-  @ApiPropertyOptional({
     description: 'Product brand',
     example: 'AudioTech',
     type: String,

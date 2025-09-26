@@ -38,7 +38,6 @@ describe('ProductsService', () => {
     price: 99.99,
     sku: 'TEST-001',
     isActive: true,
-    category: 'Electronics',
     brand: 'TestBrand',
     weight: 1.0,
     attributes: { color: 'red' },
@@ -110,7 +109,6 @@ describe('ProductsService', () => {
       description: 'Test Description',
       price: 99.99,
       sku: 'TEST-001',
-      category: 'Electronics',
       brand: 'TestBrand',
     };
 
@@ -155,7 +153,6 @@ describe('ProductsService', () => {
       page: 1,
       limit: 10,
       search: 'test',
-      category: 'Electronics',
     };
 
     it('should return paginated products', async () => {

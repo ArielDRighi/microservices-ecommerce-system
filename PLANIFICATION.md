@@ -675,6 +675,259 @@ El módulo debe ser performante y soportar catálogos grandes.
 - Confirmar que cache de productos funcione
 - Validar performance con datasets grandes
 
+**Tests de endpoints involucrados en la tarea con Curl:**
+
+```bash
+# 1. ENDPOINTS DE AUTENTICACIÓN
+# Registrar nuevo usuario
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!",
+    "firstName": "Admin",
+    "lastName": "User"
+  }'
+
+# Login y obtener JWT token
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!"
+  }'
+
+# 2. ENDPOINTS DE USUARIOS
+# Obtener perfil del usuario (requiere token)
+curl -X GET http://localhost:3000/users/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Listar usuarios con paginación
+curl -X GET "http://localhost:3000/users?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Obtener usuario por ID
+curl -X GET http://localhost:3000/users/USER_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# 3. ENDPOINTS DE PRODUCTOS (NUEVOS EN ESTA TAREA)
+# Crear producto (solo admin)
+curl -X POST http://localhost:3000/products \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Laptop Gaming",
+    "description": "Laptop para gaming de alta gama",
+    "price": 1299.99,
+    "sku": "LAP-001",
+    "category": "Electronics",
+    "brand": "TechBrand",
+    "weight": 2.5,
+    "costPrice": 800.00,
+    "compareAtPrice": 1499.99,
+    "trackInventory": true,
+    "minimumStock": 5,
+    "images": ["https://example.com/laptop1.jpg"],
+    "tags": ["gaming", "laptop", "electronics"],
+    "attributes": {"color": "black", "ram": "16GB", "storage": "1TB"}
+  }'
+
+# Listar productos con paginación y filtros
+curl -X GET "http://localhost:3000/products?page=1&limit=10&category=Electronics&minPrice=100&maxPrice=2000&sortBy=price&sortOrder=asc"
+
+# Obtener producto por ID
+curl -X GET http://localhost:3000/products/PRODUCT_ID
+
+# Buscar productos
+curl -X GET "http://localhost:3000/products/search?q=laptop&limit=5"
+
+# Actualizar producto (solo admin)
+curl -X PUT http://localhost:3000/products/PRODUCT_ID \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Laptop Gaming Pro",
+    "price": 1399.99,
+    "description": "Laptop gaming mejorada"
+  }'
+
+# Activar producto (solo admin)
+curl -X PATCH http://localhost:3000/products/PRODUCT_ID/activate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Desactivar producto (solo admin)
+curl -X PATCH http://localhost:3000/products/PRODUCT_ID/deactivate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Eliminar producto - soft delete (solo admin)
+curl -X DELETE http://localhost:3000/products/PRODUCT_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# 4. HEALTH CHECKS
+# Health check general
+curl -X GET http://localhost:3000/health
+
+# Health check detallado
+curl -X GET http://localhost:3000/health/detailed
+```
+
+**Notas importantes para testing:**
+
+- Reemplazar `YOUR_JWT_TOKEN` con el token obtenido del endpoint de login
+- Reemplazar `USER_ID` y `PRODUCT_ID` con IDs reales obtenidos de respuestas anteriores
+- Verificar que endpoints protegidos rechacen requests sin token (401)
+- Verificar que endpoints de admin rechacen usuarios no-admin (403)
+- Probar validaciones de DTOs con datos inválidos
+- Verificar respuestas de paginación y filtros
+- Confirmar que soft delete no elimine físicamente los registros
+
+#### Tarea 7.1: Módulo de Categorías
+
+**Prompt para GitHub Copilot:**
+
+```
+Como experto en NestJS, implementa un módulo completo de categorías que trabaje como sistema independiente:
+
+1. Crear CategoryModule con:
+   - CategoryController con endpoints CRUD completos
+   - CategoryService con lógica de negocio
+   - CategoryEntity con estructura jerárquica (parent-child)
+
+2. Diseñar CategoryEntity:
+   - id (UUID primary key)
+   - name (string, required, unique per level)
+   - description (text, optional)
+   - slug (string, required, unique, SEO-friendly)
+   - parentId (UUID, foreign key a Category, nullable)
+   - isActive (boolean, default true)
+   - sortOrder (number, default 0)
+   - metadata (jsonb, optional para datos adicionales)
+   - timestamps (createdAt, updatedAt)
+
+3. Implementar endpoints REST:
+   - GET /categories (con soporte para árbol jerárquico)
+   - GET /categories/tree (estructura completa del árbol)
+   - GET /categories/:id
+   - GET /categories/slug/:slug
+   - POST /categories (solo admin)
+   - PUT /categories/:id (solo admin)
+   - DELETE /categories/:id (solo admin, verificar no tenga productos)
+   - PATCH /categories/:id/activate (solo admin)
+   - PATCH /categories/:id/deactivate (solo admin)
+
+4. Crear DTOs robustos:
+   - CreateCategoryDto (name, description, slug, parentId)
+   - UpdateCategoryDto (partial del anterior)
+   - CategoryResponseDto (incluir children, parent, productCount)
+   - CategoryTreeDto (estructura jerárquica completa)
+   - CategoryQueryDto (filtros, paginación, includeInactive)
+
+5. Implementar características avanzadas:
+   - Validación de slug único y SEO-friendly
+   - Prevención de ciclos en jerarquía (no puede ser padre de sí misma)
+   - Ordenamiento de categorías por sortOrder y name
+   - Conteo de productos por categoría (opcional)
+   - Cache de estructura de árbol para performance
+   - Soft delete con verificación de dependencias
+
+6. Funciones de utilidad en CategoryService:
+   - buildCategoryTree(): construir árbol completo
+   - getCategoryPath(categoryId): obtener ruta completa (breadcrumb)
+   - getDescendants(categoryId): obtener todas las subcategorías
+   - validateHierarchy(parentId, childId): prevenir ciclos
+   - generateSlug(name): crear slug automático
+
+7. Añadir documentación Swagger completa
+8. Implementar índices de base de datos para performance
+
+El módulo debe soportar jerarquías profundas y ser eficiente en consultas.
+```
+
+**Validaciones de Calidad:**
+
+- Ejecutar `npm run lint` para validar código
+- Verificar `npm run type-check` para tipos TypeScript
+- Correr tests unitarios para lógica de árbol
+- Validar que jerarquía no permita ciclos
+- Probar generación automática de slugs
+- Verificar cache de árbol de categorías
+- Validar performance con jerarquías profundas
+- Confirmar soft delete no afecte productos relacionados
+
+**Tests de endpoints con Curl:**
+
+```bash
+# 1. CREAR CATEGORÍAS
+# Crear categoría raíz
+curl -X POST http://localhost:3000/categories \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Electronics",
+    "description": "Electronic products and gadgets",
+    "slug": "electronics"
+  }'
+
+# Crear subcategoría
+curl -X POST http://localhost:3000/categories \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Laptops",
+    "description": "Laptop computers",
+    "slug": "laptops",
+    "parentId": "PARENT_CATEGORY_ID",
+    "sortOrder": 1
+  }'
+
+# 2. CONSULTAR CATEGORÍAS
+# Listar todas las categorías (plano)
+curl -X GET "http://localhost:3000/categories?page=1&limit=20"
+
+# Obtener árbol completo de categorías
+curl -X GET http://localhost:3000/categories/tree
+
+# Obtener categoría por ID (con hijos)
+curl -X GET http://localhost:3000/categories/CATEGORY_ID
+
+# Obtener categoría por slug
+curl -X GET http://localhost:3000/categories/slug/electronics
+
+# 3. ACTUALIZAR CATEGORÍAS
+# Actualizar categoría (solo admin)
+curl -X PUT http://localhost:3000/categories/CATEGORY_ID \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Consumer Electronics",
+    "description": "Updated description",
+    "sortOrder": 5
+  }'
+
+# Activar categoría
+curl -X PATCH http://localhost:3000/categories/CATEGORY_ID/activate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Desactivar categoría
+curl -X PATCH http://localhost:3000/categories/CATEGORY_ID/deactivate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# 4. ELIMINAR CATEGORÍAS
+# Eliminar categoría (soft delete, solo admin)
+curl -X DELETE http://localhost:3000/categories/CATEGORY_ID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Notas importantes para testing:**
+
+- Reemplazar `YOUR_JWT_TOKEN` con token de admin válido
+- Reemplazar `CATEGORY_ID` y `PARENT_CATEGORY_ID` con IDs reales
+- Verificar que no se permita crear ciclos en jerarquía
+- Probar que slugs se generen automáticamente si no se proveen
+- Verificar que eliminación falle si categoría tiene productos
+- Confirmar que estructura de árbol se retorne correctamente
+- Validar que sortOrder afecte el ordenamiento en respuestas
+
 #### Tarea 8: Sistema de Inventario
 
 **Prompt para GitHub Copilot:**

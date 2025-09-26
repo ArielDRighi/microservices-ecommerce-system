@@ -60,7 +60,6 @@ export class ProductsService {
     try {
       const {
         search,
-        category,
         brand,
         status,
         minPrice,
@@ -79,7 +78,6 @@ export class ProductsService {
       // Apply filters
       this.applyFilters(queryBuilder, {
         search,
-        category,
         brand,
         status,
         minPrice,
@@ -349,7 +347,6 @@ export class ProductsService {
     queryBuilder: SelectQueryBuilder<Product>,
     filters: {
       search?: string;
-      category?: string;
       brand?: string;
       status?: 'active' | 'inactive' | 'all';
       minPrice?: number;
@@ -358,7 +355,7 @@ export class ProductsService {
       tags?: string;
     },
   ): void {
-    const { search, category, brand, status, minPrice, maxPrice, onSale, tags } = filters;
+    const { search, brand, status, minPrice, maxPrice, onSale, tags } = filters;
 
     // Full-text search
     if (search) {
@@ -370,11 +367,6 @@ export class ProductsService {
           searchArray: [search.toLowerCase()],
         },
       );
-    }
-
-    // Category filter
-    if (category) {
-      queryBuilder.andWhere('product.category ILIKE :category', { category: `%${category}%` });
     }
 
     // Brand filter
@@ -423,7 +415,7 @@ export class ProductsService {
     sortBy?: string,
     sortOrder?: 'ASC' | 'DESC',
   ): void {
-    const validSortFields = ['name', 'price', 'createdAt', 'updatedAt', 'category', 'brand', 'sku'];
+    const validSortFields = ['name', 'price', 'createdAt', 'updatedAt', 'brand', 'sku'];
 
     const field = validSortFields.includes(sortBy || '') ? sortBy : 'createdAt';
     const order = sortOrder || 'DESC';

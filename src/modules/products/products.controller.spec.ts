@@ -24,7 +24,6 @@ describe('ProductsController', () => {
     price: 99.99,
     sku: 'TEST-001',
     isActive: true,
-    category: 'Electronics',
     brand: 'TestBrand',
     weight: 1.0,
     attributes: { color: 'red' },
@@ -81,7 +80,6 @@ describe('ProductsController', () => {
       description: 'Test Description',
       price: 99.99,
       sku: 'TEST-001',
-      category: 'Electronics',
       brand: 'TestBrand',
     };
 
@@ -111,7 +109,6 @@ describe('ProductsController', () => {
       page: 1,
       limit: 10,
       search: 'test',
-      category: 'Electronics',
     };
 
     const paginatedResponse = {

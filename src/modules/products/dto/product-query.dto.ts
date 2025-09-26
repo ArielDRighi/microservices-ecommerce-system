@@ -14,16 +14,6 @@ export class ProductQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by product category',
-    example: 'Electronics',
-    type: String,
-  })
-  @IsOptional()
-  @IsString({ message: 'Category must be a string' })
-  @Transform(({ value }) => value?.trim())
-  category?: string;
-
-  @ApiPropertyOptional({
     description: 'Filter by product brand',
     example: 'AudioTech',
     type: String,
@@ -137,7 +127,6 @@ export class ProductQueryDto {
       'price',
       'createdAt',
       'updatedAt',
-      'category',
       'brand',
       'sku',
       'popularity',
@@ -148,17 +137,7 @@ export class ProductQueryDto {
   @IsOptional()
   @IsString({ message: 'Sort by must be a string' })
   @IsIn(
-    [
-      'name',
-      'price',
-      'createdAt',
-      'updatedAt',
-      'category',
-      'brand',
-      'sku',
-      'popularity',
-      'discountPercentage',
-    ],
+    ['name', 'price', 'createdAt', 'updatedAt', 'brand', 'sku', 'popularity', 'discountPercentage'],
     {
       message: 'Invalid sort field',
     },

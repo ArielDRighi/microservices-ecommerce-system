@@ -51,14 +51,6 @@ export class ProductResponseDto {
   isActive: boolean;
 
   @ApiPropertyOptional({
-    description: 'Product category',
-    example: 'Electronics',
-    type: String,
-  })
-  @Expose()
-  category?: string;
-
-  @ApiPropertyOptional({
     description: 'Product brand',
     example: 'AudioTech',
     type: String,
