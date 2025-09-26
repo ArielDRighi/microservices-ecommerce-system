@@ -10,9 +10,12 @@ import {
   BeforeUpdate,
   OneToMany,
   OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { OrderItem } from '../../orders/entities/order-item.entity';
 import { Inventory } from '../../inventory/entities/inventory.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 @Entity('products')
 @Index('idx_products_sku', ['sku'], { unique: true })
@@ -140,6 +143,14 @@ export class Product {
   })
   minimumStock!: number;
 
+  @Column({
+    type: 'uuid',
+    nullable: true,
+    name: 'category_id',
+    comment: 'Reference to product category',
+  })
+  categoryId?: string;
+
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
@@ -165,6 +176,10 @@ export class Product {
 
   @OneToOne(() => Inventory, (inventory) => inventory.product, { lazy: true })
   inventory!: Promise<Inventory>;
+
+  @ManyToOne(() => Category, (category) => category.products, { nullable: true })
+  @JoinColumn({ name: 'category_id' })
+  category?: Category;
 
   // Virtual Properties
   get isOnSale(): boolean {
