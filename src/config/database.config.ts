@@ -6,17 +6,17 @@ export const databaseConfig = registerAs(
   (): TypeOrmModuleOptions => ({
     type: 'postgres',
     host: process.env['DATABASE_HOST'] || 'localhost',
-    port: parseInt(process.env['DATABASE_PORT'] || '5432', 10),
+    port: parseInt(process.env['DATABASE_PORT'] || '5433', 10),
     username: process.env['DATABASE_USERNAME'] || 'postgres',
     password: process.env['DATABASE_PASSWORD'] || 'password',
-    database: process.env['DATABASE_NAME'] || 'ecommerce_async',
+    database: process.env['DATABASE_NAME'] || 'ecommerce_async_dev',
 
     // Entity and Migration Paths
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
 
     // Migration Configuration
-    synchronize: process.env['NODE_ENV'] !== 'production',
+    synchronize: false, // Disabled to prevent TypeORM metadata issues
     migrationsRun: process.env['RUN_MIGRATIONS'] === 'true',
     migrationsTableName: 'migrations_history',
 
@@ -56,17 +56,17 @@ export const databaseConfig = registerAs(
     retryAttempts: parseInt(process.env['DATABASE_RETRY_ATTEMPTS'] || '3', 10),
     retryDelay: parseInt(process.env['DATABASE_RETRY_DELAY'] || '3000', 10),
 
-    // Performance and Cache
-    cache: {
-      type: 'redis',
-      options: {
-        host: process.env['REDIS_HOST'] || 'localhost',
-        port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
-        password: process.env['REDIS_PASSWORD'],
-        db: parseInt(process.env['REDIS_CACHE_DB'] || '1', 10),
-      },
-      duration: parseInt(process.env['DATABASE_CACHE_DURATION'] || '30000', 10), // 30 seconds
-    },
+    // Performance and Cache (temporarily disabled for development)
+    // cache: {
+    //   type: 'redis',
+    //   options: {
+    //     host: process.env['REDIS_HOST'] || 'localhost',
+    //     port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
+    //     password: process.env['REDIS_PASSWORD'],
+    //     db: parseInt(process.env['REDIS_CACHE_DB'] || '1', 10),
+    //   },
+    //   duration: parseInt(process.env['DATABASE_CACHE_DURATION'] || '30000', 10), // 30 seconds
+    // },
 
     // Additional TypeORM Options
     autoLoadEntities: true,

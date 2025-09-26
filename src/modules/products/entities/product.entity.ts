@@ -67,13 +67,6 @@ export class Product {
 
   @Column({
     type: 'varchar',
-    length: 100,
-    nullable: true,
-  })
-  category?: string;
-
-  @Column({
-    type: 'varchar',
     length: 50,
     nullable: true,
   })
@@ -222,10 +215,6 @@ export class Product {
 
     if (this.sku) {
       this.sku = this.sku.toUpperCase().trim();
-    }
-
-    if (this.category) {
-      this.category = this.category.trim();
     }
 
     if (this.brand) {

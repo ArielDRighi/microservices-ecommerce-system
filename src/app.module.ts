@@ -21,7 +21,7 @@ import { LoggerModule } from './common/utils/logger.module';
 // Modules (to be added as we develop them)
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-// import { ProductsModule } from './modules/products/products.module';
+import { ProductsModule } from './modules/products/products.module';
 // import { OrdersModule } from './modules/orders/orders.module';
 // import { InventoryModule } from './modules/inventory/inventory.module';
 // import { PaymentsModule } from './modules/payments/payments.module';
@@ -72,9 +72,9 @@ import { HealthModule } from './health/health.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    ProductsModule,
 
     // TODO: Add modules as they are developed
-    // ProductsModule,
     // OrdersModule,
     // InventoryModule,
     // PaymentsModule,

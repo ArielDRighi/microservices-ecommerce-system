@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
 
 import { AppModule } from './app.module';
+import { CustomValidationPipe } from './common/pipes';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -42,11 +43,11 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix(apiPrefix);
 
-  // API Versioning
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
+  // API Versioning - Disabled for now to simplify routing
+  // app.enableVersioning({
+  //   type: VersioningType.URI,
+  //   defaultVersion: '1',
+  // });
 
   // CORS
   app.enableCors({
@@ -58,7 +59,7 @@ async function bootstrap() {
 
   // Global validation pipe
   app.useGlobalPipes(
-    new ValidationPipe({
+    new CustomValidationPipe({
       whitelist: true, // Strip non-decorated properties
       transform: true, // Transform payloads to DTO instances
       forbidNonWhitelisted: true, // Throw error for non-whitelisted properties

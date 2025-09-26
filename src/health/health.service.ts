@@ -31,7 +31,7 @@ export class HealthService {
       // Disk health check - should have at least 250GB free
       () =>
         this.disk.checkStorage('storage', {
-          path: '/',
+          path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.9, // 90% usage threshold
         }),
     ]);

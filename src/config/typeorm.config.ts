@@ -3,18 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import { join } from 'path';
 
-// Load environment variables
-config();
+// Load environment variables from the correct file
+config({ path: `.env.${process.env['NODE_ENV'] || 'development'}` });
 
 const configService = new ConfigService();
 
 export default new DataSource({
   type: 'postgres',
   host: configService.get('DATABASE_HOST', 'localhost'),
-  port: configService.get('DATABASE_PORT', 5432),
+  port: configService.get('DATABASE_PORT', 5433),
   username: configService.get('DATABASE_USERNAME', 'postgres'),
   password: configService.get('DATABASE_PASSWORD', 'password'),
-  database: configService.get('DATABASE_NAME', 'ecommerce_async'),
+  database: configService.get('DATABASE_NAME', 'ecommerce_async_dev'),
 
   entities: [
     join(__dirname, '..', 'modules', '**', 'entities', '*.entity{.ts,.js}'),
