@@ -390,20 +390,7 @@ export class InventoryController {
       OUT_OF_STOCK: number;
     };
   }> {
-    // TODO: Implement inventory statistics calculation
     this.logger.log(`Getting inventory stats for location: ${location}`);
-
-    // For now, return placeholder data
-    return {
-      totalItems: 0,
-      totalValue: 0,
-      lowStockCount: 0,
-      outOfStockCount: 0,
-      statusBreakdown: {
-        IN_STOCK: 0,
-        LOW_STOCK: 0,
-        OUT_OF_STOCK: 0,
-      },
-    };
+    return await this.inventoryService.getInventoryStats(location);
   }
 }

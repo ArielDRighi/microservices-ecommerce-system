@@ -158,7 +158,7 @@ export class InventoryService {
         referenceId: reservationId,
         referenceType: 'RESERVATION',
         reason: reason || `Stock reserved: ${referenceId || 'N/A'}`,
-        performedBy: 'system', // TODO: Get from current user context
+        performedBy: this.getCurrentUser(),
       });
 
       await manager.save(movement);
@@ -234,7 +234,7 @@ export class InventoryService {
         referenceId: reservationId,
         referenceType: 'RESERVATION_RELEASE',
         reason: reason || 'Reservation released',
-        performedBy: 'system', // TODO: Get from current user context
+        performedBy: this.getCurrentUser(),
       });
 
       await manager.save(movement);
@@ -299,7 +299,7 @@ export class InventoryService {
         referenceId: orderId,
         referenceType: 'ORDER',
         reason: notes || `Order fulfillment: ${orderId}`,
-        performedBy: 'system', // TODO: Get from current user context
+        performedBy: this.getCurrentUser(),
       });
 
       await manager.save(movement);
@@ -376,7 +376,7 @@ export class InventoryService {
         referenceId,
         referenceType,
         reason: reason || `Stock added: ${movementType}`,
-        performedBy: 'system', // TODO: Get from current user context
+        performedBy: this.getCurrentUser(),
       });
 
       await manager.save(movement);
@@ -446,7 +446,7 @@ export class InventoryService {
         referenceId,
         referenceType,
         reason: reason || `Stock removed: ${movementType}`,
-        performedBy: 'system', // TODO: Get from current user context
+        performedBy: this.getCurrentUser(),
       });
 
       await manager.save(movement);
@@ -629,6 +629,77 @@ export class InventoryService {
    */
   private getStockStatus(inventory: Inventory): string {
     return inventory.stockStatus;
+  }
+
+  /**
+   * Get inventory statistics
+   */
+  async getInventoryStats(location?: string): Promise<{
+    totalItems: number;
+    totalValue: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+    statusBreakdown: {
+      IN_STOCK: number;
+      LOW_STOCK: number;
+      OUT_OF_STOCK: number;
+    };
+  }> {
+    const queryBuilder = this.inventoryRepository
+      .createQueryBuilder('inventory')
+      .leftJoinAndSelect('inventory.product', 'product');
+
+    if (location) {
+      queryBuilder.andWhere('inventory.location = :location', { location });
+    }
+
+    const inventories = await queryBuilder.getMany();
+
+    let totalItems = 0;
+    let totalValue = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+    let inStockCount = 0;
+
+    for (const inventory of inventories) {
+      totalItems++;
+      const product = await inventory.product;
+      totalValue += inventory.currentStock * product.price;
+
+      const status = this.getStockStatus(inventory);
+      switch (status) {
+        case 'LOW_STOCK':
+          lowStockCount++;
+          break;
+        case 'OUT_OF_STOCK':
+          outOfStockCount++;
+          break;
+        default:
+          inStockCount++;
+      }
+    }
+
+    return {
+      totalItems,
+      totalValue: Math.round(totalValue * 100) / 100, // Round to 2 decimal places
+      lowStockCount,
+      outOfStockCount,
+      statusBreakdown: {
+        IN_STOCK: inStockCount,
+        LOW_STOCK: lowStockCount,
+        OUT_OF_STOCK: outOfStockCount,
+      },
+    };
+  }
+
+  /**
+   * Helper method to get current user or default to system
+   */
+  private getCurrentUser(): string {
+    // TODO: Implement actual user context extraction from JWT token
+    // This should be injected from the authentication context
+    // For now, return 'system' as placeholder until auth context is available
+    return 'system';
   }
 
   /**
