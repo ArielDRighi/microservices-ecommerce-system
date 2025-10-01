@@ -51,6 +51,7 @@ export class NotificationEntity {
   templateType: string;
 
   @Column({ name: 'template_data', type: 'jsonb', nullable: true })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   templateData: Record<string, any>;
 
   @Column({ name: 'message_id', type: 'varchar', length: 255, nullable: true })

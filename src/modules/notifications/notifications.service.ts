@@ -232,13 +232,24 @@ export class NotificationsService {
     subject?: string;
     content: string;
     templateType?: string;
-    templateData?: Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    templateData?: Record<string, any>;
     messageId?: string;
     errorMessage?: string;
     priority: NotificationPriority;
   }): Promise<NotificationEntity> {
     const notification = this.notificationRepository.create({
-      ...data,
+      userId: data.userId,
+      type: data.type,
+      status: data.status,
+      recipient: data.recipient,
+      subject: data.subject,
+      content: data.content,
+      templateType: data.templateType,
+      templateData: data.templateData,
+      messageId: data.messageId,
+      errorMessage: data.errorMessage,
+      priority: data.priority,
       sentAt: data.status === NotificationStatus.SENT ? new Date() : undefined,
     });
 

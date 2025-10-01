@@ -1,16 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NotificationProvider, NotificationResult } from '../interfaces';
+import {
+  NotificationProvider,
+  NotificationResult,
+  NotificationProviderOptions,
+} from '../interfaces';
 import { NotificationStatus } from '../enums';
 import { v4 as uuidv4 } from 'uuid';
 
-interface EmailAttachment {
-  filename: string;
-  content: Buffer;
-  contentType: string;
-}
-
-interface EmailOptions {
-  attachments?: EmailAttachment[];
+interface EmailOptions extends NotificationProviderOptions {
   from?: string;
   replyTo?: string;
 }

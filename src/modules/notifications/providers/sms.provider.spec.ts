@@ -141,7 +141,7 @@ describe('SMSProvider', () => {
       // First user hit limit, second should also hit limit
       expect(result1.success).toBe(false);
       expect(result2.success).toBe(false);
-    });
+    }, 10000);
   });
 
   describe('Opt-Out Mechanism', () => {

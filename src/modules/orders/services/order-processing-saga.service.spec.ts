@@ -12,7 +12,7 @@ import { OrderStatus } from '../enums/order-status.enum';
 import { InventoryService } from '../../inventory/inventory.service';
 import { PaymentsService } from '../../payments/payments.service';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { NotificationType, NotificationStatus } from '../../notifications/enums';
+import { NotificationStatus } from '../../notifications/enums';
 import { SagaStep } from '../types/saga.types';
 import { PaymentStatus, PaymentMethod } from '../../payments/dto/payment.dto';
 
