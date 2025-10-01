@@ -247,8 +247,11 @@ export class NotificationsService {
         break;
     }
 
+    if (reasons.length === 0) {
+      return 'Unknown notification error';
+    }
     const index = Math.floor(Math.random() * reasons.length);
-    return reasons[index] || reasons[0] || 'Unknown failure reason';
+    return reasons[index]!;
   }
 
   /**

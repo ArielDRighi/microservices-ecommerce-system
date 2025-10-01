@@ -238,7 +238,10 @@ export class PaymentsService {
       'Card not activated',
     ];
 
-    return reasons[Math.floor(Math.random() * reasons.length)] || reasons[0] || 'Payment failed';
+    if (reasons.length === 0) {
+      return 'Payment failed';
+    }
+    return reasons[Math.floor(Math.random() * reasons.length)]!;
   }
 
   /**
@@ -256,7 +259,10 @@ export class PaymentsService {
       'CARD_NOT_ACTIVATED',
     ];
 
-    return codes[Math.floor(Math.random() * codes.length)] || codes[0] || 'PAYMENT_FAILED';
+    if (codes.length === 0) {
+      return 'PAYMENT_FAILED';
+    }
+    return codes[Math.floor(Math.random() * codes.length)]!;
   }
 
   /**

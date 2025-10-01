@@ -231,7 +231,7 @@ for i in {1..10}; do
     # Si es el último intento
     if [ "$i" -eq 10 ]; then
         echo ""
-        echo -e "${YELLOW}⚠ Saga aún en proceso después de 20 segundos${NC}"
+        echo -e "${YELLOW}⚠ Saga aún en proceso después de al menos 20 segundos${NC}"
         echo "  Estado final: $STATUS"
         echo ""
         echo "Detalles de la orden (JSON):"

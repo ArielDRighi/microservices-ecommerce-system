@@ -614,7 +614,6 @@ export class OrderProcessingSagaService {
       sagaState.stateData = stateData as unknown as Record<string, unknown>;
 
       sagaState.status = SagaStatus.COMPENSATED;
-      // Note: compensatedAt field doesn't exist in saga_states table
       await this.sagaStateRepository.save(sagaState);
     } catch (error) {
       this.logger.error(`Compensation ${action} failed for saga ${sagaState.id}`, error);
