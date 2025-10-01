@@ -325,9 +325,6 @@ export class MockPaymentProvider implements PaymentProvider {
       'Card type not accepted',
     ];
 
-    if (reasons.length === 0) {
-      return 'Payment failed';
-    }
     return reasons[Math.floor(Math.random() * reasons.length)]!;
   }
 
@@ -348,9 +345,6 @@ export class MockPaymentProvider implements PaymentProvider {
       'CARD_TYPE_NOT_ACCEPTED',
     ];
 
-    if (codes.length === 0) {
-      return 'PAYMENT_FAILED';
-    }
     return codes[Math.floor(Math.random() * codes.length)]!;
   }
 

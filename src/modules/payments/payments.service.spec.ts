@@ -215,7 +215,7 @@ describe('PaymentsService', () => {
   describe('getPaymentStatus', () => {
     it('should retrieve payment status', async () => {
       // First create a successful payment
-      let paymentId: string;
+      let paymentId: string | undefined;
 
       // Try until we get a successful payment
       for (let i = 0; i < 20; i++) {
@@ -234,7 +234,7 @@ describe('PaymentsService', () => {
       }
 
       // Get payment status
-      if (paymentId!) {
+      if (paymentId) {
         const status = await service.getPaymentStatus(paymentId);
         expect(status.paymentId).toBe(paymentId);
         expect(status.status).toBe(PaymentStatus.SUCCEEDED);
@@ -251,7 +251,7 @@ describe('PaymentsService', () => {
   describe('refundPayment', () => {
     it('should refund a successful payment', async () => {
       // First create a successful payment
-      let paymentId: string;
+      let paymentId: string | undefined;
 
       for (let i = 0; i < 20; i++) {
         try {
@@ -268,7 +268,7 @@ describe('PaymentsService', () => {
         }
       }
 
-      if (paymentId!) {
+      if (paymentId) {
         // Now refund it
         const refund = await service.refundPayment({
           paymentId,
@@ -294,7 +294,7 @@ describe('PaymentsService', () => {
 
     it('should reject refund amount exceeding payment amount', async () => {
       // First create a successful payment
-      let paymentId: string;
+      let paymentId: string | undefined;
 
       for (let i = 0; i < 20; i++) {
         try {
@@ -311,7 +311,7 @@ describe('PaymentsService', () => {
         }
       }
 
-      if (paymentId!) {
+      if (paymentId) {
         // Try to refund more than payment amount
         await expect(
           service.refundPayment({
