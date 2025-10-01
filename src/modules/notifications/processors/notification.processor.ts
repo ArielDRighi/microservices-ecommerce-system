@@ -3,13 +3,34 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { NotificationsService } from '../notifications.service';
 import { NotificationPriority } from '../enums';
+import { SendOrderConfirmationDto, SendPaymentFailureDto, SendShippingUpdateDto } from '../dto';
 
-interface NotificationJob {
-  type: 'order-confirmation' | 'payment-failure' | 'shipping-update' | 'welcome';
-  data: Record<string, unknown>;
-  priority: NotificationPriority;
-  userId: string;
-}
+// Discriminated union types for type-safe job handling
+type NotificationJob =
+  | {
+      type: 'order-confirmation';
+      data: SendOrderConfirmationDto;
+      priority: NotificationPriority;
+      userId: string;
+    }
+  | {
+      type: 'payment-failure';
+      data: SendPaymentFailureDto;
+      priority: NotificationPriority;
+      userId: string;
+    }
+  | {
+      type: 'shipping-update';
+      data: SendShippingUpdateDto;
+      priority: NotificationPriority;
+      userId: string;
+    }
+  | {
+      type: 'welcome';
+      data: Record<string, unknown>;
+      priority: NotificationPriority;
+      userId: string;
+    };
 
 @Processor('notification-sending')
 export class NotificationProcessor {
@@ -24,31 +45,23 @@ export class NotificationProcessor {
     try {
       switch (job.data.type) {
         case 'order-confirmation':
-          await this.notificationsService.sendOrderConfirmation(
-            job.data.data as unknown as Parameters<
-              typeof this.notificationsService.sendOrderConfirmation
-            >[0],
-          );
+          await this.notificationsService.sendOrderConfirmation(job.data.data);
           break;
         case 'payment-failure':
-          await this.notificationsService.sendPaymentFailure(
-            job.data.data as unknown as Parameters<
-              typeof this.notificationsService.sendPaymentFailure
-            >[0],
-          );
+          await this.notificationsService.sendPaymentFailure(job.data.data);
           break;
         case 'shipping-update':
-          await this.notificationsService.sendShippingUpdate(
-            job.data.data as unknown as Parameters<
-              typeof this.notificationsService.sendShippingUpdate
-            >[0],
-          );
+          await this.notificationsService.sendShippingUpdate(job.data.data);
           break;
         case 'welcome':
           await this.notificationsService.sendWelcomeEmail(job.data.userId);
           break;
         default:
-          this.logger.warn(`Unknown notification type: ${job.data.type}`);
+          // Exhaustiveness check - TypeScript will error if a case is missed
+          const _exhaustiveCheck: never = job.data;
+          this.logger.warn(
+            `Unknown notification type: ${(_exhaustiveCheck as NotificationJob).type}`,
+          );
       }
 
       this.logger.log(`Successfully processed notification job ${job.id}`);

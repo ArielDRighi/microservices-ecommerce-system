@@ -195,7 +195,7 @@ export class TemplateService {
               <div class="order-details">
                 <h2>Order Details</h2>
                 <div class="total">
-                  Total Amount: $\{\{totalAmount\}\}
+                  Total Amount: ${{ totalAmount }}
                 </div>
               </div>
               <p>We'll send you another email when your order ships.</p>
@@ -234,7 +234,7 @@ export class TemplateService {
               <div class="order-details">
                 <h2>Detalles del Pedido</h2>
                 <div class="total">
-                  Monto Total: $\{\{totalAmount\}\}
+                  Monto Total: ${{ totalAmount }}
                 </div>
               </div>
               <p>Le enviaremos otro correo cuando su pedido sea enviado.</p>

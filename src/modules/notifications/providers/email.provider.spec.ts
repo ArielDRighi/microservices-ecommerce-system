@@ -54,13 +54,13 @@ describe('EmailProvider', () => {
         '<p>Test Content</p>',
       );
 
-      // Solo verificamos messageIds si ambos fueron exitosos
+      // Only check messageIds if both were successful
       if (result1.success && result2.success) {
         expect(result1.messageId).toBeDefined();
         expect(result2.messageId).toBeDefined();
         expect(result1.messageId).not.toBe(result2.messageId);
       } else {
-        // Si alguno falló, solo verificamos que retornen resultados válidos
+        // If any failed, we only check that they return valid results
         expect(result1).toBeDefined();
         expect(result2).toBeDefined();
       }
@@ -154,7 +154,7 @@ describe('EmailProvider', () => {
         { attachments },
       );
 
-      // El test puede fallar aleatoriamente (5% failure rate)
+      // The test may fail randomly (5% failure rate)
       expect(result).toBeDefined();
       if (result.success) {
         expect(result.messageId).toBeDefined();

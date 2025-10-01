@@ -71,7 +71,9 @@ describe('TemplateService', () => {
     });
 
     it('should fallback to English if language not found', () => {
-      const template = service.getTemplate(TemplateType.ORDER_CONFIRMATION, 'fr' as Language);
+      // Test with an unsupported language code
+      const unsupportedLanguage = 'FR' as Language;
+      const template = service.getTemplate(TemplateType.ORDER_CONFIRMATION, unsupportedLanguage);
       expect(template).toBeDefined();
       expect(template.language).toBe(Language.EN);
     });
