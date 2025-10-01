@@ -59,7 +59,6 @@ async function seedTestInventory() {
     console.log(`   📦 Laptop Test: 100 units`);
     console.log(`   📦 Mouse Test: 100 units`);
     console.log('\n🎉 Seed completed successfully!');
-
   } catch (error) {
     console.error('❌ Seed failed:', error);
     throw error;
