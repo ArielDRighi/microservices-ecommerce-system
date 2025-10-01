@@ -85,13 +85,13 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
     }
 
     this.logger.log('Starting OutboxProcessor...');
-    
+
     // Process immediately on start
     await this.processPendingEvents();
 
     // Note: Cron job (@Cron decorator) handles periodic processing
     // No need for setInterval to avoid duplicate processing
-  }  /**
+  } /**
    * Stop the outbox processor
    */
   async stop(): Promise<void> {
@@ -101,7 +101,7 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
     while (this.isProcessing) {
       await this.sleep(100);
     }
-    
+
     this.logger.log('OutboxProcessor stopped');
   }
 
