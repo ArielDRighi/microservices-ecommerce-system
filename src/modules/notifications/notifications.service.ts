@@ -1,279 +1,247 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { TemplateService } from './templates/template.service';
+import { EmailProvider } from './providers/email.provider';
+import { SMSProvider } from './providers/sms.provider';
+import { NotificationEntity } from './entities/notification.entity';
+import {
+  NotificationType,
+  NotificationStatus,
+  NotificationPriority,
+  Language,
+  TemplateType,
+} from './enums';
+import { NotificationResult, NotificationPreferences } from './interfaces';
+import { SendOrderConfirmationDto, SendPaymentFailureDto, SendShippingUpdateDto } from './dto';
 
-export enum NotificationType {
-  ORDER_CONFIRMATION = 'ORDER_CONFIRMATION',
-  PAYMENT_FAILURE = 'PAYMENT_FAILURE',
-  ORDER_CANCELLED = 'ORDER_CANCELLED',
-  SHIPPING_UPDATE = 'SHIPPING_UPDATE',
-  WELCOME_EMAIL = 'WELCOME_EMAIL',
-}
-
-export enum NotificationChannel {
-  EMAIL = 'EMAIL',
-  SMS = 'SMS',
-  PUSH = 'PUSH',
-}
-
-export enum NotificationStatus {
-  PENDING = 'PENDING',
-  SENT = 'SENT',
-  FAILED = 'FAILED',
-  DELIVERED = 'DELIVERED',
-}
-
-export interface SendNotificationDto {
-  userId: string;
-  type: NotificationType;
-  channel: NotificationChannel;
-  data: Record<string, unknown>;
-}
-
-export interface NotificationResult {
-  notificationId: string;
-  status: NotificationStatus;
-  channel: NotificationChannel;
-  sentAt: Date;
-  failureReason?: string;
-}
-
-/**
- * Mock Notifications Service
- * Simulates email/SMS sending with realistic scenarios:
- * - 95% success rate
- * - 5% failures
- * - Random latency
- */
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  // In-memory storage
-  private notifications = new Map<string, NotificationResult>();
+  constructor(
+    @InjectRepository(NotificationEntity)
+    private readonly notificationRepository: Repository<NotificationEntity>,
+    private readonly templateService: TemplateService,
+    private readonly emailProvider: EmailProvider,
+    private readonly smsProvider: SMSProvider,
+  ) {}
 
-  /**
-   * Send order confirmation notification
-   */
-  async sendOrderConfirmation(
-    userId: string,
-    orderData: {
-      orderId: string;
-      orderNumber: string;
-      totalAmount: number;
-      currency: string;
-      items: Array<{ productId: string; quantity: number; price: number }>;
-    },
-  ): Promise<NotificationResult> {
-    this.logger.log(`Sending order confirmation for order ${orderData.orderId} to user ${userId}`);
+  async sendOrderConfirmation(data: SendOrderConfirmationDto): Promise<NotificationResult> {
+    this.logger.log(`Sending order confirmation for order ${data.orderId}`);
 
-    return this.sendNotification({
-      userId,
-      type: NotificationType.ORDER_CONFIRMATION,
-      channel: NotificationChannel.EMAIL,
-      data: orderData,
-    });
-  }
+    const userEmail = 'customer@example.com';
+    const userName = 'Customer';
 
-  /**
-   * Send payment failure notification
-   */
-  async sendPaymentFailure(
-    userId: string,
-    orderData: {
-      orderId: string;
-      orderNumber: string;
-      reason: string;
-    },
-  ): Promise<NotificationResult> {
-    this.logger.log(
-      `Sending payment failure notification for order ${orderData.orderId} to user ${userId}`,
+    const templateData = {
+      orderNumber: data.orderNumber,
+      customerName: userName,
+      totalAmount: data.totalAmount,
+      currency: data.currency,
+    };
+
+    const rendered = this.templateService.renderTemplate(
+      TemplateType.ORDER_CONFIRMATION,
+      templateData,
+      Language.EN,
     );
 
-    return this.sendNotification({
-      userId,
-      type: NotificationType.PAYMENT_FAILURE,
-      channel: NotificationChannel.EMAIL,
-      data: orderData,
+    const result = await this.emailProvider.send(userEmail, rendered.subject, rendered.body);
+
+    await this.saveNotification({
+      userId: data.orderId,
+      type: NotificationType.EMAIL,
+      status: result.status,
+      recipient: userEmail,
+      subject: rendered.subject,
+      content: rendered.body,
+      templateType: TemplateType.ORDER_CONFIRMATION,
+      templateData,
+      messageId: result.messageId,
+      errorMessage: result.error,
+      priority: NotificationPriority.HIGH,
     });
-  }
 
-  /**
-   * Send order cancelled notification
-   */
-  async sendOrderCancelled(
-    userId: string,
-    orderData: {
-      orderId: string;
-      orderNumber: string;
-      reason: string;
-    },
-  ): Promise<NotificationResult> {
-    this.logger.log(
-      `Sending order cancelled notification for order ${orderData.orderId} to user ${userId}`,
-    );
-
-    return this.sendNotification({
-      userId,
-      type: NotificationType.ORDER_CANCELLED,
-      channel: NotificationChannel.EMAIL,
-      data: orderData,
-    });
-  }
-
-  /**
-   * Send shipping update notification
-   */
-  async sendShippingUpdate(
-    userId: string,
-    data: {
-      orderId: string;
-      trackingNumber: string;
-      carrier: string;
-    },
-  ): Promise<NotificationResult> {
-    this.logger.log(`Sending shipping update for order ${data.orderId} to user ${userId}`);
-
-    return this.sendNotification({
-      userId,
-      type: NotificationType.SHIPPING_UPDATE,
-      channel: NotificationChannel.EMAIL,
-      data,
-    });
-  }
-
-  /**
-   * Generic notification sending
-   */
-  private async sendNotification(dto: SendNotificationDto): Promise<NotificationResult> {
-    const notificationId = randomUUID();
-
-    this.logger.debug(`Sending ${dto.type} notification via ${dto.channel} to user ${dto.userId}`);
-
-    // Simulate sending delay (50-500ms)
-    await this.simulateDelay(50, 500);
-
-    // Simulate notification outcome (95% success)
-    const success = Math.random() < 0.95;
-
-    let result: NotificationResult;
-
-    if (success) {
-      result = {
-        notificationId,
-        status: NotificationStatus.SENT,
-        channel: dto.channel,
-        sentAt: new Date(),
-      };
-
-      this.logger.log(
-        `Notification ${notificationId} sent successfully via ${dto.channel} to user ${dto.userId}`,
-      );
-    } else {
-      const failureReason = this.getRandomFailureReason(dto.channel);
-
-      result = {
-        notificationId,
-        status: NotificationStatus.FAILED,
-        channel: dto.channel,
-        sentAt: new Date(),
-        failureReason,
-      };
-
-      this.logger.warn(
-        `Notification ${notificationId} failed to send: ${failureReason}. This is retriable.`,
-      );
-
-      // Throw error for failed notifications (but they are retriable)
-      throw new Error(`Failed to send notification via ${dto.channel}: ${failureReason}`);
-    }
-
-    this.notifications.set(notificationId, result);
     return result;
   }
 
-  /**
-   * Get notification status
-   */
-  async getNotificationStatus(notificationId: string): Promise<NotificationResult | null> {
-    return this.notifications.get(notificationId) || null;
-  }
+  async sendPaymentFailure(data: SendPaymentFailureDto): Promise<NotificationResult> {
+    this.logger.log(`Sending payment failure notification for order ${data.orderId}`);
 
-  /**
-   * Simulate sending delay
-   */
-  private async simulateDelay(minMs: number, maxMs: number): Promise<void> {
-    const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
+    const userEmail = 'customer@example.com';
+    const userName = 'Customer';
 
-  /**
-   * Get random failure reason based on channel
-   */
-  private getRandomFailureReason(channel: NotificationChannel): string {
-    const emailReasons = [
-      'Email server temporarily unavailable',
-      'Invalid email address format',
-      'Email bounced',
-      'Spam filter rejection',
-      'Rate limit exceeded',
-    ];
-
-    const smsReasons = [
-      'SMS gateway temporarily unavailable',
-      'Invalid phone number format',
-      'SMS delivery failed',
-      'Carrier rejection',
-      'Rate limit exceeded',
-    ];
-
-    const pushReasons = [
-      'Push notification service unavailable',
-      'Device token expired',
-      'Push delivery failed',
-      'Rate limit exceeded',
-    ];
-
-    let reasons: string[] = ['Unknown notification error'];
-
-    switch (channel) {
-      case NotificationChannel.EMAIL:
-        reasons = emailReasons;
-        break;
-      case NotificationChannel.SMS:
-        reasons = smsReasons;
-        break;
-      case NotificationChannel.PUSH:
-        reasons = pushReasons;
-        break;
-    }
-
-    if (reasons.length === 0) {
-      return 'Unknown notification error';
-    }
-    const index = Math.floor(Math.random() * reasons.length);
-    return reasons[index]!;
-  }
-
-  /**
-   * Clear all notifications (for testing)
-   */
-  clearAll(): void {
-    this.notifications.clear();
-    this.logger.warn('All notifications cleared');
-  }
-
-  /**
-   * Get statistics
-   */
-  getStats() {
-    return {
-      totalNotifications: this.notifications.size,
-      sentNotifications: Array.from(this.notifications.values()).filter(
-        (n) => n.status === NotificationStatus.SENT,
-      ).length,
-      failedNotifications: Array.from(this.notifications.values()).filter(
-        (n) => n.status === NotificationStatus.FAILED,
-      ).length,
+    const templateData = {
+      orderNumber: data.orderNumber,
+      customerName: userName,
+      reason: data.reason,
     };
+
+    const rendered = this.templateService.renderTemplate(
+      TemplateType.PAYMENT_FAILURE,
+      templateData,
+      Language.EN,
+    );
+
+    const result = await this.emailProvider.send(userEmail, rendered.subject, rendered.body);
+
+    await this.saveNotification({
+      userId: data.orderId,
+      type: NotificationType.EMAIL,
+      status: result.status,
+      recipient: userEmail,
+      subject: rendered.subject,
+      content: rendered.body,
+      templateType: TemplateType.PAYMENT_FAILURE,
+      templateData,
+      messageId: result.messageId,
+      errorMessage: result.error,
+      priority: NotificationPriority.CRITICAL,
+    });
+
+    return result;
+  }
+
+  async sendShippingUpdate(data: SendShippingUpdateDto): Promise<NotificationResult> {
+    this.logger.log(`Sending shipping update for order ${data.orderId}`);
+
+    const userEmail = 'customer@example.com';
+    const userName = 'Customer';
+
+    const templateData = {
+      orderNumber: data.orderNumber,
+      customerName: userName,
+      trackingNumber: data.trackingNumber,
+      carrier: data.carrier,
+    };
+
+    const rendered = this.templateService.renderTemplate(
+      TemplateType.SHIPPING_UPDATE,
+      templateData,
+      Language.EN,
+    );
+
+    const result = await this.emailProvider.send(userEmail, rendered.subject, rendered.body);
+
+    await this.saveNotification({
+      userId: data.orderId,
+      type: NotificationType.EMAIL,
+      status: result.status,
+      recipient: userEmail,
+      subject: rendered.subject,
+      content: rendered.body,
+      templateType: TemplateType.SHIPPING_UPDATE,
+      templateData,
+      messageId: result.messageId,
+      errorMessage: result.error,
+      priority: NotificationPriority.NORMAL,
+    });
+
+    return result;
+  }
+
+  async sendWelcomeEmail(userId: string): Promise<NotificationResult> {
+    this.logger.log(`Sending welcome email to user ${userId}`);
+
+    const userEmail = 'newuser@example.com';
+    const userName = 'New User';
+
+    const templateData = {
+      userName,
+    };
+
+    const rendered = this.templateService.renderTemplate(
+      TemplateType.WELCOME_EMAIL,
+      templateData,
+      Language.EN,
+    );
+
+    const result = await this.emailProvider.send(userEmail, rendered.subject, rendered.body);
+
+    await this.saveNotification({
+      userId,
+      type: NotificationType.EMAIL,
+      status: result.status,
+      recipient: userEmail,
+      subject: rendered.subject,
+      content: rendered.body,
+      templateType: TemplateType.WELCOME_EMAIL,
+      templateData,
+      messageId: result.messageId,
+      errorMessage: result.error,
+      priority: NotificationPriority.LOW,
+    });
+
+    return result;
+  }
+
+  async shouldSendNotification(
+    userId: string,
+    type: NotificationType,
+    preferences?: NotificationPreferences,
+  ): Promise<boolean> {
+    if (!preferences) {
+      return true;
+    }
+
+    switch (type) {
+      case NotificationType.EMAIL:
+        return preferences.email?.enabled ?? true;
+      case NotificationType.SMS:
+        return (preferences.sms?.enabled && !preferences.sms?.optedOut) || false;
+      case NotificationType.PUSH:
+        return preferences.push?.enabled ?? true;
+      default:
+        return true;
+    }
+  }
+
+  async getNotificationStatus(notificationId: string): Promise<NotificationResult | null> {
+    const notification = await this.notificationRepository.findOne({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      return null;
+    }
+
+    return {
+      success:
+        notification.status === NotificationStatus.SENT ||
+        notification.status === NotificationStatus.OPENED ||
+        notification.status === NotificationStatus.CLICKED,
+      messageId: notification.messageId,
+      status: notification.status,
+      sentAt: notification.sentAt,
+      error: notification.errorMessage,
+    };
+  }
+
+  async getUserNotifications(userId: string): Promise<NotificationEntity[]> {
+    return this.notificationRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  private async saveNotification(data: {
+    userId: string;
+    type: NotificationType;
+    status: NotificationStatus;
+    recipient: string;
+    subject?: string;
+    content: string;
+    templateType?: string;
+    templateData?: Record<string, unknown>;
+    messageId?: string;
+    errorMessage?: string;
+    priority: NotificationPriority;
+  }): Promise<NotificationEntity> {
+    const notification = this.notificationRepository.create({
+      ...data,
+      sentAt: data.status === NotificationStatus.SENT ? new Date() : undefined,
+    });
+
+    return this.notificationRepository.save(notification);
   }
 }
