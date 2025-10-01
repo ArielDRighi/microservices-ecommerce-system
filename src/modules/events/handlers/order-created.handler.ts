@@ -4,7 +4,7 @@ import { OrderCreatedEvent } from '../types/order.events';
 
 /**
  * Handler for OrderCreated events
- * Processes new order creation events
+ * Logs order creation - actual processing is done by OrderProcessingProcessor via Bull queue
  */
 @Injectable()
 export class OrderCreatedHandler extends BaseEventHandler<OrderCreatedEvent> {
@@ -14,23 +14,16 @@ export class OrderCreatedHandler extends BaseEventHandler<OrderCreatedEvent> {
 
   /**
    * Handle OrderCreated event
-   * - Reserve inventory for order items
-   * - Initiate payment processing
-   * - Send order confirmation email
+   * Note: The actual order processing (Saga execution) is handled by the
+   * OrderProcessingProcessor via Bull queue for better scalability and retry logic
    */
   async handle(event: OrderCreatedEvent): Promise<void> {
     this.logger.log(
-      `Processing OrderCreated event for order ${event.orderId} with ${event.items.length} items`,
+      `OrderCreated event received for order ${event.orderId} with ${event.items.length} items. ` +
+        `Total: ${event.totalAmount} ${event.currency}`,
     );
 
-    // TODO: Implement business logic:
-    // 1. Reserve inventory for each item
-    // 2. Initiate payment processing
-    // 3. Send order confirmation notification
-    // 4. Update order status
-
-    this.logger.log(
-      `Order ${event.orderId} created successfully. Total: ${event.totalAmount} ${event.currency}`,
-    );
+    // The Saga execution is handled by OrderProcessingProcessor via Bull queue
+    // This handler just acknowledges the event was published successfully
   }
 }

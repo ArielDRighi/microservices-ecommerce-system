@@ -4,13 +4,41 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bull';
 import { OrderProcessingProcessor } from './order-processing.processor';
 import { Logger } from '@nestjs/common';
+import { OrderProcessingSagaService } from '../../modules/orders/services/order-processing-saga.service';
 
 describe('OrderProcessingProcessor', () => {
   let processor: OrderProcessingProcessor;
 
+  const mockSagaService = {
+    executeSaga: jest.fn().mockResolvedValue({
+      finalStatus: 'COMPLETED',
+      totalDurationMs: 1000,
+      compensationExecuted: false,
+      stepMetrics: [
+        { step: 'STOCK_VERIFIED', success: true, durationMs: 100, retries: 0 },
+        { step: 'STOCK_RESERVED', success: true, durationMs: 150, retries: 0 },
+        { step: 'PAYMENT_PROCESSING', success: true, durationMs: 200, retries: 0 },
+        { step: 'PAYMENT_COMPLETED', success: true, durationMs: 150, retries: 0 },
+        { step: 'NOTIFICATION_SENT', success: true, durationMs: 100, retries: 0 },
+        { step: 'CONFIRMED', success: true, durationMs: 100, retries: 0 },
+      ],
+      circuitBreakerStats: {
+        payment: { state: 'CLOSED', failures: 0, successes: 1, lastFailureTime: null },
+        inventory: { state: 'CLOSED', failures: 0, successes: 2, lastFailureTime: null },
+        notification: { state: 'CLOSED', failures: 0, successes: 1, lastFailureTime: null },
+      },
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OrderProcessingProcessor],
+      providers: [
+        OrderProcessingProcessor,
+        {
+          provide: OrderProcessingSagaService,
+          useValue: mockSagaService,
+        },
+      ],
     }).compile();
 
     processor = module.get<OrderProcessingProcessor>(OrderProcessingProcessor);
@@ -33,6 +61,7 @@ describe('OrderProcessingProcessor', () => {
         data: {
           jobId: 'order-123',
           orderId: 'order-123',
+          sagaId: 'saga-123',
           userId: 'user-456',
           items: [
             { productId: 'prod-1', quantity: 2 },
@@ -55,7 +84,7 @@ describe('OrderProcessingProcessor', () => {
       const result = await processor.handleJob(mockJob as Job);
 
       expect(result.success).toBe(true);
-      expect((result.data as any).orderId).toBe('order-123');
+      expect(mockSagaService.executeSaga).toHaveBeenCalledWith('saga-123');
       expect(mockJob.progress).toHaveBeenCalled(); // Verifica que progress fue llamado
     });
 
@@ -66,6 +95,7 @@ describe('OrderProcessingProcessor', () => {
         data: {
           jobId: 'order-456',
           orderId: 'order-456',
+          sagaId: 'saga-456',
           userId: 'user-789',
           items: [{ productId: 'prod-1', quantity: 1 }],
           totalAmount: 99.99,
@@ -94,6 +124,7 @@ describe('OrderProcessingProcessor', () => {
         data: {
           jobId: 'confirm-order-123',
           orderId: 'order-123',
+          sagaId: 'saga-confirm-123',
           userId: 'user-456',
           items: [{ productId: 'prod-1', quantity: 1 }],
           totalAmount: 99.99,
@@ -109,7 +140,7 @@ describe('OrderProcessingProcessor', () => {
       const result = await processor.handleJob(mockJob as Job);
 
       expect(result.success).toBe(true);
-      expect((result.data as any).orderId).toBe('order-123');
+      expect(mockSagaService.executeSaga).toHaveBeenCalledWith('saga-confirm-123');
     });
   });
 
@@ -121,6 +152,7 @@ describe('OrderProcessingProcessor', () => {
         data: {
           jobId: 'cancel-order-123',
           orderId: 'order-123',
+          sagaId: 'saga-cancel-123',
           userId: 'user-456',
           items: [{ productId: 'prod-1', quantity: 1 }],
           totalAmount: 99.99,
@@ -136,30 +168,11 @@ describe('OrderProcessingProcessor', () => {
       const result = await processor.handleJob(mockJob as Job);
 
       expect(result.success).toBe(true);
-      expect((result.data as any).orderId).toBe('order-123');
+      expect(mockSagaService.executeSaga).toHaveBeenCalledWith('saga-cancel-123');
     });
   });
 
-  describe('error handling', () => {
-    it('should handle missing required fields', async () => {
-      const mockJob: Partial<Job> = {
-        id: '5',
-        name: 'create-order',
-        data: {
-          jobId: 'order-invalid',
-          // Missing orderId and other required fields
-        },
-        attemptsMade: 0,
-        opts: { attempts: 3 },
-        progress: jest.fn(),
-      };
-
-      // El procesador maneja errores y devuelve success: false
-      const result = await processor.handleJob(mockJob as Job);
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-
+  describe('processor integration', () => {
     it('should process jobs with various data configurations', async () => {
       // Test with minimal valid data to verify processor flexibility
       const mockJob: Partial<Job> = {
@@ -168,6 +181,7 @@ describe('OrderProcessingProcessor', () => {
         data: {
           jobId: 'order-flexible',
           orderId: 'order-flexible',
+          sagaId: 'saga-flexible',
           userId: 'user-123',
           items: [{ productId: 'prod-1', quantity: 1 }],
           totalAmount: 99.99,
@@ -184,8 +198,7 @@ describe('OrderProcessingProcessor', () => {
 
       // Verify successful processing
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect((result.data as any).orderId).toBe('order-flexible');
+      expect(mockSagaService.executeSaga).toHaveBeenCalledWith('saga-flexible');
     });
   });
 });

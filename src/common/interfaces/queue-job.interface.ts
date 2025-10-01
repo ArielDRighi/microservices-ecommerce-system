@@ -39,11 +39,12 @@ export interface OrderProcessingJobData extends BaseJobData {
   items: Array<{
     productId: string;
     quantity: number;
-    unitPrice: number;
+    unitPrice?: number;
   }>;
-  totalAmount: number;
-  currency: string;
-  idempotencyKey: string;
+  totalAmount?: number;
+  currency?: string;
+  idempotencyKey?: string;
+  sagaId?: string; // Optional saga ID for saga-based processing
 }
 
 /**

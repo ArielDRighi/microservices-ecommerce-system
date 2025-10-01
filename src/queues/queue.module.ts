@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { queueConfigs } from '../config/redis.config';
@@ -10,6 +10,7 @@ import {
 } from './processors';
 import { QueueService } from './queue.service';
 import { BullBoardController } from './bull-board.controller';
+import { OrdersModule } from '../modules/orders/orders.module';
 
 /**
  * Queue Module
@@ -19,6 +20,8 @@ import { BullBoardController } from './bull-board.controller';
 @Global()
 @Module({
   imports: [
+    // Import OrdersModule to access OrderProcessingSagaService
+    forwardRef(() => OrdersModule),
     // Register all queues with their specific configurations
     BullModule.registerQueueAsync(
       {

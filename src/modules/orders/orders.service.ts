@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { Repository, DataSource } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
@@ -7,6 +9,7 @@ import { Product } from '../products/entities/product.entity';
 import { OrderStatus } from './enums/order-status.enum';
 import { EventPublisher } from '../events/publishers/event.publisher';
 import { OrderCreatedEvent } from '../events/types/order.events';
+import { OrderProcessingSagaService } from './services/order-processing-saga.service';
 import {
   CreateOrderDto,
   OrderResponseDto,
@@ -17,7 +20,7 @@ import { randomUUID, createHash } from 'crypto';
 
 /**
  * Orders Service
- * Handles order creation, retrieval, and management
+ * Handles order creation, retrieval, and management with Saga Pattern
  */
 @Injectable()
 export class OrdersService {
@@ -32,6 +35,9 @@ export class OrdersService {
     private readonly productRepository: Repository<Product>,
     private readonly dataSource: DataSource,
     private readonly eventPublisher: EventPublisher,
+    private readonly sagaService: OrderProcessingSagaService,
+    @InjectQueue('order-processing')
+    private readonly orderProcessingQueue: Queue,
   ) {}
 
   /**
@@ -159,8 +165,38 @@ export class OrdersService {
       await this.eventPublisher.publish(orderCreatedEvent, undefined, queryRunner.manager);
       this.logger.log(`OrderCreatedEvent published for order ${savedOrder.id}`);
 
+      // Initialize saga for order processing
+      savedOrder.items = Promise.resolve(savedItems);
+      const sagaState = await this.sagaService.startOrderProcessing(savedOrder);
+      this.logger.log(`Saga ${sagaState.id} initiated for order ${savedOrder.id}`);
+
       // Commit transaction
       await queryRunner.commitTransaction();
+
+      // Enqueue saga processing job (non-blocking)
+      await this.orderProcessingQueue.add(
+        'create-order',
+        {
+          sagaId: sagaState.id,
+          orderId: savedOrder.id,
+          userId: savedOrder.userId,
+          items: orderItemsData.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        },
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: 100, // Keep last 100 completed jobs
+          removeOnFail: false, // Keep failed jobs for analysis
+        },
+      );
+
+      this.logger.log(`Order processing job queued for order ${savedOrder.id}`);
 
       const duration = Date.now() - startTime;
       this.logger.log(`Order ${savedOrder.id} created successfully in ${duration}ms`);
