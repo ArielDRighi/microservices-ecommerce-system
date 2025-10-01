@@ -43,15 +43,14 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
     private readonly inventoryQueue: Queue,
     @InjectQueue('payment-processing')
     private readonly paymentQueue: Queue,
-    config?: OutboxProcessorConfig,
   ) {
     // Set default configuration
     this.config = {
-      batchSize: config?.batchSize ?? 50,
-      maxRetries: config?.maxRetries ?? 5,
-      retryDelay: config?.retryDelay ?? 1000,
-      enabled: config?.enabled ?? true,
-      processingInterval: config?.processingInterval ?? 5000,
+      batchSize: 50,
+      maxRetries: 5,
+      retryDelay: 1000,
+      enabled: true,
+      processingInterval: 5000,
     };
   }
 
