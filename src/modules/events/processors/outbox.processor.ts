@@ -85,31 +85,24 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
     }
 
     this.logger.log('Starting OutboxProcessor...');
-
+    
     // Process immediately on start
     await this.processPendingEvents();
 
-    // Start interval processing (backup to cron)
-    this.processingInterval = setInterval(
-      () => this.processPendingEvents(),
-      this.config.processingInterval,
-    );
-  }
-
-  /**
+    // Note: Cron job (@Cron decorator) handles periodic processing
+    // No need for setInterval to avoid duplicate processing
+  }  /**
    * Stop the outbox processor
    */
   async stop(): Promise<void> {
-    if (this.processingInterval) {
-      clearInterval(this.processingInterval);
-      this.processingInterval = undefined;
-      this.logger.log('OutboxProcessor stopped');
-    }
+    this.logger.log('Stopping OutboxProcessor...');
 
     // Wait for current processing to complete
     while (this.isProcessing) {
       await this.sleep(100);
     }
+    
+    this.logger.log('OutboxProcessor stopped');
   }
 
   /**
@@ -225,8 +218,8 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
         error instanceof Error ? error.stack : String(error),
       );
 
-      // Update processed timestamp for retry with exponential backoff
-      await this.updateRetryTimestamp(event);
+      // Event remains with processed: false and processedAt: null for retry
+      // Will be picked up in next polling cycle
     }
   }
 
@@ -251,15 +244,7 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
    */
   private async markAsProcessed(event: OutboxEvent, success: boolean): Promise<void> {
     event.processed = success;
-    event.processedAt = new Date();
-    await this.outboxRepository.save(event);
-  }
-
-  /**
-   * Update retry timestamp for failed events (exponential backoff)
-   */
-  private async updateRetryTimestamp(event: OutboxEvent): Promise<void> {
-    event.processedAt = new Date();
+    event.processedAt = success ? new Date() : undefined;
     await this.outboxRepository.save(event);
   }
 

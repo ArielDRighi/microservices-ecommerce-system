@@ -127,14 +127,15 @@ export class EventPublisher implements IEventPublisher {
   }
 
   /**
-   * Generate a unique idempotency key for an event
-   * Prevents duplicate event publishing
+   * Generate a unique idempotency key for an event.
+   * Prevents duplicate publishing of events with identical eventType, eventId, aggregateId, and version.
+   * Note: If the same business event is generated multiple times with different eventIds, it will not be prevented.
    * @param event - Domain event
    * @returns Idempotency key
    */
   private generateIdempotencyKey(event: DomainEvent): string {
-    // Combine event ID with event type for uniqueness
-    // This ensures that the same event cannot be published twice
+    // Combine eventType, eventId, aggregateId, and version for uniqueness.
+    // This prevents publishing of events with identical identifying fields, but not all possible duplicates of a business event.
     return `${event.eventType}_${event.eventId}_${event.aggregateId}_${event.version}`;
   }
 
