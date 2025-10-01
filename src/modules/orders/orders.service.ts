@@ -13,7 +13,7 @@ import {
   OrderItemResponseDto,
   OrderStatusResponseDto,
 } from './dto';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 
 /**
  * Orders Service
@@ -189,9 +189,8 @@ export class OrdersService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to create order: ${errorMessage}`, errorStack);
+      const { message, stack } = this.extractErrorInfo(error);
+      this.logger.error(`Failed to create order: ${message}`, stack);
       throw error;
     } finally {
       await queryRunner.release();
@@ -266,14 +265,14 @@ export class OrdersService {
    * Generate idempotency key from user and order data
    */
   private generateIdempotencyKey(userId: string, createOrderDto: CreateOrderDto): string {
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const timestamp = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
     const itemsHash = createOrderDto.items
       .map((item) => `${item.productId}-${item.quantity}`)
       .sort()
       .join('|');
 
-    // Simple hash function for idempotency key
-    const hash = Buffer.from(itemsHash).toString('base64').substring(0, 8);
+    // Use SHA-256 hash for idempotency key to prevent collisions
+    const hash = createHash('sha256').update(itemsHash).digest('hex').substring(0, 8);
 
     return `order-${timestamp}-${userId.substring(0, 8)}-${hash}`;
   }
@@ -311,6 +310,23 @@ export class OrdersService {
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       totalPrice: item.totalPrice,
+    };
+  }
+
+  /**
+   * Extract error information consistently
+   * Helper function to reduce error handling duplication
+   */
+  private extractErrorInfo(error: unknown): { message: string; stack?: string } {
+    if (error instanceof Error) {
+      return {
+        message: error.message,
+        stack: error.stack,
+      };
+    }
+    return {
+      message: 'Unknown error',
+      stack: undefined,
     };
   }
 }

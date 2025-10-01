@@ -73,13 +73,13 @@ echo "=========================================="
 PRODUCT1_RESPONSE=$(curl -s -X POST "$BASE_URL/products" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "name": "Test Laptop",
-    "description": "Laptop para validación",
-    "price": 1500.00,
-    "sku": "TEST-LAPTOP-'$TIMESTAMP'",
-    "isActive": true
-  }')
+  -d "{
+    \"name\": \"Test Laptop\",
+    \"description\": \"Laptop para validación\",
+    \"price\": 1500.00,
+    \"sku\": \"TEST-LAPTOP-${TIMESTAMP}\",
+    \"isActive\": true
+  }")
 
 PRODUCT1_ID=$(echo "$PRODUCT1_RESPONSE" | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
 echo "Producto 1 ID: $PRODUCT1_ID"
@@ -87,13 +87,13 @@ echo "Producto 1 ID: $PRODUCT1_ID"
 PRODUCT2_RESPONSE=$(curl -s -X POST "$BASE_URL/products" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "name": "Test Mouse",
-    "description": "Mouse para validación",
-    "price": 25.50,
-    "sku": "TEST-MOUSE-'$TIMESTAMP'",
-    "isActive": true
-  }')
+  -d "{
+    \"name\": \"Test Mouse\",
+    \"description\": \"Mouse para validación\",
+    \"price\": 25.50,
+    \"sku\": \"TEST-MOUSE-${TIMESTAMP}\",
+    \"isActive\": true
+  }")
 
 PRODUCT2_ID=$(echo "$PRODUCT2_RESPONSE" | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
 echo "Producto 2 ID: $PRODUCT2_ID"
