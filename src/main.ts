@@ -4,6 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
+import { createBullBoard } from '@bull-board/api';
+import { BullAdapter } from '@bull-board/api/bullAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { Queue } from 'bull';
 
 import { AppModule } from './app.module';
 import { CustomValidationPipe } from './common/pipes';
@@ -39,6 +43,36 @@ async function bootstrap() {
 
   // Compression
   app.use(compression());
+
+  // Setup Bull Board Dashboard
+  try {
+    const serverAdapter = new ExpressAdapter();
+    serverAdapter.setBasePath('/api/v1/admin/queues');
+
+    // Get queue instances from the app
+    const orderQueue = app.get<Queue>('BullQueue_order-processing');
+    const paymentQueue = app.get<Queue>('BullQueue_payment-processing');
+    const inventoryQueue = app.get<Queue>('BullQueue_inventory-management');
+    const notificationQueue = app.get<Queue>('BullQueue_notification-sending');
+
+    createBullBoard({
+      queues: [
+        new BullAdapter(orderQueue),
+        new BullAdapter(paymentQueue),
+        new BullAdapter(inventoryQueue),
+        new BullAdapter(notificationQueue),
+      ],
+      serverAdapter,
+    });
+
+    // Mount Bull Board before setting global prefix
+    app.use('/api/v1/admin/queues', serverAdapter.getRouter());
+    logger.log(
+      `📊 Bull Board dashboard available at: http://localhost:${port}/api/v1/admin/queues`,
+    );
+  } catch (error) {
+    logger.warn('⚠️  Could not setup Bull Board dashboard:', (error as Error).message);
+  }
 
   // Global prefix
   app.setGlobalPrefix(apiPrefix);

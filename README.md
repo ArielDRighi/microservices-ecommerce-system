@@ -25,12 +25,12 @@ Hacer todo esto **de forma síncrona** bloquea al usuario y hace el sistema frá
 - **Framework**: NestJS 10.x con TypeScript 5.x
 - **Base de Datos**: PostgreSQL 15+ con TypeORM 0.3.x
 - **Message Queue**: Bull (Redis-based) para manejo de colas
-- **Cache**: Redis 7.x
+- **Cache**: Redis 7.x con ioredis
 - **Autenticación**: JWT con Passport
 - **Documentación**: Swagger/OpenAPI
 - **Logging**: Winston con structured logging
 - **Testing**: Jest con supertest
-- **Monitoring**: Terminus Health Checks
+- **Monitoring**: Terminus Health Checks + Bull Board Dashboard
 
 ### Patrones de Diseño Implementados
 
@@ -101,13 +101,28 @@ Response: 202 Accepted
   - Enviar notificaciones
   - Actualizar estado final
 
-### 3. **Características Avanzadas**
+### 3. **Sistema de Colas Robusto**
 
-- **🔒 Idempotencia**: Previene procesamiento duplicado
+El sistema implementa **4 colas especializadas** para procesar jobs asíncronos:
+
+- **📦 Order Processing Queue**: Procesamiento de órdenes (50 jobs/seg)
+- **💳 Payment Processing Queue**: Transacciones de pago (20 jobs/seg)
+- **📊 Inventory Management Queue**: Gestión de inventario (30 jobs/seg)
+- **📧 Notification Queue**: Envío de notificaciones (100 jobs/seg)
+
+**Características Avanzadas de Colas:**
+
+- **🔒 Idempotencia**: Previene procesamiento duplicado mediante job IDs únicos
 - **🛡️ Outbox Pattern**: Garantiza consistencia transaccional
-- **🔄 Retry Logic**: Reintentos automáticos con backoff exponencial
-- **☠️ Dead Letter Queue**: Manejo de órdenes no procesables
-- **📊 Monitoring**: Health checks y métricas detalladas
+- **🔄 Retry Logic**: Reintentos automáticos con backoff exponencial (3-5 intentos)
+- **📊 Rate Limiting**: Control de throughput por cola
+- **☠️ Dead Letter Queue**: Manejo automático de jobs fallidos
+- **📈 Progress Tracking**: Seguimiento en tiempo real del progreso de jobs
+- **🎯 Priority Queues**: Procesamiento prioritario para jobs críticos
+- **� Bull Board Dashboard**: UI web para monitoreo en `/admin/queues`
+- **🛑 Graceful Shutdown**: Cierre controlado esperando jobs activos
+
+> 📖 **Documentación completa**: Ver [docs/QUEUES.md](docs/QUEUES.md) para ejemplos de uso y configuración detallada.
 
 ## 🛠️ Instalación y Configuración
 
@@ -220,6 +235,8 @@ DB_NAME=ecommerce_async
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
+REDIS_DB=0
+REDIS_KEY_PREFIX=ecommerce:
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key
@@ -228,8 +245,14 @@ JWT_REFRESH_SECRET=your-refresh-secret
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Bull Queue
-QUEUE_PREFIX=ecommerce
-QUEUE_DEFAULT_JOB_OPTIONS='{"removeOnComplete": 100, "removeOnFail": 50}'
+BULL_REDIS_DB=1
+BULL_KEY_PREFIX=bull
+BULL_DEFAULT_ATTEMPTS=3
+BULL_REMOVE_ON_COMPLETE=100
+BULL_REMOVE_ON_FAIL=50
+BULL_RATE_LIMIT=true
+BULL_RATE_LIMIT_MAX=100
+BULL_RATE_LIMIT_DURATION=1000
 
 # External Services
 PAYMENT_GATEWAY_URL=https://api.mockpayment.com
@@ -250,14 +273,15 @@ Una vez ejecutada la aplicación, la documentación Swagger estará disponible e
 
 ### Endpoints Principales
 
-| Método | Endpoint                    | Descripción                |
-| ------ | --------------------------- | -------------------------- |
-| `POST` | `/api/v1/orders`            | Crear nueva orden          |
-| `GET`  | `/api/v1/orders`            | Listar órdenes del usuario |
-| `GET`  | `/api/v1/orders/:id`        | Obtener orden específica   |
-| `GET`  | `/api/v1/orders/:id/status` | Estado de la orden         |
-| `GET`  | `/api/v1/health`            | Health check general       |
-| `GET`  | `/api/v1/health/ready`      | Readiness probe            |
+| Método | Endpoint                    | Descripción                  |
+| ------ | --------------------------- | ---------------------------- |
+| `POST` | `/api/v1/orders`            | Crear nueva orden            |
+| `GET`  | `/api/v1/orders`            | Listar órdenes del usuario   |
+| `GET`  | `/api/v1/orders/:id`        | Obtener orden específica     |
+| `GET`  | `/api/v1/orders/:id/status` | Estado de la orden           |
+| `GET`  | `/api/v1/health`            | Health check general         |
+| `GET`  | `/api/v1/health/ready`      | Readiness probe              |
+| `GET`  | `/admin/queues`             | Bull Board Dashboard (Colas) |
 
 ## 🔧 Arquitectura del Código
 
@@ -283,6 +307,10 @@ src/
 │   ├── events/                   # Event sourcing y Outbox
 │   └── health/                   # Health checks
 ├── queues/                       # Bull processors y jobs
+│   ├── processors/               # Procesadores de colas especializados
+│   ├── queue.module.ts           # Módulo centralizado de colas
+│   ├── queue.service.ts          # Servicio de gestión de colas
+│   └── bull-board.controller.ts  # Dashboard Bull Board
 └── database/                     # Migraciones y seeds
 ```
 

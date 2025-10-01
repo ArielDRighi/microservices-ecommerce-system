@@ -30,6 +30,9 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 // import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './health/health.module';
 
+// Queue Module
+import { QueueModule } from './queues/queue.module';
+
 @Module({
   imports: [
     // Configuration with validation
@@ -76,6 +79,9 @@ import { HealthModule } from './health/health.module';
     ProductsModule,
     CategoriesModule,
     InventoryModule,
+
+    // Queue Module (Global)
+    QueueModule,
 
     // TODO: Add modules as they are developed
     // OrdersModule,
