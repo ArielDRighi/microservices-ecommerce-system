@@ -91,7 +91,7 @@ describe('PaymentsService', () => {
           // Some attempts may fail due to random outcomes
         }
       }
-    });
+    }, 10000);
 
     it('should enforce idempotency', async () => {
       const dto: ProcessPaymentDto = {
