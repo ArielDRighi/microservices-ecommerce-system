@@ -3,15 +3,21 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseProcessor } from './base.processor';
 import { OrderProcessingJobData, JobResult } from '../../common/interfaces/queue-job.interface';
+import { OrderProcessingSagaService } from '../../modules/orders/services/order-processing-saga.service';
+import { SagaMetrics } from '../../modules/orders/types/saga.types';
 
 /**
  * Order Processing Processor
- * Handles asynchronous order processing tasks
+ * Handles asynchronous order processing tasks using Saga Pattern
  */
 @Processor('order-processing')
 export class OrderProcessingProcessor extends BaseProcessor<OrderProcessingJobData> {
   protected readonly logger = new Logger(OrderProcessingProcessor.name);
   protected readonly processorName = 'OrderProcessingProcessor';
+
+  constructor(private readonly sagaService: OrderProcessingSagaService) {
+    super();
+  }
 
   /**
    * Process order creation
@@ -38,71 +44,115 @@ export class OrderProcessingProcessor extends BaseProcessor<OrderProcessingJobDa
   }
 
   /**
-   * Main processing logic for order jobs
+   * Main processing logic for order jobs using Saga Pattern
    */
   protected async processJob(
     data: OrderProcessingJobData,
     job: Job<OrderProcessingJobData>,
   ): Promise<JobResult> {
-    this.logger.log(`Processing order ${data.orderId}`, {
+    this.logger.log(`Processing order ${data.orderId} with saga pattern`, {
       orderId: data.orderId,
       jobId: job.id,
       jobName: job.name,
     });
 
-    // Update progress: 25% - Validating order
-    await this.updateProgress(job, {
-      percentage: 25,
-      message: 'Validating order',
-      currentStep: 'validation',
-    });
+    try {
+      // sagaId should be provided in job data
+      const sagaId = (data as OrderProcessingJobData & { sagaId?: string }).sagaId;
 
-    // Simulate order validation
-    await this.delay(1000);
+      if (!sagaId) {
+        throw new Error('sagaId is required for order processing');
+      }
 
-    // Update progress: 50% - Processing items
-    await this.updateProgress(job, {
-      percentage: 50,
-      message: 'Processing items',
-      currentStep: 'items-processing',
-      data: { itemCount: data.items.length },
-    });
+      // Update progress: Starting saga
+      await this.updateProgress(job, {
+        percentage: 10,
+        message: 'Starting order processing saga',
+        currentStep: 'saga-start',
+      });
 
-    // Simulate items processing
-    await this.delay(1500);
+      // Execute saga
+      const metrics: SagaMetrics = await this.sagaService.executeSaga(sagaId);
 
-    // Update progress: 75% - Finalizing
-    await this.updateProgress(job, {
-      percentage: 75,
-      message: 'Finalizing order',
-      currentStep: 'finalization',
-    });
+      // Update progress based on saga completion
+      await this.updateProgress(job, {
+        percentage: 100,
+        message: `Saga completed with status: ${metrics.finalStatus}`,
+        currentStep: 'saga-complete',
+        data: {
+          totalDurationMs: metrics.totalDurationMs,
+          compensationExecuted: metrics.compensationExecuted,
+          stepsCompleted: metrics.stepMetrics.length,
+        },
+      });
 
-    // Simulate finalization
-    await this.delay(1000);
+      // Log detailed metrics
+      this.logSagaMetrics(metrics);
 
-    const result: JobResult = {
-      success: true,
-      data: {
-        orderId: data.orderId,
-        status: 'processed',
+      const result: JobResult = {
+        success: metrics.finalStatus === 'COMPLETED',
+        data: {
+          orderId: data.orderId,
+          sagaId,
+          status: metrics.finalStatus,
+          totalDurationMs: metrics.totalDurationMs,
+          compensationExecuted: metrics.compensationExecuted,
+          processedAt: new Date(),
+        },
         processedAt: new Date(),
-      },
-      processedAt: new Date(),
-      duration: 0, // Will be calculated by base processor
-      attemptsMade: job.attemptsMade + 1,
-    };
+        duration: metrics.totalDurationMs,
+        attemptsMade: job.attemptsMade + 1,
+      };
 
-    // Log metrics
-    this.logMetrics(job, result);
+      // Log metrics
+      this.logMetrics(job, result);
 
-    return result;
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to process order ${data.orderId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      // Return failure result
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          code: 'SAGA_EXECUTION_FAILED',
+        },
+        processedAt: new Date(),
+        duration: 0,
+        attemptsMade: job.attemptsMade + 1,
+      };
+    }
   }
 
   /**
-   * Utility method to simulate async operations
+   * Log detailed saga metrics
    */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private logSagaMetrics(metrics: SagaMetrics): void {
+    this.logger.debug(
+      `Saga Metrics for order ${metrics.orderId}:\n` +
+        `- Total Duration: ${metrics.totalDurationMs}ms\n` +
+        `- Final Status: ${metrics.finalStatus}\n` +
+        `- Compensation Executed: ${metrics.compensationExecuted}\n` +
+        `- Steps:\n${metrics.stepMetrics
+          .map(
+            (step) =>
+              `  * ${step.step}: ${step.success ? 'SUCCESS' : 'FAILED'} ` +
+              `(${step.durationMs}ms, ${step.retryCount} retries)`,
+          )
+          .join('\n')}`,
+    );
+
+    // Get circuit breaker stats
+    const cbStats = this.sagaService.getCircuitBreakerStats();
+    this.logger.debug(
+      `Circuit Breaker Stats:\n` +
+        `- Payment: ${cbStats.payment.state} (failures: ${cbStats.payment.failureCount})\n` +
+        `- Inventory: ${cbStats.inventory.state} (failures: ${cbStats.inventory.failureCount})\n` +
+        `- Notification: ${cbStats.notification.state} (failures: ${cbStats.notification.failureCount})`,
+    );
   }
 }

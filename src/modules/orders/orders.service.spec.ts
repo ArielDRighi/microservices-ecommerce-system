@@ -8,6 +8,7 @@ import { OrderItem } from './entities/order-item.entity';
 import { Product } from '../products/entities/product.entity';
 import { EventPublisher } from '../events/publishers/event.publisher';
 import { OrderStatus } from './enums/order-status.enum';
+import { OrderProcessingSagaService } from './services/order-processing-saga.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -40,6 +41,10 @@ describe('OrdersService', () => {
     dataSource = {
       createQueryRunner: jest.fn().mockReturnValue(queryRunner),
     } as unknown as jest.Mocked<DataSource>;
+
+    const mockQueue = {
+      add: jest.fn().mockResolvedValue({ id: 'job-123' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -75,6 +80,19 @@ describe('OrdersService', () => {
           useValue: {
             publish: jest.fn(),
           },
+        },
+        {
+          provide: OrderProcessingSagaService,
+          useValue: {
+            startOrderProcessing: jest.fn().mockResolvedValue({
+              id: 'saga-123',
+              aggregateId: mockOrderId,
+            }),
+          },
+        },
+        {
+          provide: 'BullQueue_order-processing',
+          useValue: mockQueue,
         },
       ],
     }).compile();

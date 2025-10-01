@@ -13,3 +13,4 @@ export { OrderItem } from '../modules/orders/entities/order-item.entity';
 export { Inventory } from '../modules/inventory/entities/inventory.entity';
 export { OutboxEvent } from '../modules/events/entities/outbox-event.entity';
 export { SagaState } from '../modules/events/entities/saga-state.entity';
+export { SagaStateEntity } from './entities/saga-state.entity';

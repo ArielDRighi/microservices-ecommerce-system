@@ -176,6 +176,16 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
     try {
       this.logger.debug(`Processing event: ${event.eventType} [${event.id}]`);
 
+      // Skip Order events as they are enqueued directly by OrdersService
+      // to avoid duplicate processing
+      if (event.aggregateType === 'Order') {
+        this.logger.debug(
+          `Skipping Order event ${event.eventType} [${event.id}] - already enqueued directly`,
+        );
+        await this.markAsProcessed(event, true);
+        return;
+      }
+
       // Determine the appropriate queue based on aggregate type
       const queue = this.getQueueForEvent(event);
 
@@ -186,26 +196,21 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
       }
 
       // Publish event to the queue
-      await queue.add(
-        event.eventType,
-        {
-          eventId: event.id,
-          aggregateType: event.aggregateType,
-          aggregateId: event.aggregateId,
-          eventType: event.eventType,
-          eventData: event.eventData,
-          eventMetadata: event.eventMetadata,
+      // Map event type to job type (e.g., OrderCreated -> create-order)
+      const jobType = this.getJobTypeForEvent(event);
+
+      // Prepare job data based on aggregate type
+      const jobData = this.prepareJobData(event);
+
+      await queue.add(jobType, jobData, {
+        attempts: this.config.maxRetries,
+        backoff: {
+          type: 'exponential',
+          delay: this.config.retryDelay,
         },
-        {
-          attempts: this.config.maxRetries,
-          backoff: {
-            type: 'exponential',
-            delay: this.config.retryDelay,
-          },
-          removeOnComplete: true,
-          removeOnFail: false,
-        },
-      );
+        removeOnComplete: true,
+        removeOnFail: false,
+      });
 
       // Mark event as processed
       await this.markAsProcessed(event, true);
@@ -235,6 +240,100 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
         return this.paymentQueue;
       default:
         return null;
+    }
+  }
+
+  /**
+   * Map event type to job type for queue processing
+   */
+  private getJobTypeForEvent(event: OutboxEvent): string {
+    // Map domain events to processor job types
+    const eventToJobTypeMap: Record<string, string> = {
+      // Order events
+      OrderCreated: 'create-order',
+      OrderConfirmed: 'confirm-order',
+      OrderCancelled: 'cancel-order',
+      // Inventory events (add as needed)
+      InventoryReserved: 'reserve-inventory',
+      InventoryReleased: 'release-inventory',
+      // Payment events (add as needed)
+      PaymentProcessed: 'process-payment',
+      PaymentRefunded: 'refund-payment',
+    };
+
+    return eventToJobTypeMap[event.eventType] || event.eventType.toLowerCase();
+  }
+
+  /**
+   * Prepare job data from outbox event
+   * Transforms event data into the format expected by job processors
+   */
+  private prepareJobData(event: OutboxEvent): unknown {
+    const eventData = event.eventData as Record<string, unknown>;
+
+    switch (event.aggregateType) {
+      case 'Order':
+        return {
+          orderId: eventData['orderId'] || event.aggregateId,
+          userId: eventData['userId'],
+          items: eventData['items'] || [],
+          totalAmount: eventData['totalAmount'],
+          currency: eventData['currency'] || 'USD',
+          idempotencyKey: eventData['idempotencyKey'],
+          jobId: event.id,
+          createdAt: event.createdAt,
+          correlationId: event.correlationId,
+          metadata: {
+            eventId: event.id,
+            eventType: event.eventType,
+            eventMetadata: event.eventMetadata,
+          },
+        };
+
+      case 'Inventory':
+        return {
+          action: eventData['action'],
+          productId: eventData['productId'],
+          quantity: eventData['quantity'],
+          orderId: eventData['orderId'],
+          reservationId: eventData['reservationId'],
+          reason: eventData['reason'],
+          jobId: event.id,
+          createdAt: event.createdAt,
+          correlationId: event.correlationId,
+          userId: event.userId,
+        };
+
+      case 'Payment':
+        return {
+          orderId: eventData['orderId'],
+          paymentId: eventData['paymentId'],
+          amount: eventData['amount'],
+          currency: eventData['currency'] || 'USD',
+          paymentMethod: eventData['paymentMethod'],
+          customerId: eventData['customerId'] || eventData['userId'],
+          jobId: event.id,
+          createdAt: event.createdAt,
+          correlationId: event.correlationId,
+          userId: event.userId,
+        };
+
+      default:
+        // Generic fallback
+        return {
+          ...eventData,
+          jobId: event.id,
+          createdAt: event.createdAt,
+          correlationId: event.correlationId,
+          userId: event.userId,
+          metadata: {
+            eventId: event.id,
+            aggregateType: event.aggregateType,
+            aggregateId: event.aggregateId,
+            eventType: event.eventType,
+            eventMetadata: event.eventMetadata,
+          },
+        };
     }
   }
 
