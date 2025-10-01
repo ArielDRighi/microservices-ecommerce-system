@@ -23,11 +23,11 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
-// import { OrdersModule } from './modules/orders/orders.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 // import { PaymentsModule } from './modules/payments/payments.module';
 // import { NotificationsModule } from './modules/notifications/notifications.module';
-// import { EventsModule } from './modules/events/events.module';
+import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './health/health.module';
 
 // Queue Module
@@ -79,15 +79,15 @@ import { QueueModule } from './queues/queue.module';
     ProductsModule,
     CategoriesModule,
     InventoryModule,
+    OrdersModule,
+    EventsModule,
 
     // Queue Module (Global)
     QueueModule,
 
     // TODO: Add modules as they are developed
-    // OrdersModule,
     // PaymentsModule,
     // NotificationsModule,
-    // EventsModule,
   ],
   controllers: [AppController],
   providers: [

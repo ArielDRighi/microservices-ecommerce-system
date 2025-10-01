@@ -32,14 +32,7 @@ describe('OutboxProcessor', () => {
             oQueue: Queue,
             iQueue: Queue,
             pQueue: Queue,
-          ) =>
-            new OutboxProcessor(repo, oQueue, iQueue, pQueue, {
-              enabled: false,
-              batchSize: 10,
-              maxRetries: 3,
-              retryDelay: 100,
-              processingInterval: 1000,
-            }),
+          ) => new OutboxProcessor(repo, oQueue, iQueue, pQueue),
           inject: [
             getRepositoryToken(OutboxEvent),
             getQueueToken('order-processing'),
@@ -74,14 +67,13 @@ describe('OutboxProcessor', () => {
   });
 
   describe('processPendingEvents', () => {
-    it('should skip processing when disabled', async () => {
+    it('should process pending events', async () => {
       mockOutboxRepository.find.mockResolvedValue([]);
 
       await processor.processPendingEvents();
 
-      // When disabled, should not call repository
-      expect(mockOutboxRepository.find).not.toHaveBeenCalled();
-      expect(mockQueue.add).not.toHaveBeenCalled();
+      // Should call repository to find pending events
+      expect(mockOutboxRepository.find).toHaveBeenCalled();
     });
   });
 
@@ -129,13 +121,13 @@ describe('OutboxProcessor', () => {
   });
 
   describe('start and stop', () => {
-    it('should not start when already disabled', async () => {
+    it('should start and process events immediately', async () => {
       mockOutboxRepository.find.mockResolvedValue([]);
 
       await processor.start();
 
-      // Should warn but not start when disabled
-      expect(mockOutboxRepository.find).not.toHaveBeenCalled();
+      // Should process events immediately on start
+      expect(mockOutboxRepository.find).toHaveBeenCalled();
     });
 
     it('should stop processing', async () => {
