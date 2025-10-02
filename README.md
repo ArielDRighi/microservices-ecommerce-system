@@ -273,18 +273,18 @@ Una vez ejecutada la aplicación, la documentación Swagger estará disponible e
 
 ### Endpoints Principales
 
-| Método | Endpoint                     | Descripción                            |
-| ------ | ---------------------------- | -------------------------------------- |
-| `POST` | `/api/v1/orders`             | Crear nueva orden                      |
-| `GET`  | `/api/v1/orders`             | Listar órdenes del usuario             |
-| `GET`  | `/api/v1/orders/:id`         | Obtener orden específica               |
-| `GET`  | `/api/v1/orders/:id/status`  | Estado de la orden                     |
-| `GET`  | `/api/v1/health`             | Health check general                   |
-| `GET`  | `/api/v1/health/ready`       | Readiness probe (k8s)                  |
-| `GET`  | `/api/v1/health/live`        | Liveness probe (k8s)                   |
-| `GET`  | `/api/v1/health/detailed`    | Estado detallado (DB, Redis, Queues)   |
-| `GET`  | `/api/v1/metrics`            | Prometheus metrics                     |
-| `GET`  | `/admin/queues`              | Bull Board Dashboard (Colas)           |
+| Método | Endpoint                    | Descripción                          |
+| ------ | --------------------------- | ------------------------------------ |
+| `POST` | `/api/v1/orders`            | Crear nueva orden                    |
+| `GET`  | `/api/v1/orders`            | Listar órdenes del usuario           |
+| `GET`  | `/api/v1/orders/:id`        | Obtener orden específica             |
+| `GET`  | `/api/v1/orders/:id/status` | Estado de la orden                   |
+| `GET`  | `/api/v1/health`            | Health check general                 |
+| `GET`  | `/api/v1/health/ready`      | Readiness probe (k8s)                |
+| `GET`  | `/api/v1/health/live`       | Liveness probe (k8s)                 |
+| `GET`  | `/api/v1/health/detailed`   | Estado detallado (DB, Redis, Queues) |
+| `GET`  | `/api/v1/metrics`           | Prometheus metrics                   |
+| `GET`  | `/admin/queues`             | Bull Board Dashboard (Colas)         |
 
 ## 🔧 Arquitectura del Código
 
@@ -359,17 +359,14 @@ El sistema implementa health checks robustos usando `@nestjs/terminus` con indic
 - **General**: `GET /api/v1/health`
   - Verifica: Database, Memory Heap, Memory RSS, Disk Storage
   - Uso: Monitoreo general del sistema
-  
 - **Liveness**: `GET /api/v1/health/live`
   - Verifica: Memory Heap
   - Uso: Kubernetes liveness probe - detecta deadlocks
   - Si falla, k8s reinicia el pod
-  
 - **Readiness**: `GET /api/v1/health/ready`
   - Verifica: Database connection
   - Uso: Kubernetes readiness probe - controla tráfico
   - Si falla, k8s deja de enviar requests al pod
-  
 - **Detailed**: `GET /api/v1/health/detailed`
   - Verifica: Todo lo anterior + métricas detalladas
   - Incluye: Connection pool info, response times
@@ -378,6 +375,7 @@ El sistema implementa health checks robustos usando `@nestjs/terminus` con indic
 #### Custom Health Indicators
 
 **DatabaseHealthIndicator**
+
 ```typescript
 // Retorna información del pool de conexiones
 {
@@ -392,11 +390,13 @@ El sistema implementa health checks robustos usando `@nestjs/terminus` con indic
 ```
 
 **RedisHealthIndicator** (preparado para integración)
+
 - Verifica conectividad con Redis
 - Mide latencia de ping
 - Retorna uso de memoria
 
 **QueueHealthIndicator** (preparado para integración)
+
 - Monitorea colas de Bull
 - Verifica thresholds configurables
 - Detecta fallos en procesamiento
