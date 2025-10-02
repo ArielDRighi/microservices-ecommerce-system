@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { register, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
+import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
 
 /**
  * Prometheus Metrics Service
@@ -7,6 +7,9 @@ import { register, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom
  */
 @Injectable()
 export class PrometheusService implements OnModuleInit {
+  // Use a private registry to avoid conflicts with other services
+  private readonly registry: Registry;
+
   // Business metrics
   private readonly ordersProcessedCounter: Counter;
   private readonly orderProcessingDuration: Histogram;
@@ -17,11 +20,14 @@ export class PrometheusService implements OnModuleInit {
   private readonly httpRequestErrors: Counter;
 
   constructor() {
+    // Initialize private registry
+    this.registry = new Registry();
     // Orders metrics
     this.ordersProcessedCounter = new Counter({
       name: 'orders_processed_total',
       help: 'Total number of orders processed',
       labelNames: ['status'], // success, failed, cancelled
+      registers: [this.registry],
     });
 
     this.orderProcessingDuration = new Histogram({
@@ -29,12 +35,14 @@ export class PrometheusService implements OnModuleInit {
       help: 'Order processing duration in seconds',
       labelNames: ['stage'], // validation, payment, inventory, notification
       buckets: [0.1, 0.5, 1, 2, 5, 10, 30], // 100ms to 30s
+      registers: [this.registry],
     });
 
     this.orderProcessingErrors = new Counter({
       name: 'order_processing_errors_total',
       help: 'Total number of order processing errors',
       labelNames: ['error_type'], // validation, payment, inventory, etc.
+      registers: [this.registry],
     });
 
     // Queue metrics
@@ -42,6 +50,7 @@ export class PrometheusService implements OnModuleInit {
       name: 'queue_length',
       help: 'Current length of processing queues',
       labelNames: ['queue_name'], // order-processing, payment-processing, etc.
+      registers: [this.registry],
     });
 
     this.queueProcessingTime = new Histogram({
@@ -49,6 +58,7 @@ export class PrometheusService implements OnModuleInit {
       help: 'Job processing duration in seconds',
       labelNames: ['queue_name', 'job_type'],
       buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
+      registers: [this.registry],
     });
 
     // HTTP metrics
@@ -57,12 +67,14 @@ export class PrometheusService implements OnModuleInit {
       help: 'HTTP request duration in seconds',
       labelNames: ['method', 'route', 'status_code'],
       buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+      registers: [this.registry],
     });
 
     this.httpRequestErrors = new Counter({
       name: 'http_request_errors_total',
       help: 'Total number of HTTP request errors',
       labelNames: ['method', 'route', 'status_code'],
+      registers: [this.registry],
     });
   }
 
@@ -70,8 +82,9 @@ export class PrometheusService implements OnModuleInit {
    * Initialize default metrics collection
    */
   onModuleInit() {
-    // Collect default metrics (CPU, memory, etc.)
+    // Collect default metrics (CPU, memory, etc.) using private registry
     collectDefaultMetrics({
+      register: this.registry,
       prefix: 'ecommerce_',
       gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5],
     });
@@ -81,7 +94,7 @@ export class PrometheusService implements OnModuleInit {
    * Get all metrics in Prometheus format
    */
   async getMetrics(): Promise<string> {
-    return register.metrics();
+    return this.registry.metrics();
   }
 
   /**
@@ -143,8 +156,9 @@ export class PrometheusService implements OnModuleInit {
 
   /**
    * Reset all metrics (useful for testing)
+   * This clears only this service's metrics, not global ones
    */
   resetMetrics(): void {
-    register.clear();
+    this.registry.clear();
   }
 }

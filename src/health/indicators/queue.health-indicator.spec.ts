@@ -100,7 +100,25 @@ describe('QueueHealthIndicator', () => {
 
     it('should throw HealthCheckError when queue is paused', async () => {
       // Arrange
+      mockOrderQueue.getJobCounts = jest.fn().mockResolvedValue({
+        waiting: 10,
+        active: 5,
+        completed: 100,
+        failed: 2,
+        delayed: 0,
+        paused: 0,
+      });
       mockOrderQueue.isPaused = jest.fn().mockResolvedValue(true);
+
+      mockPaymentQueue.getJobCounts = jest.fn().mockResolvedValue({
+        waiting: 5,
+        active: 3,
+        completed: 50,
+        failed: 1,
+        delayed: 0,
+        paused: 0,
+      });
+      mockPaymentQueue.isPaused = jest.fn().mockResolvedValue(false);
 
       // Act & Assert
       await expect(indicator.isHealthy('queues')).rejects.toThrow(HealthCheckError);
@@ -143,10 +161,10 @@ describe('QueueHealthIndicator', () => {
       const result = await indicator.checkQueue(queueName, mockOrderQueue as Queue);
 
       // Assert
-      expect(result[queueName].status).toBe('up');
-      expect(result[queueName].waiting).toBe(10);
-      expect(result[queueName].active).toBe(5);
-      expect(result[queueName].failed).toBe(2);
+      expect(result[queueName]?.status).toBe('up');
+      expect(result[queueName]?.waiting).toBe(10);
+      expect(result[queueName]?.active).toBe(5);
+      expect(result[queueName]?.failed).toBe(2);
     });
 
     it('should include processing time metrics', async () => {
@@ -168,7 +186,7 @@ describe('QueueHealthIndicator', () => {
 
       // Assert
       expect(result[queueName]).toHaveProperty('jobCounts');
-      expect(result[queueName].jobCounts).toEqual({
+      expect(result[queueName]?.jobCounts).toEqual({
         waiting: 5,
         active: 3,
         completed: 50,

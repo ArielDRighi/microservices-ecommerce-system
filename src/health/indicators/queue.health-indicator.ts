@@ -12,6 +12,39 @@ export interface QueueHealthThreshold {
 }
 
 /**
+ * Bull Queue job counts interface
+ * Compatible with Bull.JobCounts from the bull library
+ */
+export interface JobCounts {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+}
+
+/**
+ * Queue health status interface
+ */
+export interface QueueHealthStatus {
+  status: 'up' | 'down';
+  waiting?: number;
+  active?: number;
+  failed?: number;
+  completed?: number;
+  isPaused?: boolean;
+  jobCounts?: JobCounts;
+  error?: string;
+}
+
+/**
+ * Queue check result interface
+ */
+export interface QueueCheckResult {
+  [queueName: string]: QueueHealthStatus;
+}
+
+/**
  * Custom Queue Health Indicator
  * Checks Bull queue status, job counts, and processing health
  */
@@ -50,8 +83,13 @@ export class QueueHealthIndicator extends HealthIndicator {
           queueStatuses[queueName] = status[queueName];
 
           // Check for unhealthy conditions
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const jobCounts = status[queueName].jobCounts as any;
+          const queueStatus = status[queueName];
+          if (!queueStatus || !queueStatus.jobCounts) {
+            continue;
+          }
+
+          const jobCounts = queueStatus.jobCounts;
+
           if (jobCounts.waiting > 100) {
             hasUnhealthyQueue = true;
             errors.push(`${queueName}: waiting jobs (${jobCounts.waiting}) exceeds threshold`);
@@ -107,8 +145,7 @@ export class QueueHealthIndicator extends HealthIndicator {
    * @param queue - Queue instance
    * @returns Health status for the queue
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async checkQueue(queueName: string, queue: Queue): Promise<Record<string, any>> {
+  async checkQueue(queueName: string, queue: Queue): Promise<QueueCheckResult> {
     try {
       const jobCounts = await queue.getJobCounts();
       const isPaused = await queue.isPaused();
@@ -152,8 +189,12 @@ export class QueueHealthIndicator extends HealthIndicator {
         const status = await this.checkQueue(queueName, queue);
         queueStatuses[queueName] = status[queueName];
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const jobCounts = status[queueName].jobCounts as any;
+        const queueStatus = status[queueName];
+        if (!queueStatus || !queueStatus.jobCounts) {
+          continue;
+        }
+
+        const jobCounts = queueStatus.jobCounts;
 
         // Check waiting threshold
         if (threshold.maxWaiting && jobCounts.waiting > threshold.maxWaiting) {
