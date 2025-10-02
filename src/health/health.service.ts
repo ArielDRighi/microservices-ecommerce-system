@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   HealthCheckService,
   HealthCheck,
@@ -6,6 +6,7 @@ import {
   MemoryHealthIndicator,
   DiskHealthIndicator,
 } from '@nestjs/terminus';
+import { DatabaseHealthIndicator, RedisHealthIndicator, QueueHealthIndicator } from './indicators';
 
 @Injectable()
 export class HealthService {
@@ -14,6 +15,9 @@ export class HealthService {
     private readonly db: TypeOrmHealthIndicator,
     private readonly memory: MemoryHealthIndicator,
     private readonly disk: DiskHealthIndicator,
+    private readonly database: DatabaseHealthIndicator,
+    @Optional() private readonly redis?: RedisHealthIndicator,
+    @Optional() private readonly queue?: QueueHealthIndicator,
   ) {}
 
   @HealthCheck()
@@ -50,6 +54,33 @@ export class HealthService {
     return this.health.check([
       // Basic checks for liveness
       () => this.memory.checkHeap('memory_heap', 200 * 1024 * 1024),
+    ]);
+  }
+
+  @HealthCheck()
+  checkDetailed() {
+    return this.health.check([
+      // Database checks
+      () => this.db.pingCheck('database'),
+      () => this.database.pingCheck('database_detailed'),
+
+      // Redis checks (commented out until Redis client is properly configured)
+      // () => this.redis.isHealthy('redis'),
+      // () => this.redis.checkLatency('redis_latency', 100), // 100ms threshold
+
+      // Queue checks (commented out until properly configured)
+      // () => this.queue?.isHealthy('queues'),
+
+      // Memory checks
+      () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
+      () => this.memory.checkRSS('memory_rss', 300 * 1024 * 1024),
+
+      // Disk check
+      () =>
+        this.disk.checkStorage('storage', {
+          path: process.platform === 'win32' ? 'C:\\' : '/',
+          thresholdPercent: 0.9,
+        }),
     ]);
   }
 }

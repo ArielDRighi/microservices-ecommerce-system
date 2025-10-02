@@ -273,15 +273,18 @@ Una vez ejecutada la aplicación, la documentación Swagger estará disponible e
 
 ### Endpoints Principales
 
-| Método | Endpoint                    | Descripción                  |
-| ------ | --------------------------- | ---------------------------- |
-| `POST` | `/api/v1/orders`            | Crear nueva orden            |
-| `GET`  | `/api/v1/orders`            | Listar órdenes del usuario   |
-| `GET`  | `/api/v1/orders/:id`        | Obtener orden específica     |
-| `GET`  | `/api/v1/orders/:id/status` | Estado de la orden           |
-| `GET`  | `/api/v1/health`            | Health check general         |
-| `GET`  | `/api/v1/health/ready`      | Readiness probe              |
-| `GET`  | `/admin/queues`             | Bull Board Dashboard (Colas) |
+| Método | Endpoint                     | Descripción                            |
+| ------ | ---------------------------- | -------------------------------------- |
+| `POST` | `/api/v1/orders`             | Crear nueva orden                      |
+| `GET`  | `/api/v1/orders`             | Listar órdenes del usuario             |
+| `GET`  | `/api/v1/orders/:id`         | Obtener orden específica               |
+| `GET`  | `/api/v1/orders/:id/status`  | Estado de la orden                     |
+| `GET`  | `/api/v1/health`             | Health check general                   |
+| `GET`  | `/api/v1/health/ready`       | Readiness probe (k8s)                  |
+| `GET`  | `/api/v1/health/live`        | Liveness probe (k8s)                   |
+| `GET`  | `/api/v1/health/detailed`    | Estado detallado (DB, Redis, Queues)   |
+| `GET`  | `/api/v1/metrics`            | Prometheus metrics                     |
+| `GET`  | `/admin/queues`              | Bull Board Dashboard (Colas)           |
 
 ## 🔧 Arquitectura del Código
 
@@ -349,9 +352,107 @@ refactor: optimize database queries
 
 ### Health Checks
 
-- **Liveness**: `/health/live` - App está ejecutándose
-- **Readiness**: `/health/ready` - App lista para recibir tráfico
-- **Detailed**: `/health/detailed` - Estado detallado de dependencias
+El sistema implementa health checks robustos usando `@nestjs/terminus` con indicadores personalizados:
+
+#### Endpoints de Health Check
+
+- **General**: `GET /api/v1/health`
+  - Verifica: Database, Memory Heap, Memory RSS, Disk Storage
+  - Uso: Monitoreo general del sistema
+  
+- **Liveness**: `GET /api/v1/health/live`
+  - Verifica: Memory Heap
+  - Uso: Kubernetes liveness probe - detecta deadlocks
+  - Si falla, k8s reinicia el pod
+  
+- **Readiness**: `GET /api/v1/health/ready`
+  - Verifica: Database connection
+  - Uso: Kubernetes readiness probe - controla tráfico
+  - Si falla, k8s deja de enviar requests al pod
+  
+- **Detailed**: `GET /api/v1/health/detailed`
+  - Verifica: Todo lo anterior + métricas detalladas
+  - Incluye: Connection pool info, response times
+  - Uso: Debugging y troubleshooting
+
+#### Custom Health Indicators
+
+**DatabaseHealthIndicator**
+```typescript
+// Retorna información del pool de conexiones
+{
+  "database_detailed": {
+    "status": "up",
+    "responseTime": 24,        // ms
+    "poolSize": 10,
+    "idleConnections": 8,
+    "waitingCount": 0
+  }
+}
+```
+
+**RedisHealthIndicator** (preparado para integración)
+- Verifica conectividad con Redis
+- Mide latencia de ping
+- Retorna uso de memoria
+
+**QueueHealthIndicator** (preparado para integración)
+- Monitorea colas de Bull
+- Verifica thresholds configurables
+- Detecta fallos en procesamiento
+
+### Prometheus Metrics
+
+El sistema expone métricas en formato Prometheus para scraping:
+
+**Endpoint**: `GET /api/v1/metrics`
+
+#### Métricas de Negocio
+
+- `orders_processed_total` - Counter de órdenes procesadas exitosamente
+- `order_processing_duration_seconds` - Histogram de duración de procesamiento
+- `order_processing_errors_total` - Counter de errores de procesamiento
+- `queue_length` - Gauge de longitud de colas (real-time)
+- `queue_job_processing_duration_seconds` - Histogram de duración de jobs
+- `http_request_duration_seconds` - Histogram de duración de requests HTTP
+- `http_request_errors_total` - Counter de errores HTTP
+
+#### Métricas de Sistema (Auto-colectadas)
+
+- **CPU**: `process_cpu_user_seconds_total`, `process_cpu_system_seconds_total`
+- **Memory**: `process_resident_memory_bytes`, `nodejs_heap_size_used_bytes`
+- **Event Loop**: `nodejs_eventloop_lag_seconds` con percentiles (p50, p90, p99)
+- **Garbage Collection**: `nodejs_gc_duration_seconds` por tipo (minor, major, incremental)
+- **Active Resources**: Handles, requests, timers activos
+
+#### Configuración de Prometheus
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'ecommerce-api'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:3002']
+    metrics_path: '/api/v1/metrics'
+```
+
+#### Ejemplo de Uso con Grafana
+
+```bash
+# 1. Levantar stack completo con prometheus/grafana
+docker-compose -f docker-compose.yml up -d
+
+# 2. Acceder a Grafana
+open http://localhost:3000
+
+# 3. Dashboard pre-configurado incluye:
+# - Tasa de procesamiento de órdenes
+# - Latencias (p50, p95, p99)
+# - Error rates
+# - Queue lengths
+# - Event loop lag
+```
 
 ### Métricas (Prometheus)
 
