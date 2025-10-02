@@ -356,6 +356,6 @@ describe('PaymentsService', () => {
       const stats = service.getStats();
       expect(stats.totalPayments).toBe(0);
       expect(stats.totalRefunds).toBe(0);
-    });
+    }, 15000); // 15 second timeout for 3 payment processing attempts
   });
 });

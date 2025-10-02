@@ -468,7 +468,7 @@ export class OrderProcessingSagaService {
 
     try {
       await this.notificationCircuitBreaker.execute(async () => {
-        await this.notificationsService.sendOrderConfirmation(stateData.userId, {
+        await this.notificationsService.sendOrderConfirmation({
           orderId: stateData.orderId,
           orderNumber: stateData.orderId,
           totalAmount: stateData.totalAmount,
@@ -597,7 +597,7 @@ export class OrderProcessingSagaService {
           break;
 
         case CompensationAction.NOTIFY_FAILURE:
-          await this.notificationsService.sendPaymentFailure(stateData.userId, {
+          await this.notificationsService.sendPaymentFailure({
             orderId: stateData.orderId,
             orderNumber: stateData.orderId,
             reason: 'Order processing failed',

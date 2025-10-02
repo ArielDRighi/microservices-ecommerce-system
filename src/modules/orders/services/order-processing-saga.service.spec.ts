@@ -11,11 +11,8 @@ import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../enums/order-status.enum';
 import { InventoryService } from '../../inventory/inventory.service';
 import { PaymentsService } from '../../payments/payments.service';
-import {
-  NotificationsService,
-  NotificationChannel,
-  NotificationStatus,
-} from '../../notifications/notifications.service';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationStatus } from '../../notifications/enums';
 import { SagaStep } from '../types/saga.types';
 import { PaymentStatus, PaymentMethod } from '../../payments/dto/payment.dto';
 
@@ -193,8 +190,8 @@ describe('OrderProcessingSagaService', () => {
 
       // Mock successful notification
       jest.spyOn(notificationsService, 'sendOrderConfirmation').mockResolvedValue({
-        notificationId: 'notif-123',
-        channel: NotificationChannel.EMAIL,
+        success: true,
+        messageId: 'notif-123',
         status: NotificationStatus.SENT,
         sentAt: new Date(),
       });
