@@ -100,4 +100,23 @@ export class HealthController {
   checkLiveness(): Promise<HealthCheckResult> {
     return this.healthService.checkLiveness();
   }
+
+  @Get('detailed')
+  @ApiOperation({
+    summary: 'Get detailed health information',
+    description:
+      'Returns comprehensive health status including all components (database, Redis, queues, memory, disk)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Detailed health check successful',
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'One or more components are unhealthy',
+  })
+  @HealthCheck()
+  checkDetailed(): Promise<HealthCheckResult> {
+    return this.healthService.checkDetailed();
+  }
 }
