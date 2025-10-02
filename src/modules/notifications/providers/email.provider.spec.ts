@@ -28,7 +28,7 @@ describe('EmailProvider', () => {
       // The test result can be success or failure due to the provider's 5% failure rate
       expect([true, false]).toContain(result.success);
       expect([NotificationStatus.SENT, NotificationStatus.FAILED]).toContain(result.status);
-      
+
       // If successful, verify success fields
       if (result.success) {
         expect(result.messageId).toBeDefined();
