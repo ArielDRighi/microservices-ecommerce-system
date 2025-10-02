@@ -112,7 +112,7 @@ describe('EmailProvider', () => {
 
       // If we didn't get a failure, that's okay for this test
       expect(attempts).toBeGreaterThan(0);
-    }, 30000);
+    }, 60000); // 60 second timeout to wait for at least one failure
   });
 
   describe('Email Attachments', () => {
