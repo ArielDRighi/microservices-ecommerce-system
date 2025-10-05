@@ -35,6 +35,9 @@ import {
   PaginatedResponseDto,
 } from './dto';
 
+// Shared ValidationPipe configuration for consistent parameter handling
+const TRANSFORM_VALIDATION_PIPE = new ValidationPipe({ transform: true });
+
 @ApiTags('Inventory')
 @Controller('inventory')
 @ApiBearerAuth()
@@ -264,7 +267,7 @@ export class InventoryController {
     type: PaginatedResponseDto<InventoryResponseDto>,
   })
   async getInventoryList(
-    @Query(ValidationPipe) queryDto: InventoryQueryDto,
+    @Query(TRANSFORM_VALIDATION_PIPE) queryDto: InventoryQueryDto,
   ): Promise<PaginatedResponseDto<InventoryResponseDto>> {
     this.logger.log(`Getting inventory list with filters: ${JSON.stringify(queryDto)}`);
     return await this.inventoryService.getInventoryList(queryDto);
@@ -296,14 +299,10 @@ export class InventoryController {
     type: PaginatedResponseDto<InventoryResponseDto>,
   })
   async getLowStockItems(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
-    @Query('location') location?: string,
+    @Query(TRANSFORM_VALIDATION_PIPE) queryParams: InventoryQueryDto,
   ): Promise<PaginatedResponseDto<InventoryResponseDto>> {
     const queryDto: InventoryQueryDto = {
-      page,
-      limit,
-      location,
+      ...queryParams,
       status: 'LOW_STOCK',
     };
 
@@ -337,14 +336,10 @@ export class InventoryController {
     type: PaginatedResponseDto<InventoryResponseDto>,
   })
   async getOutOfStockItems(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
-    @Query('location') location?: string,
+    @Query(TRANSFORM_VALIDATION_PIPE) queryParams: InventoryQueryDto,
   ): Promise<PaginatedResponseDto<InventoryResponseDto>> {
     const queryDto: InventoryQueryDto = {
-      page,
-      limit,
-      location,
+      ...queryParams,
       status: 'OUT_OF_STOCK',
     };
 

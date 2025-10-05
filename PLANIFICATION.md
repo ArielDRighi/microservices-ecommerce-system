@@ -1391,6 +1391,88 @@ El sistema debe proporcionar visibilidad completa del estado de la aplicación e
 - Confirmar que correlation IDs se propaguen
 - Validar que alerting configuration sea funcional
 
+#### Tarea 16: Estandarización de Tests Unitarios
+
+**Objetivo:** Estandarizar y mejorar la calidad de los tests unitarios existentes siguiendo mejores prácticas y estándares de Jest/NestJS.
+
+**Prompt para GitHub Copilot:**
+
+```
+Como experto en testing con Jest y NestJS, realiza una estandarización completa de los tests unitarios:
+
+1. Aplicar correcciones de PR feedback:
+   - Eliminar uso incorrecto de ValidationPipe en tests
+   - Mockear correctamente funciones asíncronas (delay, setTimeout)
+   - Mockear Math.random() para tests determinísticos
+   - Corregir configuraciones de módulos de testing
+
+2. Estandarizar estructura de tests:
+   - Seguir patrón AAA (Arrange-Act-Assert)
+   - Usar describe/it de forma consistente
+   - Grupos lógicos con describe anidados
+   - beforeEach/afterEach para setup/cleanup
+
+3. Mejorar coverage de tests:
+   - Asegurar >80% coverage en todas las áreas
+   - Tests de casos edge (happy path + error cases)
+   - Tests de validación de DTOs
+   - Tests de guards y interceptors
+
+4. Mocking consistente:
+   - Usar jest.spyOn() para dependencias
+   - MockRepository pattern para TypeORM
+   - MockQueue pattern para Bull
+   - Evitar implementaciones reales en unit tests
+
+5. Aserciones claras y específicas:
+   - expect() específicos (toEqual, toHaveBeenCalledWith)
+   - Evitar expect(true).toBe(true) genéricos
+   - Validar estructura completa de respuestas
+   - Verificar todos los llamados a mocks
+
+6. Documentación de tests:
+   - Descripciones claras en it()
+   - Comentarios para lógica compleja
+   - Ejemplos de datos de test significativos
+   - Explicar por qué se mockea cada cosa
+
+7. Compatibilidad Node.js:
+   - Polyfills necesarios (crypto para Node 18+)
+   - Configuración correcta de environment
+   - Timeouts apropiados para tests async
+
+**IMPORTANTE**: Esta tarea se enfoca ÚNICAMENTE en tests unitarios. 
+Los tests E2E serán implementados en una tarea futura (Tarea 17) con 
+infraestructura dedicada y herramientas apropiadas.
+```
+
+**Archivos a Estandarizar:**
+
+- `src/**/*.spec.ts` - Todos los tests unitarios
+- `src/queues/processors/*.spec.ts` - Tests de processors
+- `src/modules/*/*.spec.ts` - Tests de servicios y controllers
+- `test/config/setup-after-env.ts` - Configuración global de tests
+
+**Validaciones de Calidad:**
+
+- ✅ Ejecutar `npm run lint` sin errores
+- ✅ Verificar `npm run type-check` sin errores
+- ✅ Correr `npm run test` con 954+ tests passing
+- ✅ Validar coverage >80% con `npm run test:cov`
+- ✅ Verificar que CI pipeline pase completamente
+- ✅ No tests flakey (ejecutar 3 veces sin fallos)
+- ✅ Tiempos de ejecución <30 segundos para unit tests
+- ✅ Mocks correctamente configurados sin implementaciones reales
+
+**Resultado Esperado:**
+
+- 954+ tests unitarios passing
+- Coverage >80% en todas las áreas
+- Tests determinísticos (0% flakiness)
+- CI pipeline verde
+- Código de tests limpio y mantenible
+- Documentación clara en cada test suite
+
 ---
 
 ## 6. Consideraciones de Implementación

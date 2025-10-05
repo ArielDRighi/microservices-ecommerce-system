@@ -216,7 +216,12 @@ export class ProductsService {
       }
 
       // Validate price relationships if prices are being updated
-      if (updateProductDto.price || updateProductDto.costPrice || updateProductDto.compareAtPrice) {
+      // Using strict undefined checks (not falsy) because 0 is a valid price
+      if (
+        updateProductDto.price !== undefined ||
+        updateProductDto.costPrice !== undefined ||
+        updateProductDto.compareAtPrice !== undefined
+      ) {
         const updatedData = { ...product, ...updateProductDto };
         this.validatePriceRelationships(updatedData);
       }
@@ -456,16 +461,37 @@ export class ProductsService {
   }): void {
     const { price, costPrice, compareAtPrice } = productData;
 
+    // Validate price is a valid positive number
+    if (price === undefined || price === null) {
+      throw new BadRequestException('Product price is required');
+    }
+
+    if (typeof price !== 'number' || isNaN(price)) {
+      throw new BadRequestException('Product price must be a valid number');
+    }
+
     if (price <= 0) {
       throw new BadRequestException('Product price must be greater than 0');
     }
 
-    if (costPrice !== undefined && costPrice < 0) {
-      throw new BadRequestException('Cost price cannot be negative');
+    // Validate cost price
+    if (costPrice !== undefined && costPrice !== null) {
+      if (typeof costPrice !== 'number' || isNaN(costPrice)) {
+        throw new BadRequestException('Cost price must be a valid number');
+      }
+      if (costPrice < 0) {
+        throw new BadRequestException('Cost price cannot be negative');
+      }
     }
 
-    if (compareAtPrice !== undefined && compareAtPrice <= price) {
-      throw new BadRequestException('Compare at price must be greater than selling price');
+    // Validate compare at price
+    if (compareAtPrice !== undefined && compareAtPrice !== null) {
+      if (typeof compareAtPrice !== 'number' || isNaN(compareAtPrice)) {
+        throw new BadRequestException('Compare at price must be a valid number');
+      }
+      if (compareAtPrice <= price) {
+        throw new BadRequestException('Compare at price must be greater than selling price');
+      }
     }
   }
 }

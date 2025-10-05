@@ -15,6 +15,7 @@ export interface ResponseFormat<T> {
   data: T;
   timestamp: string;
   path: string;
+  success: boolean;
 }
 
 @Injectable()
@@ -22,6 +23,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ResponseFormat
   intercept(context: ExecutionContext, next: CallHandler): Observable<ResponseFormat<T>> {
     const request = context.switchToHttp().getRequest();
     const statusCode = context.switchToHttp().getResponse().statusCode;
+
+    // Skip health check endpoints - they have their own format from @nestjs/terminus
+    if (request.url.startsWith('/health')) {
+      return next.handle();
+    }
 
     return next.handle().pipe(
       timeout(30000), // 30 seconds timeout
@@ -31,6 +37,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ResponseFormat
         data,
         timestamp: new Date().toISOString(),
         path: request.url,
+        success: statusCode >= 200 && statusCode < 300,
       })),
       catchError((error) => {
         // Handle timeout errors

@@ -109,26 +109,54 @@ describe('AuthService', () => {
       lastName: 'Doe',
     };
 
-    it('should register a new user successfully', async () => {
+    it('should register new user and return tokens when valid data provided', async () => {
+      // Arrange
       usersService.findByEmail.mockResolvedValue(null);
       usersService.create.mockResolvedValue(mockUser);
       usersService.updateLastLogin.mockResolvedValue(undefined);
-      jwtService.signAsync.mockResolvedValue('mock-token');
+      jwtService.signAsync.mockResolvedValue('mock-access-token');
 
+      // Act
       const result = await service.register(registerDto);
 
+      // Assert
       expect(result).toBeDefined();
-      expect(result.accessToken).toBe('mock-token');
-      expect(result.refreshToken).toBe('mock-token');
+      expect(result.accessToken).toBe('mock-access-token');
+      expect(result.refreshToken).toBe('mock-access-token');
       expect(result.user.email).toBe(mockUser.email);
+      expect(result.user.id).toBe(mockUser.id);
       expect(usersService.findByEmail).toHaveBeenCalledWith(registerDto.email);
-      expect(usersService.create).toHaveBeenCalled();
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: registerDto.email,
+          firstName: registerDto.firstName,
+          lastName: registerDto.lastName,
+        }),
+      );
     });
 
-    it('should throw ConflictException if user already exists', async () => {
+    it('should throw ConflictException when user email already exists', async () => {
+      // Arrange
       usersService.findByEmail.mockResolvedValue(mockUser);
 
+      // Act & Assert
       await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      expect(usersService.create).not.toHaveBeenCalled();
+    });
+
+    it('should accept email as provided and process registration', async () => {
+      // Arrange
+      const emailWithUpperCase = { ...registerDto, email: 'Test@Example.COM' };
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue(mockUser);
+      jwtService.signAsync.mockResolvedValue('mock-token');
+
+      // Act
+      await service.register(emailWithUpperCase);
+
+      // Assert
+      expect(usersService.findByEmail).toHaveBeenCalledWith(emailWithUpperCase.email);
+      expect(usersService.create).toHaveBeenCalled();
     });
   });
 
@@ -138,56 +166,408 @@ describe('AuthService', () => {
       password: 'StrongPassword123!',
     };
 
-    it('should login user successfully', async () => {
+    it('should return tokens and user when valid credentials provided', async () => {
+      // Arrange
+      mockUser.validatePassword = jest.fn().mockResolvedValue(true);
+      usersService.findByEmail.mockResolvedValue(mockUser);
+      usersService.updateLastLogin.mockResolvedValue(undefined);
+      jwtService.signAsync.mockResolvedValue('mock-access-token');
+
+      // Act
+      const result = await service.login(loginDto);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.accessToken).toBe('mock-access-token');
+      expect(result.refreshToken).toBe('mock-access-token');
+      expect(result.user.email).toBe(mockUser.email);
+      expect(result.user.id).toBe(mockUser.id);
+      expect(usersService.updateLastLogin).toHaveBeenCalledWith(mockUser.id);
+    });
+
+    it('should throw UnauthorizedException when user does not exist', async () => {
+      // Arrange
+      usersService.findByEmail.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      expect(usersService.updateLastLogin).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when user account is inactive', async () => {
+      // Arrange
+      const inactiveUser = { ...mockUser, isActive: false };
+      usersService.findByEmail.mockResolvedValue(inactiveUser as User);
+
+      // Act & Assert
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      expect(usersService.updateLastLogin).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when password is incorrect', async () => {
+      // Arrange
+      mockUser.validatePassword = jest.fn().mockResolvedValue(false);
+      usersService.findByEmail.mockResolvedValue(mockUser);
+
+      // Act & Assert
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      expect(usersService.updateLastLogin).not.toHaveBeenCalled();
+    });
+
+    it('should update last login timestamp on successful login', async () => {
+      // Arrange
       mockUser.validatePassword = jest.fn().mockResolvedValue(true);
       usersService.findByEmail.mockResolvedValue(mockUser);
       usersService.updateLastLogin.mockResolvedValue(undefined);
       jwtService.signAsync.mockResolvedValue('mock-token');
 
-      const result = await service.login(loginDto);
+      // Act
+      await service.login(loginDto);
 
-      expect(result).toBeDefined();
-      expect(result.accessToken).toBe('mock-token');
-      expect(result.user.email).toBe(mockUser.email);
-    });
-
-    it('should throw UnauthorizedException for invalid credentials', async () => {
-      usersService.findByEmail.mockResolvedValue(null);
-
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should throw UnauthorizedException for inactive user', async () => {
-      const inactiveUser = { ...mockUser, isActive: false };
-      usersService.findByEmail.mockResolvedValue(inactiveUser as User);
-
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should throw UnauthorizedException for wrong password', async () => {
-      mockUser.validatePassword = jest.fn().mockResolvedValue(false);
-      usersService.findByEmail.mockResolvedValue(mockUser);
-
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      // Assert
+      expect(usersService.updateLastLogin).toHaveBeenCalledTimes(1);
+      expect(usersService.updateLastLogin).toHaveBeenCalledWith(mockUser.id);
     });
   });
 
   describe('validateUser', () => {
-    it('should return user for valid credentials', async () => {
+    it('should return user when credentials are valid', async () => {
+      // Arrange
       mockUser.validatePassword = jest.fn().mockResolvedValue(true);
       usersService.findByEmail.mockResolvedValue(mockUser);
 
-      const result = await service.validateUser('test@example.com', 'password');
+      // Act
+      const result = await service.validateUser('test@example.com', 'ValidPassword123!');
 
+      // Assert
       expect(result).toBe(mockUser);
+      expect(result).not.toBeNull();
+      if (result) {
+        expect(result.id).toBe(mockUser.id);
+        expect(result.email).toBe(mockUser.email);
+      }
     });
 
-    it('should return null for invalid credentials', async () => {
+    it('should return null when user does not exist', async () => {
+      // Arrange
       usersService.findByEmail.mockResolvedValue(null);
 
+      // Act
+      const result = await service.validateUser('nonexistent@example.com', 'password');
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should return null when password is incorrect', async () => {
+      // Arrange
+      mockUser.validatePassword = jest.fn().mockResolvedValue(false);
+      usersService.findByEmail.mockResolvedValue(mockUser);
+
+      // Act
+      const result = await service.validateUser('test@example.com', 'WrongPassword123!');
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should return null when user is inactive', async () => {
+      // Arrange
+      const inactiveUser = { ...mockUser, isActive: false };
+      mockUser.validatePassword = jest.fn().mockResolvedValue(true);
+      usersService.findByEmail.mockResolvedValue(inactiveUser as User);
+
+      // Act
+      const result = await service.validateUser('test@example.com', 'ValidPassword123!');
+
+      // Assert
+      expect(result).toBeNull();
+    });
+
+    it('should return null when validation throws error', async () => {
+      // Arrange
+      usersService.findByEmail.mockRejectedValue(new Error('Database error'));
+
+      // Act
       const result = await service.validateUser('test@example.com', 'password');
 
+      // Assert
       expect(result).toBeNull();
+    });
+  });
+
+  describe('refreshToken', () => {
+    const validRefreshToken = 'valid-refresh-token';
+    const mockRefreshPayload = {
+      sub: mockUser.id,
+      email: mockUser.email,
+      firstName: mockUser.firstName,
+      lastName: mockUser.lastName,
+      type: 'refresh' as const,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 604800, // 7 days
+    };
+
+    it('should return new tokens when valid refresh token provided', async () => {
+      // Arrange
+      jwtService.verify.mockReturnValue(mockRefreshPayload);
+      usersService.findById.mockResolvedValue(mockUser);
+      jwtService.signAsync.mockResolvedValue('new-token');
+
+      // Act
+      const result = await service.refreshToken({ refreshToken: validRefreshToken });
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.accessToken).toBe('new-token');
+      expect(result.refreshToken).toBe('new-token');
+      expect(result.tokenType).toBe('Bearer');
+      expect(result.user.id).toBe(mockUser.id);
+      expect(jwtService.verify).toHaveBeenCalledWith(validRefreshToken, {
+        secret: 'your-refresh-secret-key',
+      });
+    });
+
+    it('should throw UnauthorizedException when token type is not refresh', async () => {
+      // Arrange
+      const accessPayload = { ...mockRefreshPayload, type: 'access' as const };
+      jwtService.verify.mockReturnValue(accessPayload);
+
+      // Act & Assert
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        'Invalid token type',
+      );
+      expect(usersService.findById).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when user not found', async () => {
+      // Arrange
+      jwtService.verify.mockReturnValue(mockRefreshPayload);
+      usersService.findById.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        'User not found',
+      );
+    });
+
+    it('should throw UnauthorizedException when user account is disabled', async () => {
+      // Arrange
+      const inactiveUser = { ...mockUser, isActive: false };
+      jwtService.verify.mockReturnValue(mockRefreshPayload);
+      usersService.findById.mockResolvedValue(inactiveUser as User);
+
+      // Act & Assert
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        'Account is disabled',
+      );
+    });
+
+    it('should throw UnauthorizedException when token is expired', async () => {
+      // Arrange
+      jwtService.verify.mockImplementation(() => {
+        throw new Error('TokenExpiredError');
+      });
+
+      // Act & Assert
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refreshToken({ refreshToken: validRefreshToken })).rejects.toThrow(
+        'Invalid or expired refresh token',
+      );
+    });
+
+    it('should throw UnauthorizedException when token is invalid', async () => {
+      // Arrange
+      jwtService.verify.mockImplementation(() => {
+        throw new Error('JsonWebTokenError');
+      });
+
+      // Act & Assert
+      await expect(service.refreshToken({ refreshToken: 'invalid-token' })).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should generate new access and refresh tokens on successful refresh', async () => {
+      // Arrange
+      jwtService.verify.mockReturnValue(mockRefreshPayload);
+      usersService.findById.mockResolvedValue(mockUser);
+      jwtService.signAsync
+        .mockResolvedValueOnce('new-access-token')
+        .mockResolvedValueOnce('new-refresh-token');
+
+      // Act
+      const result = await service.refreshToken({ refreshToken: validRefreshToken });
+
+      // Assert
+      expect(result.accessToken).toBe('new-access-token');
+      expect(result.refreshToken).toBe('new-refresh-token');
+      expect(jwtService.signAsync).toHaveBeenCalledTimes(2);
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub: mockUser.id,
+          email: mockUser.email,
+          type: 'access',
+        }),
+        expect.objectContaining({
+          secret: 'your-secret-key',
+          expiresIn: '1h',
+        }),
+      );
+    });
+
+    it('should verify refresh token with correct secret', async () => {
+      // Arrange
+      jwtService.verify.mockReturnValue(mockRefreshPayload);
+      usersService.findById.mockResolvedValue(mockUser);
+      jwtService.signAsync.mockResolvedValue('new-token');
+
+      // Act
+      await service.refreshToken({ refreshToken: validRefreshToken });
+
+      // Assert
+      expect(jwtService.verify).toHaveBeenCalledWith(validRefreshToken, {
+        secret: 'your-refresh-secret-key',
+      });
+    });
+
+    it('should include all user fields in response when token refreshed', async () => {
+      // Arrange
+      jwtService.verify.mockReturnValue(mockRefreshPayload);
+      usersService.findById.mockResolvedValue(mockUser);
+      jwtService.signAsync.mockResolvedValue('new-token');
+
+      // Act
+      const result = await service.refreshToken({ refreshToken: validRefreshToken });
+
+      // Assert
+      expect(result.user).toHaveProperty('id');
+      expect(result.user).toHaveProperty('email');
+      expect(result.user).toHaveProperty('firstName');
+      expect(result.user).toHaveProperty('lastName');
+      expect(result.user).toHaveProperty('fullName');
+      expect(result.user).toHaveProperty('isActive');
+      expect(result.user).toHaveProperty('createdAt');
+    });
+  });
+
+  describe('Token Generation and Sanitization', () => {
+    it('should generate tokens with correct expiration time', async () => {
+      // Arrange
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue(mockUser);
+      jwtService.signAsync.mockResolvedValue('token');
+
+      // Act
+      const result = await service.register({
+        email: 'new@example.com',
+        password: 'Pass123!',
+        firstName: 'New',
+        lastName: 'User',
+      });
+
+      // Assert
+      expect(result.expiresIn).toBe(3600); // 1 hour in seconds
+      expect(result.tokenType).toBe('Bearer');
+    });
+
+    it('should sanitize user data and not include sensitive information', async () => {
+      // Arrange
+      mockUser.validatePassword = jest.fn().mockResolvedValue(true);
+      usersService.findByEmail.mockResolvedValue(mockUser);
+      jwtService.signAsync.mockResolvedValue('token');
+
+      // Act
+      const result = await service.login({
+        email: 'test@example.com',
+        password: 'Pass123!',
+      });
+
+      // Assert
+      expect(result.user).not.toHaveProperty('passwordHash');
+      expect(result.user).not.toHaveProperty('orders');
+      expect(result.user).not.toHaveProperty('validatePassword');
+      expect(result.user).toHaveProperty('fullName');
+    });
+
+    it('should handle null emailVerifiedAt when sanitizing user', async () => {
+      // Arrange
+      const userWithNullFields: User = {
+        ...mockUser,
+        emailVerifiedAt: undefined,
+        validatePassword: jest.fn().mockResolvedValue(true),
+      } as unknown as User;
+
+      usersService.findByEmail.mockResolvedValue(userWithNullFields);
+      usersService.updateLastLogin.mockResolvedValue(undefined);
+      jwtService.signAsync.mockResolvedValue('token');
+
+      // Act
+      const result = await service.login({
+        email: 'test@example.com',
+        password: 'Pass123!',
+      });
+
+      // Assert
+      expect(result.user.emailVerifiedAt).toBeNull();
+      expect(result.user).toHaveProperty('createdAt');
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw BadRequestException when registration fails with database error', async () => {
+      // Arrange
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockRejectedValue(new Error('Database connection failed'));
+
+      // Act & Assert
+      await expect(
+        service.register({
+          email: 'test@example.com',
+          password: 'Pass123!',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      ).rejects.toThrow('Registration failed. Please try again.');
+    });
+
+    it('should throw BadRequestException when login fails with unexpected error', async () => {
+      // Arrange
+      usersService.findByEmail.mockRejectedValue(new Error('Unexpected error'));
+
+      // Act & Assert
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: 'Pass123!',
+        }),
+      ).rejects.toThrow('Login failed. Please try again.');
+    });
+
+    it('should preserve ConflictException when user already exists', async () => {
+      // Arrange
+      usersService.findByEmail.mockResolvedValue(mockUser);
+
+      // Act & Assert
+      await expect(
+        service.register({
+          email: 'test@example.com',
+          password: 'Pass123!',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });
