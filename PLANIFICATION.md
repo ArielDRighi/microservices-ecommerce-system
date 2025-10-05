@@ -1441,8 +1441,8 @@ Como experto en testing con Jest y NestJS, realiza una estandarización completa
    - Configuración correcta de environment
    - Timeouts apropiados para tests async
 
-**IMPORTANTE**: Esta tarea se enfoca ÚNICAMENTE en tests unitarios. 
-Los tests E2E serán implementados en una tarea futura (Tarea 17) con 
+**IMPORTANTE**: Esta tarea se enfoca ÚNICAMENTE en tests unitarios.
+Los tests E2E serán implementados en una tarea futura (Tarea 17) con
 infraestructura dedicada y herramientas apropiadas.
 ```
 
@@ -1472,6 +1472,238 @@ infraestructura dedicada y herramientas apropiadas.
 - CI pipeline verde
 - Código de tests limpio y mantenible
 - Documentación clara en cada test suite
+
+#### Tarea 17: Refactorización de Tests Unitarios por Módulo
+
+**Objetivo:** Refactorizar archivos de test unitario largos (>300 líneas) en archivos más pequeños, cohesivos y mantenibles. Se trabajará módulo a módulo, con push y validación de pipeline CI después de completar cada módulo.
+
+**📋 Documento de Referencia:**
+Antes de refactorizar cualquier archivo, consultar el documento **`REFACTOR_TESTS_PROMPTS.md`** que contiene el prompt detallado (Prompt 1) con todas las directrices, objetivos, y criterios de división. Este prompt debe ser utilizado como contexto base para cada refactorización.
+
+**Proceso de Refactorización:**
+
+**1. Análisis Inicial:**
+
+- Identificar todos los archivos de test \*.spec.ts en el proyecto
+- Clasificar por tamaño de líneas:
+  - 🟢 Óptimo: 100-250 líneas
+  - 🟡 Aceptable: 251-300 líneas
+  - 🔴 Requiere refactor: >300 líneas (PRIORIDAD)
+- Crear inventario de archivos que necesitan refactorización
+
+**2. Criterios de División:**
+
+- **Archivos >600 líneas**: Dividir en 3-4 archivos especializados
+- **Archivos 400-600 líneas**: Dividir en 2-3 archivos
+- **Archivos 300-400 líneas**: Dividir en 2 archivos
+- **Target ideal**: 150-250 líneas por archivo
+
+**3. Estructura de División:**
+
+```
+Archivo original: service.spec.ts (650 líneas)
+
+Dividir en:
+├── service.core.spec.ts (180 líneas)         # Métodos principales y happy paths
+├── service.validations.spec.ts (150 líneas)  # Tests de validación y DTOs
+├── service.errors.spec.ts (140 líneas)       # Casos de error y excepciones
+├── service.edge-cases.spec.ts (120 líneas)   # Casos edge y escenarios complejos
+└── helpers/
+    └── service.test-helpers.ts (60 líneas)   # Factories, mocks y assertions
+```
+
+**4. Prompt de Refactorización:**
+
+**IMPORTANTE**: Antes de refactorizar cada archivo, utilizar el prompt detallado que se encuentra en el documento `REFACTOR_TESTS_PROMPTS.md` (Prompt 1: Refactorización de Tests Unitarios).
+
+El prompt incluye:
+
+- **OBJETIVOS**: Dividir archivos, eliminar duplicación, usar test.each(), extraer helpers
+- **ESTRUCTURA ESPERADA**: Archivos por responsabilidad funcional (150-250 líneas)
+- **CRITERIOS DE DIVISIÓN**: Agrupar por método/función, separar edge cases y errores
+- **FORMATO DE SALIDA**: Proponer estructura, crear helpers, documentar división
+
+Consultar el documento `REFACTOR_TESTS_PROMPTS.md` para el prompt completo antes de cada refactorización.
+
+**5. Orden de Refactorización por Módulo:**
+
+Trabajar en este orden, con push después de cada módulo:
+
+1. **Módulo Auth** (`src/modules/auth/`)
+2. **Módulo Users** (`src/modules/users/`)
+3. **Módulo Products** (`src/modules/products/`)
+4. **Módulo Categories** (`src/modules/categories/`)
+5. **Módulo Orders** (`src/modules/orders/`)
+6. **Módulo Payments** (`src/modules/payments/`)
+7. **Módulo Inventory** (`src/modules/inventory/`)
+8. **Módulo Notifications** (`src/modules/notifications/`)
+9. **Módulo Events** (`src/modules/events/`)
+10. **Queues y Processors** (`src/queues/`)
+11. **Common y Utils** (`src/common/`)
+12. **Config** (`src/config/`)
+
+**6. Relación entre Documentos:**
+
+```
+PLANIFICATION.md (Tarea 17)          REFACTOR_TESTS_PROMPTS.md
+      │                                        │
+      │                                        │
+      ├──────── Referencia ──────────────────►│
+      │         al Prompt                      │
+      │                                        │
+      │                                 [Prompt 1: Tests Unitarios]
+      │                                        │
+      │                                        │
+   Workflow ◄──────── Contexto ───────────────┘
+   por Módulo         base para cada
+                      refactorización
+```
+
+**7. Workflow por Módulo:**
+
+Para cada módulo:
+
+```bash
+# 1. Análisis
+- Identificar archivos >300 líneas en el módulo
+- Planear estructura de división
+- Crear archivo de helpers si no existe
+
+# 2. Refactorización
+- Dividir archivos según criterios
+- Extraer helpers y factories comunes
+- Implementar test.each() donde aplique
+- Mantener misma cobertura
+
+# 3. Validaciones de Calidad (ANTES del push)
+✅ npm run lint                    # Sin errores
+✅ npm run type-check              # Sin errores TypeScript
+✅ npm run test:cov                # Coverage >= actual (no reducir)
+✅ npm run test -- --findRelatedTests [archivos]  # Tests del módulo passing
+✅ npm run build                   # Build exitoso
+✅ Verificar que coverage no disminuya
+
+# 4. Push y CI
+git add [archivos del módulo]
+git commit -m "refactor(tests): refactorizar tests de módulo [nombre] - dividir archivos >300 líneas"
+git push origin [branch]
+
+# 5. Validar Pipeline CI
+- Esperar que CI pase completamente
+- Verificar coverage reports en CI
+- Confirmar que todos los tests pasen
+- Si falla: fix y repetir paso 3-5
+```
+
+**8. Métricas de Éxito:**
+
+Antes y después de la refactorización:
+
+| Métrica                    | Antes      | Después         |
+| -------------------------- | ---------- | --------------- |
+| Archivos >300 líneas       | X archivos | 0 archivos      |
+| Promedio de líneas/archivo | ~450       | ~180            |
+| Tests duplicados           | ~25%       | <5%             |
+| Coverage                   | 80%+       | 80%+ (mantener) |
+| Tiempo ejecución tests     | Baseline   | Similar o mejor |
+
+**9. Patrones de Refactorización:**
+
+**Antes (repetitivo):**
+
+```typescript
+it('should validate email format', () => {
+  /* test */
+});
+it('should validate password length', () => {
+  /* test */
+});
+it('should validate required fields', () => {
+  /* test */
+});
+```
+
+**Después (test.each):**
+
+```typescript
+describe('validations', () => {
+  test.each([
+    ['email', 'invalid-email', 'must be valid email'],
+    ['password', '123', 'must be at least 8 characters'],
+    ['firstName', '', 'should not be empty'],
+  ])('should validate %s: %s', (field, value, expectedError) => {
+    // test implementation
+  });
+});
+```
+
+**Factories pattern:**
+
+```typescript
+// test-helpers.ts
+export const createMockUser = (overrides = {}) => ({
+  id: faker.string.uuid(),
+  email: faker.internet.email(),
+  firstName: faker.person.firstName(),
+  ...overrides,
+});
+```
+
+**10. Validaciones de Calidad por Módulo:**
+
+Checklist antes de cada push:
+
+- [ ] Ejecutar `npm run lint` sin errores
+- [ ] Verificar `npm run type-check` sin errores
+- [ ] Correr `npm run test:cov` con coverage >= actual
+- [ ] Validar que tests del módulo pasen individualmente
+- [ ] Ejecutar `npm run build` exitosamente
+- [ ] Verificar que no haya código duplicado
+- [ ] Confirmar que helpers sean reutilizables
+- [ ] Validar nomenclatura de archivos sea descriptiva
+- [ ] Documentar cambios en commit message
+
+**11. Documentación de Cambios:**
+
+Cada commit debe incluir:
+
+```
+refactor(tests): refactorizar módulo [nombre]
+
+- Dividir [archivo.spec.ts] en [N] archivos especializados
+- Extraer helpers comunes a [helpers/nombre.test-helpers.ts]
+- Implementar test.each() para [X] casos repetitivos
+- Mantener coverage de [Y]%
+
+Archivos:
+- [archivo.core.spec.ts]: casos principales (XXX líneas)
+- [archivo.validations.spec.ts]: validaciones (XXX líneas)
+- [archivo.errors.spec.ts]: casos de error (XXX líneas)
+
+Tests: XXX passing, Coverage: YY.Y%
+```
+
+**12. Resultado Esperado Final:**
+
+Al completar la tarea:
+
+- ✅ 0 archivos de test >300 líneas
+- ✅ Promedio de ~150-250 líneas por archivo
+- ✅ Helpers centralizados por módulo
+- ✅ Duplicación de código <5%
+- ✅ Coverage mantenido o mejorado (>80%)
+- ✅ Pipeline CI verde en todos los módulos
+- ✅ Tests más legibles y mantenibles
+- ✅ Documentación completa de estructura
+
+**13. Notas Importantes:**
+
+- 🔴 **NO reducir coverage**: Si coverage disminuye, investigar y corregir
+- 🔴 **NO cambiar lógica de tests**: Solo reorganizar y optimizar
+- 🟡 **Validar CI después de CADA módulo**: No acumular cambios
+- 🟢 **Usar nomenclatura consistente**: _.core.spec.ts, _.validations.spec.ts, etc.
+- 🟢 **Extraer helpers agresivamente**: Reducir duplicación al mínimo
+- 🟢 **test.each() es tu amigo**: Usar para casos con diferentes datos
 
 ---
 
