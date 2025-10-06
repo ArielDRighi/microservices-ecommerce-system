@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
@@ -10,7 +9,7 @@ import { EventPublisher } from '../events/publishers/event.publisher';
 import { OrderStatus } from './enums/order-status.enum';
 import { OrderProcessingSagaService } from './services/order-processing-saga.service';
 
-describe('OrdersService', () => {
+describe('OrdersService - Core Functionality', () => {
   let service: OrdersService;
   let orderRepository: jest.Mocked<Repository<Order>>;
   let orderItemRepository: jest.Mocked<Repository<OrderItem>>;
@@ -206,29 +205,6 @@ describe('OrdersService', () => {
       // Should not start transaction
       expect(queryRunner.connect).not.toHaveBeenCalled();
     });
-
-    it('should throw BadRequestException if product not found', async () => {
-      const queryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([]), // No products found
-      };
-      productRepository.createQueryBuilder.mockReturnValue(queryBuilder as never);
-
-      await expect(service.createOrder(mockUserId, createOrderDto)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should rollback transaction on error', async () => {
-      const error = new Error('Database error');
-      (queryRunner.manager.save as jest.Mock).mockRejectedValue(error);
-
-      await expect(service.createOrder(mockUserId, createOrderDto)).rejects.toThrow(error);
-
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
-      expect(queryRunner.release).toHaveBeenCalled();
-    });
   });
 
   describe('findUserOrders', () => {
@@ -282,23 +258,6 @@ describe('OrdersService', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(mockOrderId);
     });
-
-    it('should throw NotFoundException if order not found', async () => {
-      orderRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.findOrderById('non-existent-id', mockUserId)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw NotFoundException if order belongs to different user', async () => {
-      const differentUserOrder = { ...mockOrder, userId: 'different-user-id' };
-      orderRepository.findOne.mockResolvedValue(differentUserOrder as Order);
-
-      await expect(service.findOrderById(mockOrderId, mockUserId)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
   });
 
   describe('getOrderStatus', () => {
@@ -316,14 +275,6 @@ describe('OrdersService', () => {
       expect(result).toBeDefined();
       expect(result.orderId).toBe(mockOrderId);
       expect(result.status).toBe(OrderStatus.PROCESSING);
-    });
-
-    it('should throw NotFoundException if order not found', async () => {
-      orderRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.getOrderStatus('non-existent-id', mockUserId)).rejects.toThrow(
-        NotFoundException,
-      );
     });
   });
 });
