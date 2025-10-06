@@ -1,4 +1,8 @@
-import { SagaStateEntity, SagaStatus, SagaType } from '../../../src/database/entities/saga-state.entity';
+import {
+  SagaStateEntity,
+  SagaStatus,
+  SagaType,
+} from '../../../src/database/entities/saga-state.entity';
 
 /**
  * Helper para assertions relacionadas con estados de Saga

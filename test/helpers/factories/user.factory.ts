@@ -11,10 +11,7 @@ export class UserFactory {
    * @param repository - Repositorio de User
    * @param overrides - Propiedades personalizadas
    */
-  static async create(
-    repository: Repository<User>,
-    overrides: Partial<User> = {},
-  ): Promise<User> {
+  static async create(repository: Repository<User>, overrides: Partial<User> = {}): Promise<User> {
     const timestamp = Date.now();
     const randomSuffix = Math.floor(Math.random() * 10000);
 

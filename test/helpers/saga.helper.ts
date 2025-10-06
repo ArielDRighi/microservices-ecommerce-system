@@ -25,7 +25,11 @@ export class SagaHelper {
         throw new Error(`Saga ${sagaId} not found`);
       }
 
-      if (saga.status === SagaStatus.COMPLETED || saga.status === SagaStatus.COMPENSATED || saga.status === SagaStatus.FAILED) {
+      if (
+        saga.status === SagaStatus.COMPLETED ||
+        saga.status === SagaStatus.COMPENSATED ||
+        saga.status === SagaStatus.FAILED
+      ) {
         return saga;
       }
 
@@ -64,7 +68,9 @@ export class SagaHelper {
 
       // If saga already failed or compensated, throw error
       if (saga.status === SagaStatus.FAILED || saga.status === SagaStatus.COMPENSATED) {
-        throw new Error(`Saga ${sagaId} ended with status ${saga.status} before reaching step ${expectedStep}`);
+        throw new Error(
+          `Saga ${sagaId} ended with status ${saga.status} before reaching step ${expectedStep}`,
+        );
       }
 
       // Wait a bit before checking again
@@ -74,7 +80,7 @@ export class SagaHelper {
     const currentSaga = await sagaRepository.findOne({ where: { id: sagaId } });
     throw new Error(
       `Timeout waiting for saga ${sagaId} to reach step ${expectedStep}. ` +
-      `Current step: ${currentSaga?.currentStep}, Status: ${currentSaga?.status}`,
+        `Current step: ${currentSaga?.currentStep}, Status: ${currentSaga?.status}`,
     );
   }
 
