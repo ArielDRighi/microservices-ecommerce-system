@@ -1707,6 +1707,135 @@ Al completar la tarea:
 
 ---
 
+#### Tarea 18: Tests de Integración E2E (End-to-End)
+
+**Objetivo:** Implementar suite completa de tests E2E siguiendo mejores prácticas de NestJS
+
+**📋 Documento de Planificación Detallada:**
+Ver archivo **`PLAN_TESTS_E2E.md`** para el plan completo y exhaustivo.
+
+**Resumen Ejecutivo**:
+
+Esta tarea implementa ~180 tests E2E organizados en 7 categorías:
+
+1. **Smoke Tests** (5 tests) - Health checks básicos
+2. **API Tests** (120 tests) - Todos los endpoints REST
+3. **Business Flows** (27 tests) - Customer journey, Order Saga
+4. **Integration Tests** (24 tests) - Queues, DB transactions, Outbox
+5. **Contract Tests** (20 tests) - Validación de schemas
+6. **Performance Tests** (10 tests) - Response time benchmarks
+7. **Security Tests** (27 tests) - Auth, authorization, validation
+
+**Estructura de Implementación**:
+
+```
+test/
+├── config/
+│   ├── jest-e2e.json          # ✨ NUEVO
+│   ├── setup-e2e.ts           # ✨ NUEVO
+│   └── teardown-e2e.ts        # ✨ NUEVO
+├── e2e/                       # ✨ NUEVO - 25 archivos
+│   ├── smoke/
+│   ├── api/
+│   ├── business-flows/
+│   ├── integration/
+│   ├── contracts/
+│   ├── performance/
+│   └── security/
+├── helpers/                   # Extender existentes + 6 nuevos
+└── fixtures/                  # ✨ NUEVO - Test data
+```
+
+**Plan de Ejecución** (20 sub-tareas):
+
+| # | Sub-Tarea | Archivos | Tests | Duración |
+|---|-----------|----------|-------|----------|
+| 1 | Infraestructura E2E | 9 | 0 | 3-4h |
+| 2 | Smoke Tests | 1 | 5 | 1h |
+| 3 | Auth API | 1 | 15 | 2h |
+| 4 | Users API | 1 | 20 | 2-3h |
+| 5 | Categories API | 1 | 25 | 3h |
+| 6 | Products API | 1 | 20 | 2-3h |
+| 7 | Inventory API | 1 | 25 | 3-4h |
+| 8 | Orders API | 1 | 15 | 2-3h |
+| 9 | Customer Journey | 1 | 5 | 3-4h |
+| 10 | Order Saga Happy Path | 1 | 10 | 3-4h |
+| 11 | Saga Compensation | 1 | 12 | 4-5h |
+| 12 | Queue Integration | 1 | 10 | 2-3h |
+| 13 | DB Transactions | 1 | 8 | 2-3h |
+| 14 | Event Outbox | 1 | 6 | 2h |
+| 15 | API Contracts | 1 | 20 | 2-3h |
+| 16 | Performance | 1 | 10 | 2h |
+| 17 | Security | 1 | 15 | 2-3h |
+| 18 | Error Handling | 1 | 12 | 2h |
+| 19 | Documentación | 3 | 0 | 2h |
+| 20 | Validación Final | - | - | 1h |
+
+**Total Estimado**: ~25 archivos nuevos, ~180 tests, 45-55 horas
+
+**Validaciones de Calidad** (cada sub-tarea):
+
+- ✅ npm run lint sin errores
+- ✅ npm run type-check sin errores
+- ✅ npm run test:cov (unit tests siguen pasando)
+- ✅ npm run test:e2e (E2E tests pasan)
+- ✅ No tests flakey (ejecutar 3 veces)
+- ✅ Coverage E2E >= 60%
+- ✅ Timing E2E suite completa < 3 minutos
+- ✅ **CI Pipeline debe pasar completamente**
+
+**Métricas Esperadas Post-Implementación**:
+
+| Métrica | Actual | Target | Delta |
+|---------|--------|--------|-------|
+| Tests Unitarios | 1033 | 1033 | +0 |
+| **Tests E2E** | **0** | **~180** | **+180** |
+| Coverage Unit | 75% | 75% | +0% |
+| **Coverage E2E** | **0%** | **65%** | **+65%** |
+| Tiempo CI | ~2min | ~5min | +3min |
+
+**Workflow por Sub-Tarea**:
+
+```bash
+# 1. Crear branch
+git checkout -b task-18.X-nombre-subtarea
+
+# 2. Implementar según prompt en PLAN_TESTS_E2E.md
+# ... codificar ...
+
+# 3. Validaciones locales
+npm run lint
+npm run type-check
+npm run test:cov
+npm run test:e2e -- ruta/archivo
+
+# 4. Verificar no-flakiness (ejecutar 3 veces)
+npm run test:e2e -- ruta/archivo
+
+# 5. Commit descriptivo
+git commit -m "test(e2e): [descripción]"
+
+# 6. Push y validar CI
+git push origin task-18.X-nombre-subtarea
+
+# 7. Merge cuando CI esté verde ✅
+```
+
+**Próximos Pasos**:
+
+1. 📖 Revisar `PLAN_TESTS_E2E.md` completo
+2. 🚀 Comenzar con Sub-Tarea 1 (Infraestructura)
+3. ✅ Validar CI después de CADA sub-tarea
+4. 🔄 Iterar hasta completar las 20 sub-tareas
+5. 📊 Generar reporte final de cobertura E2E
+
+**Referencias**:
+- Documento completo: `PLAN_TESTS_E2E.md`
+- Estándares: `TESTING_STANDARDS.md`
+- Helpers existentes: `test/helpers/`
+
+---
+
 ## 6. Consideraciones de Implementación
 
 ### Orden de Desarrollo Recomendado
