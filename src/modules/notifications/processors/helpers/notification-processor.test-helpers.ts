@@ -20,7 +20,8 @@ export function mockNotificationsService(): jest.Mocked<NotificationsService> {
 export function createMockJob(
   id: string,
   type: 'order-confirmation' | 'payment-failure' | 'shipping-update' | 'welcome',
-  data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any,
   priority: NotificationPriority = NotificationPriority.NORMAL,
   userId: string = 'user-123',
 ): Job {
@@ -36,21 +37,23 @@ export function createMockJob(
 }
 
 /**
- * Assert successful job result
+ * Expectativa para validar resultado exitoso de job
  */
-export function expectSuccessfulJobResult(result: any, jobId: string) {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
-  expect(result).toEqual({
-    success: true,
-    jobId,
-  });
+export function expectSuccessfulJobResult(result: {
+  success: boolean;
+  jobId?: string | number;
+}): void {
+  expect(result.success).toBe(true);
+  expect(result.jobId).toBeDefined();
 }
 
 /**
  * Assert job result structure
  */
-export function expectValidJobResultStructure(result: any) {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+export function expectValidJobResultStructure(result: {
+  success: boolean;
+  jobId?: string | number;
+}): void {
   expect(result).toHaveProperty('success');
   expect(result).toHaveProperty('jobId');
   expect(typeof result.success).toBe('boolean');

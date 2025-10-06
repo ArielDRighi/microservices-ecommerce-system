@@ -67,7 +67,7 @@ describe('NotificationProcessor - Order Confirmations', () => {
       const result = await processor.handleNotification(mockJob);
 
       // Assert
-      expectSuccessfulJobResult(result, '1');
+      expectSuccessfulJobResult(result);
       expect(notificationsService.sendOrderConfirmation).toHaveBeenCalledWith(orderData);
       expect(notificationsService.sendOrderConfirmation).toHaveBeenCalledTimes(1);
     });

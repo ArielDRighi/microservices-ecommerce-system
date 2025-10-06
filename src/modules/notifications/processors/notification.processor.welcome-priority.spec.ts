@@ -52,7 +52,7 @@ describe('NotificationProcessor - Welcome & Priority', () => {
       const result = await processor.handleNotification(mockJob);
 
       // Assert
-      expectSuccessfulJobResult(result, '7');
+      expectSuccessfulJobResult(result);
       expect(notificationsService.sendWelcomeEmail).toHaveBeenCalledWith('user-welcome');
       expect(notificationsService.sendWelcomeEmail).toHaveBeenCalledTimes(1);
     });

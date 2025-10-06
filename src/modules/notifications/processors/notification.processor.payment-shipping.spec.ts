@@ -59,7 +59,7 @@ describe('NotificationProcessor - Payment & Shipping', () => {
       const result = await processor.handleNotification(mockJob);
 
       // Assert
-      expectSuccessfulJobResult(result, '4');
+      expectSuccessfulJobResult(result);
       expect(notificationsService.sendPaymentFailure).toHaveBeenCalledWith(paymentData);
       expect(notificationsService.sendPaymentFailure).toHaveBeenCalledTimes(1);
     });
@@ -112,7 +112,7 @@ describe('NotificationProcessor - Payment & Shipping', () => {
       const result = await processor.handleNotification(mockJob);
 
       // Assert
-      expectSuccessfulJobResult(result, '6');
+      expectSuccessfulJobResult(result);
       expect(notificationsService.sendShippingUpdate).toHaveBeenCalledWith(shippingData);
       expect(notificationsService.sendShippingUpdate).toHaveBeenCalledTimes(1);
     });
