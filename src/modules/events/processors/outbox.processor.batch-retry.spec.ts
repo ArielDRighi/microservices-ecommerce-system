@@ -56,7 +56,9 @@ describe('OutboxProcessor - Batch Processing & Retry', () => {
       ];
 
       mockRepo.find.mockResolvedValue(events as any);
-      mockRepo.save.mockImplementation((event) => Promise.resolve({ ...event, processed: true } as any));
+      mockRepo.save.mockImplementation((event) =>
+        Promise.resolve({ ...event, processed: true } as any),
+      );
 
       await processor.processPendingEvents();
 
@@ -92,7 +94,9 @@ describe('OutboxProcessor - Batch Processing & Retry', () => {
       ];
 
       mockRepo.find.mockResolvedValue(events as any);
-      mockRepo.save.mockImplementation((event) => Promise.resolve({ ...event, processed: true } as any));
+      mockRepo.save.mockImplementation((event) =>
+        Promise.resolve({ ...event, processed: true } as any),
+      );
 
       await processor.processPendingEvents();
 
@@ -260,7 +264,9 @@ describe('OutboxProcessor - Batch Processing & Retry', () => {
       );
 
       mockRepo.find.mockResolvedValue(largeEventBatch as any);
-      mockRepo.save.mockImplementation((event) => Promise.resolve({ ...event, processed: true } as any));
+      mockRepo.save.mockImplementation((event) =>
+        Promise.resolve({ ...event, processed: true } as any),
+      );
 
       await processor.processPendingEvents();
 
@@ -291,7 +297,9 @@ describe('OutboxProcessor - Batch Processing & Retry', () => {
       ];
 
       mockRepo.find.mockResolvedValue(mixedEvents as any);
-      mockRepo.save.mockImplementation((event) => Promise.resolve({ ...event, processed: true } as any));
+      mockRepo.save.mockImplementation((event) =>
+        Promise.resolve({ ...event, processed: true } as any),
+      );
 
       await processor.processPendingEvents();
 

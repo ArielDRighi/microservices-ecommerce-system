@@ -45,11 +45,11 @@ describe('OutboxProcessor - Errors & Edge Cases', () => {
 
       mockRepo.find.mockResolvedValue(events as any);
 
-      mockQ.add
-        .mockResolvedValueOnce({} as any)
-        .mockRejectedValueOnce(new Error('Queue error'));
+      mockQ.add.mockResolvedValueOnce({} as any).mockRejectedValueOnce(new Error('Queue error'));
 
-      mockRepo.save.mockImplementation((event) => Promise.resolve({ ...event, processed: true } as any));
+      mockRepo.save.mockImplementation((event) =>
+        Promise.resolve({ ...event, processed: true } as any),
+      );
 
       await processor.processPendingEvents();
 
