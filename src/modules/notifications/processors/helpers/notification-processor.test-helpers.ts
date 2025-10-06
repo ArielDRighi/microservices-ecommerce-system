@@ -38,7 +38,8 @@ export function createMockJob(
 /**
  * Assert successful job result
  */
-export function expectSuccessfulJobResult(result: any, jobId: string) { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function expectSuccessfulJobResult(result: any, jobId: string) {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   expect(result).toEqual({
     success: true,
     jobId,
@@ -48,7 +49,8 @@ export function expectSuccessfulJobResult(result: any, jobId: string) { // eslin
 /**
  * Assert job result structure
  */
-export function expectValidJobResultStructure(result: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function expectValidJobResultStructure(result: any) {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   expect(result).toHaveProperty('success');
   expect(result).toHaveProperty('jobId');
   expect(typeof result.success).toBe('boolean');

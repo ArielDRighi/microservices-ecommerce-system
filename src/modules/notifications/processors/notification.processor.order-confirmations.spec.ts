@@ -55,7 +55,13 @@ describe('NotificationProcessor - Order Confirmations', () => {
         currency: 'USD',
       };
 
-      const mockJob = createMockJob('1', 'order-confirmation', orderData, NotificationPriority.HIGH, 'user-123');
+      const mockJob = createMockJob(
+        '1',
+        'order-confirmation',
+        orderData,
+        NotificationPriority.HIGH,
+        'user-123',
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);

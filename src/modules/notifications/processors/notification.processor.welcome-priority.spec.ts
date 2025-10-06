@@ -40,7 +40,13 @@ describe('NotificationProcessor - Welcome & Priority', () => {
   describe('Welcome Email Notifications', () => {
     it('should process welcome job successfully', async () => {
       // Arrange
-      const mockJob = createMockJob('7', 'welcome', { userName: 'John Doe' }, NotificationPriority.LOW, 'user-welcome');
+      const mockJob = createMockJob(
+        '7',
+        'welcome',
+        { userName: 'John Doe' },
+        NotificationPriority.LOW,
+        'user-welcome',
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);
@@ -57,7 +63,13 @@ describe('NotificationProcessor - Welcome & Priority', () => {
 
       // Act
       for (const userId of userIds) {
-        const mockJob = createMockJob(`job-${userId}`, 'welcome', {}, NotificationPriority.LOW, userId);
+        const mockJob = createMockJob(
+          `job-${userId}`,
+          'welcome',
+          {},
+          NotificationPriority.LOW,
+          userId,
+        );
         await processor.handleNotification(mockJob);
       }
 
@@ -72,14 +84,19 @@ describe('NotificationProcessor - Welcome & Priority', () => {
   describe('Priority Levels', () => {
     it('should handle HIGH priority notifications', async () => {
       // Arrange
-      const mockJob = createMockJob('12', 'payment-failure', {
-        userId: 'user-123',
-        orderId: 'order-123',
-        orderNumber: 'ORD-123',
-        amount: 100,
-        failureReason: 'Test',
-        attemptNumber: 1,
-      }, NotificationPriority.HIGH);
+      const mockJob = createMockJob(
+        '12',
+        'payment-failure',
+        {
+          userId: 'user-123',
+          orderId: 'order-123',
+          orderNumber: 'ORD-123',
+          amount: 100,
+          failureReason: 'Test',
+          attemptNumber: 1,
+        },
+        NotificationPriority.HIGH,
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);
@@ -90,15 +107,20 @@ describe('NotificationProcessor - Welcome & Priority', () => {
 
     it('should handle NORMAL priority notifications', async () => {
       // Arrange
-      const mockJob = createMockJob('13', 'shipping-update', {
-        userId: 'user-123',
-        orderId: 'order-123',
-        orderNumber: 'ORD-123',
-        trackingNumber: 'TRACK-123',
-        carrier: 'DHL',
-        status: 'in_transit',
-        estimatedDelivery: new Date(),
-      }, NotificationPriority.NORMAL);
+      const mockJob = createMockJob(
+        '13',
+        'shipping-update',
+        {
+          userId: 'user-123',
+          orderId: 'order-123',
+          orderNumber: 'ORD-123',
+          trackingNumber: 'TRACK-123',
+          carrier: 'DHL',
+          status: 'in_transit',
+          estimatedDelivery: new Date(),
+        },
+        NotificationPriority.NORMAL,
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);

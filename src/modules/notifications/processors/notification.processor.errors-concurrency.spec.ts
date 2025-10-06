@@ -150,22 +150,34 @@ describe('NotificationProcessor - Errors & Concurrency', () => {
     it('should handle multiple concurrent jobs', async () => {
       // Arrange
       const jobs = [
-        createMockJob('16', 'order-confirmation', {
-          userId: 'user-1',
-          orderId: 'order-1',
-          orderNumber: 'ORD-1',
-          items: [],
-          total: 100,
-          estimatedDelivery: new Date(),
-        }, NotificationPriority.NORMAL, 'user-1'),
-        createMockJob('17', 'payment-failure', {
-          userId: 'user-2',
-          orderId: 'order-2',
-          orderNumber: 'ORD-2',
-          amount: 200,
-          failureReason: 'Test',
-          attemptNumber: 1,
-        }, NotificationPriority.HIGH, 'user-2'),
+        createMockJob(
+          '16',
+          'order-confirmation',
+          {
+            userId: 'user-1',
+            orderId: 'order-1',
+            orderNumber: 'ORD-1',
+            items: [],
+            total: 100,
+            estimatedDelivery: new Date(),
+          },
+          NotificationPriority.NORMAL,
+          'user-1',
+        ),
+        createMockJob(
+          '17',
+          'payment-failure',
+          {
+            userId: 'user-2',
+            orderId: 'order-2',
+            orderNumber: 'ORD-2',
+            amount: 200,
+            failureReason: 'Test',
+            attemptNumber: 1,
+          },
+          NotificationPriority.HIGH,
+          'user-2',
+        ),
         createMockJob('18', 'welcome', {}, NotificationPriority.LOW, 'user-3'),
       ] as Job[];
 

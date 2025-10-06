@@ -47,7 +47,13 @@ describe('NotificationProcessor - Payment & Shipping', () => {
         reason: 'Insufficient funds',
       };
 
-      const mockJob = createMockJob('4', 'payment-failure', paymentData, NotificationPriority.HIGH, 'user-789');
+      const mockJob = createMockJob(
+        '4',
+        'payment-failure',
+        paymentData,
+        NotificationPriority.HIGH,
+        'user-789',
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);
@@ -60,14 +66,20 @@ describe('NotificationProcessor - Payment & Shipping', () => {
 
     it('should handle high priority payment failures', async () => {
       // Arrange
-      const mockJob = createMockJob('5', 'payment-failure', {
-        userId: 'user-urgent',
-        orderId: 'order-urgent',
-        orderNumber: 'ORD-URGENT',
-        amount: 999.99,
-        failureReason: 'Card declined',
-        attemptNumber: 3,
-      }, NotificationPriority.HIGH, 'user-urgent');
+      const mockJob = createMockJob(
+        '5',
+        'payment-failure',
+        {
+          userId: 'user-urgent',
+          orderId: 'order-urgent',
+          orderNumber: 'ORD-URGENT',
+          amount: 999.99,
+          failureReason: 'Card declined',
+          attemptNumber: 3,
+        },
+        NotificationPriority.HIGH,
+        'user-urgent',
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);
@@ -88,7 +100,13 @@ describe('NotificationProcessor - Payment & Shipping', () => {
         carrier: 'UPS',
       };
 
-      const mockJob = createMockJob('6', 'shipping-update', shippingData, NotificationPriority.NORMAL, 'user-555');
+      const mockJob = createMockJob(
+        '6',
+        'shipping-update',
+        shippingData,
+        NotificationPriority.NORMAL,
+        'user-555',
+      );
 
       // Act
       const result = await processor.handleNotification(mockJob);
