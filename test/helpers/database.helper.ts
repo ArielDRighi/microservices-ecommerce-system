@@ -91,4 +91,55 @@ export class DatabaseHelper {
       return false;
     }
   }
+
+  /**
+   * Limpia tablas específicas para tests E2E
+   * @param tables - Lista de nombres de tablas a limpiar
+   */
+  async cleanTables(tables: string[]): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    try {
+      await queryRunner.query('SET session_replication_role = replica;');
+
+      for (const table of tables) {
+        await queryRunner.query(`DELETE FROM "${table}" WHERE 1=1;`);
+      }
+
+      await queryRunner.query('SET session_replication_role = DEFAULT;');
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Trunca todas las tablas (más rápido que DELETE)
+   * CUIDADO: Esto es irreversible
+   */
+  async truncateAllTables(): Promise<void> {
+    const entities = this.dataSource.entityMetadatas;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    try {
+      await queryRunner.query('SET session_replication_role = replica;');
+
+      for (const entity of entities) {
+        await queryRunner.query(`TRUNCATE TABLE "${entity.tableName}" CASCADE;`);
+      }
+
+      await queryRunner.query('SET session_replication_role = DEFAULT;');
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Obtiene el DataSource para operaciones avanzadas
+   */
+  getDataSource(): DataSource {
+    return this.dataSource;
+  }
 }

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "test-user-001",
+    "email": "admin@test.com",
+    "password": "Admin123!@#",
+    "firstName": "Admin",
+    "lastName": "User",
+    "role": "admin",
+    "isEmailVerified": true,
+    "isActive": true
+  },
+  {
+    "id": "test-user-002",
+    "email": "customer1@test.com",
+    "password": "Customer123!@#",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "customer",
+    "isEmailVerified": true,
+    "isActive": true
+  },
+  {
+    "id": "test-user-003",
+    "email": "customer2@test.com",
+    "password": "Customer123!@#",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "role": "customer",
+    "isEmailVerified": true,
+    "isActive": true
+  },
+  {
+    "id": "test-user-004",
+    "email": "unverified@test.com",
+    "password": "Unverified123!@#",
+    "firstName": "Unverified",
+    "lastName": "User",
+    "role": "customer",
+    "isEmailVerified": false,
+    "isActive": true
+  },
+  {
+    "id": "test-user-005",
+    "email": "inactive@test.com",
+    "password": "Inactive123!@#",
+    "firstName": "Inactive",
+    "lastName": "User",
+    "role": "customer",
+    "isEmailVerified": true,
+    "isActive": false
+  }
+]
