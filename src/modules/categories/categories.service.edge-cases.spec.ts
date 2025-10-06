@@ -256,9 +256,9 @@ describe('CategoriesService - Edge Cases & Special Scenarios', () => {
       });
 
       mockRepository.save.mockImplementation((cat: any) => Promise.resolve(cat));
-      jest.spyOn(service, 'findOne').mockImplementation((id: string) =>
-        Promise.resolve(createMockCategory({ id }) as any),
-      );
+      jest
+        .spyOn(service, 'findOne')
+        .mockImplementation((id: string) => Promise.resolve(createMockCategory({ id }) as any));
 
       const promises = Array.from({ length: 5 }, (_, i) =>
         service.create({ name: `Category ${i}` }),

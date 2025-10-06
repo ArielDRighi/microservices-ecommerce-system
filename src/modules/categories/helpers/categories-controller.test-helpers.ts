@@ -2,11 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CategoriesController } from '../categories.controller';
 import { CategoriesService } from '../categories.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import {
-  CategoryResponseDto,
-  CategoryTreeDto,
-  PaginatedCategoriesResponseDto,
-} from '../dto';
+import { CategoryResponseDto, CategoryTreeDto, PaginatedCategoriesResponseDto } from '../dto';
 
 /**
  * Creates a mock CategoryResponseDto with optional overrides

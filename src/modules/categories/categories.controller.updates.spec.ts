@@ -87,9 +87,9 @@ describe('CategoriesController - Updates & Lifecycle', () => {
       const error = new NotFoundException('Category not found');
       mockCategoriesService.update.mockRejectedValue(error);
 
-      await expect(
-        controller.update(TEST_CATEGORY_IDS.main, updateCategoryDto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(controller.update(TEST_CATEGORY_IDS.main, updateCategoryDto)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(service.update).toHaveBeenCalledWith(TEST_CATEGORY_IDS.main, updateCategoryDto);
     });
 
@@ -97,9 +97,9 @@ describe('CategoriesController - Updates & Lifecycle', () => {
       const error = new Error('Circular hierarchy detected');
       mockCategoriesService.update.mockRejectedValue(error);
 
-      await expect(
-        controller.update(TEST_CATEGORY_IDS.main, updateCategoryDto),
-      ).rejects.toThrow('Circular hierarchy detected');
+      await expect(controller.update(TEST_CATEGORY_IDS.main, updateCategoryDto)).rejects.toThrow(
+        'Circular hierarchy detected',
+      );
       expect(service.update).toHaveBeenCalledWith(TEST_CATEGORY_IDS.main, updateCategoryDto);
     });
   });
