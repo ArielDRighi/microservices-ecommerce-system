@@ -2,7 +2,11 @@ import { BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
-import { createMockUser, setupUsersTestModule, createMockQueryBuilder } from './helpers/users.test-helpers';
+import {
+  createMockUser,
+  setupUsersTestModule,
+  createMockQueryBuilder,
+} from './helpers/users.test-helpers';
 
 describe('UsersService - Queries & Pagination', () => {
   let service: UsersService;

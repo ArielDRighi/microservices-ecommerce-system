@@ -47,9 +47,7 @@ export const createMockUser = (overrides: Partial<User> = {}): User => {
 /**
  * Factory to create a CreateUserDto for testing
  */
-export const createMockCreateUserDto = (
-  overrides: Partial<CreateUserDto> = {},
-): CreateUserDto => ({
+export const createMockCreateUserDto = (overrides: Partial<CreateUserDto> = {}): CreateUserDto => ({
   email: 'test@example.com',
   passwordHash: 'StrongPassword123!',
   firstName: 'John',
