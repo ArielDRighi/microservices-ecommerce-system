@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, task-17-refactor-tests-unitarios]
   pull_request:
     branches: [main, develop]
 
