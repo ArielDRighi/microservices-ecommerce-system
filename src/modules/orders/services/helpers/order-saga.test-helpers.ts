@@ -5,9 +5,19 @@ import {
   SagaStatus,
   SagaType,
 } from '../../../../database/entities/saga-state.entity';
-import { SagaStep } from '../../types/saga.types';
+import { SagaStep, SagaMetrics } from '../../types/saga.types';
 import { PaymentStatus, PaymentMethod } from '../../../payments/dto/payment.dto';
 import { NotificationStatus } from '../../../notifications/enums';
+import { CircuitBreakerStats } from '../../../../common/utils/circuit-breaker.util';
+
+/**
+ * Circuit Breaker Stats for all services in the saga
+ */
+export interface SagaCircuitBreakerStats {
+  payment: CircuitBreakerStats;
+  inventory: CircuitBreakerStats;
+  notification: CircuitBreakerStats;
+}
 
 /**
  * Factory: Mock Order for saga testing
@@ -224,7 +234,7 @@ export const createMockMultiItemSagaState = (): SagaStateEntity => {
 /**
  * Assertion Helper: Verify Saga Completed Successfully
  */
-export const expectSagaCompleted = (metrics: any) => {
+export const expectSagaCompleted = (metrics: SagaMetrics) => {
   expect(metrics.finalStatus).toBe('COMPLETED');
   expect(metrics.compensationExecuted).toBe(false);
   expect(metrics.stepMetrics).toBeDefined();
@@ -234,7 +244,7 @@ export const expectSagaCompleted = (metrics: any) => {
 /**
  * Assertion Helper: Verify Saga Compensated
  */
-export const expectSagaCompensated = (metrics: any) => {
+export const expectSagaCompensated = (metrics: SagaMetrics) => {
   expect(metrics.finalStatus).toBe('COMPENSATED');
   expect(metrics.compensationExecuted).toBe(true);
 };
@@ -242,14 +252,14 @@ export const expectSagaCompensated = (metrics: any) => {
 /**
  * Assertion Helper: Verify All Steps Succeeded
  */
-export const expectAllStepsSucceeded = (metrics: any) => {
-  expect(metrics.stepMetrics.every((m: any) => m.success)).toBe(true);
+export const expectAllStepsSucceeded = (metrics: SagaMetrics) => {
+  expect(metrics.stepMetrics.every((m) => m.success)).toBe(true);
 };
 
 /**
  * Assertion Helper: Verify Circuit Breaker Stats
  */
-export const expectCircuitBreakerStats = (stats: any) => {
+export const expectCircuitBreakerStats = (stats: SagaCircuitBreakerStats) => {
   expect(stats).toHaveProperty('payment');
   expect(stats).toHaveProperty('inventory');
   expect(stats).toHaveProperty('notification');
