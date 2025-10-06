@@ -7,7 +7,6 @@ import {
   createMockCategory,
   createMockCategoryRepository,
   createMockQueryBuilder,
-  setupCategoriesTestModule,
 } from './helpers/categories.test-helpers';
 
 describe('CategoriesService - Hierarchy & Tree Operations', () => {
@@ -219,7 +218,6 @@ describe('CategoriesService - Hierarchy & Tree Operations', () => {
     });
 
     it('should throw if creating circular hierarchy', async () => {
-      const grandparent = createMockCategory({ id: 'gp' });
       const parent = createMockCategory({ id: 'p' });
       const child = createMockCategory({ id: 'c' });
 

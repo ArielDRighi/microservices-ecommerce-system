@@ -6,7 +6,6 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { UpdateResult } from 'typeorm';
 import {
   createMockCategory,
-  createMockUpdateCategoryDto,
   createMockCategoryRepository,
 } from './helpers/categories.test-helpers';
 import { UpdateCategoryDto } from './dto';
