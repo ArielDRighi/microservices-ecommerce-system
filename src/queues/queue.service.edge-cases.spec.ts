@@ -154,10 +154,22 @@ describe('QueueService - Edge Cases & Error Handling', () => {
     });
 
     it('should handle concurrent metrics retrieval', async () => {
-      orderQueue.getJobCounts.mockResolvedValue({ waiting: 5, active: 2, completed: 100, failed: 3, delayed: 1 });
+      orderQueue.getJobCounts.mockResolvedValue({
+        waiting: 5,
+        active: 2,
+        completed: 100,
+        failed: 3,
+        delayed: 1,
+      });
       orderQueue.isPaused.mockResolvedValue(false);
 
-      paymentQueue.getJobCounts.mockResolvedValue({ waiting: 10, active: 5, completed: 200, failed: 10, delayed: 2 });
+      paymentQueue.getJobCounts.mockResolvedValue({
+        waiting: 10,
+        active: 5,
+        completed: 200,
+        failed: 10,
+        delayed: 2,
+      });
       paymentQueue.isPaused.mockResolvedValue(false);
 
       const [orderMetrics, paymentMetrics] = await Promise.all([

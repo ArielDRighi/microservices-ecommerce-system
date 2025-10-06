@@ -3,7 +3,11 @@ import { getQueueToken } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { Logger } from '@nestjs/common';
 import { QueueService } from './queue.service';
-import { createMockQueue, getEventListener, expectEventListeners } from './helpers/queue-service.test-helpers';
+import {
+  createMockQueue,
+  getEventListener,
+  expectEventListeners,
+} from './helpers/queue-service.test-helpers';
 
 describe('QueueService - Lifecycle & Events', () => {
   let service: QueueService;

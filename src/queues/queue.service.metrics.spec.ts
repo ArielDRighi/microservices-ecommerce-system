@@ -3,7 +3,11 @@ import { getQueueToken } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { Logger } from '@nestjs/common';
 import { QueueService } from './queue.service';
-import { createMockQueue, createMockJobCounts, expectValidQueueMetrics } from './helpers/queue-service.test-helpers';
+import {
+  createMockQueue,
+  createMockJobCounts,
+  expectValidQueueMetrics,
+} from './helpers/queue-service.test-helpers';
 
 describe('QueueService - Metrics', () => {
   let service: QueueService;
@@ -180,10 +184,34 @@ describe('QueueService - Metrics', () => {
 
   describe('getAllQueueMetrics', () => {
     it('should return metrics for all queues', async () => {
-      const orderCounts = createMockJobCounts({ waiting: 5, active: 2, completed: 100, failed: 3, delayed: 1 });
-      const paymentCounts = createMockJobCounts({ waiting: 10, active: 5, completed: 200, failed: 10, delayed: 2 });
-      const inventoryCounts = createMockJobCounts({ waiting: 3, active: 1, completed: 50, failed: 2, delayed: 0 });
-      const notificationCounts = createMockJobCounts({ waiting: 15, active: 8, completed: 500, failed: 5, delayed: 3 });
+      const orderCounts = createMockJobCounts({
+        waiting: 5,
+        active: 2,
+        completed: 100,
+        failed: 3,
+        delayed: 1,
+      });
+      const paymentCounts = createMockJobCounts({
+        waiting: 10,
+        active: 5,
+        completed: 200,
+        failed: 10,
+        delayed: 2,
+      });
+      const inventoryCounts = createMockJobCounts({
+        waiting: 3,
+        active: 1,
+        completed: 50,
+        failed: 2,
+        delayed: 0,
+      });
+      const notificationCounts = createMockJobCounts({
+        waiting: 15,
+        active: 8,
+        completed: 500,
+        failed: 5,
+        delayed: 3,
+      });
 
       orderQueue.getJobCounts.mockResolvedValue(orderCounts);
       orderQueue.isPaused.mockResolvedValue(false);
@@ -227,7 +255,9 @@ describe('QueueService - Metrics', () => {
       inventoryQueue.getJobCounts.mockResolvedValue(createMockJobCounts({ waiting: 3, active: 1 }));
       inventoryQueue.isPaused.mockResolvedValue(false);
 
-      notificationQueue.getJobCounts.mockResolvedValue(createMockJobCounts({ waiting: 15, active: 8 }));
+      notificationQueue.getJobCounts.mockResolvedValue(
+        createMockJobCounts({ waiting: 15, active: 8 }),
+      );
       notificationQueue.isPaused.mockResolvedValue(false);
 
       // Should reject since one queue failed
