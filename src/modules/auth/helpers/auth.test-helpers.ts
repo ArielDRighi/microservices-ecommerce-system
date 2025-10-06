@@ -179,3 +179,33 @@ export const createMockAccessPayload = (
   exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
   ...overrides,
 });
+
+/**
+ * Factory to create a mock AuthResponseDto
+ */
+export const createMockAuthResponse = (user: User) => ({
+  accessToken: 'mock-access-token',
+  refreshToken: 'mock-refresh-token',
+  tokenType: 'Bearer',
+  expiresIn: 3600,
+  user: {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    fullName: user.fullName,
+    isActive: user.isActive,
+    emailVerifiedAt: user.emailVerifiedAt || null,
+    createdAt: user.createdAt,
+  },
+});
+
+/**
+ * Factory to create mock AuthService for controller tests
+ */
+export const createMockAuthService = () => ({
+  register: jest.fn(),
+  login: jest.fn(),
+  refreshToken: jest.fn(),
+  validateUser: jest.fn(),
+});
