@@ -1748,28 +1748,28 @@ test/
 
 **Plan de Ejecución** (20 sub-tareas):
 
-| # | Sub-Tarea | Archivos | Tests | Duración |
-|---|-----------|----------|-------|----------|
-| 1 | Infraestructura E2E | 9 | 0 | 3-4h |
-| 2 | Smoke Tests | 1 | 5 | 1h |
-| 3 | Auth API | 1 | 15 | 2h |
-| 4 | Users API | 1 | 20 | 2-3h |
-| 5 | Categories API | 1 | 25 | 3h |
-| 6 | Products API | 1 | 20 | 2-3h |
-| 7 | Inventory API | 1 | 25 | 3-4h |
-| 8 | Orders API | 1 | 15 | 2-3h |
-| 9 | Customer Journey | 1 | 5 | 3-4h |
-| 10 | Order Saga Happy Path | 1 | 10 | 3-4h |
-| 11 | Saga Compensation | 1 | 12 | 4-5h |
-| 12 | Queue Integration | 1 | 10 | 2-3h |
-| 13 | DB Transactions | 1 | 8 | 2-3h |
-| 14 | Event Outbox | 1 | 6 | 2h |
-| 15 | API Contracts | 1 | 20 | 2-3h |
-| 16 | Performance | 1 | 10 | 2h |
-| 17 | Security | 1 | 15 | 2-3h |
-| 18 | Error Handling | 1 | 12 | 2h |
-| 19 | Documentación | 3 | 0 | 2h |
-| 20 | Validación Final | - | - | 1h |
+| #   | Sub-Tarea             | Archivos | Tests | Duración |
+| --- | --------------------- | -------- | ----- | -------- |
+| 1   | Infraestructura E2E   | 9        | 0     | 3-4h     |
+| 2   | Smoke Tests           | 1        | 5     | 1h       |
+| 3   | Auth API              | 1        | 15    | 2h       |
+| 4   | Users API             | 1        | 20    | 2-3h     |
+| 5   | Categories API        | 1        | 25    | 3h       |
+| 6   | Products API          | 1        | 20    | 2-3h     |
+| 7   | Inventory API         | 1        | 25    | 3-4h     |
+| 8   | Orders API            | 1        | 15    | 2-3h     |
+| 9   | Customer Journey      | 1        | 5     | 3-4h     |
+| 10  | Order Saga Happy Path | 1        | 10    | 3-4h     |
+| 11  | Saga Compensation     | 1        | 12    | 4-5h     |
+| 12  | Queue Integration     | 1        | 10    | 2-3h     |
+| 13  | DB Transactions       | 1        | 8     | 2-3h     |
+| 14  | Event Outbox          | 1        | 6     | 2h       |
+| 15  | API Contracts         | 1        | 20    | 2-3h     |
+| 16  | Performance           | 1        | 10    | 2h       |
+| 17  | Security              | 1        | 15    | 2-3h     |
+| 18  | Error Handling        | 1        | 12    | 2h       |
+| 19  | Documentación         | 3        | 0     | 2h       |
+| 20  | Validación Final      | -        | -     | 1h       |
 
 **Total Estimado**: ~25 archivos nuevos, ~180 tests, 45-55 horas
 
@@ -1777,6 +1777,7 @@ test/
 
 - ✅ npm run lint sin errores
 - ✅ npm run type-check sin errores
+- ✅ npm run format
 - ✅ npm run test:cov (unit tests siguen pasando)
 - ✅ npm run test:e2e (E2E tests pasan)
 - ✅ No tests flakey (ejecutar 3 veces)
@@ -1786,13 +1787,13 @@ test/
 
 **Métricas Esperadas Post-Implementación**:
 
-| Métrica | Actual | Target | Delta |
-|---------|--------|--------|-------|
-| Tests Unitarios | 1033 | 1033 | +0 |
-| **Tests E2E** | **0** | **~180** | **+180** |
-| Coverage Unit | 75% | 75% | +0% |
-| **Coverage E2E** | **0%** | **65%** | **+65%** |
-| Tiempo CI | ~2min | ~5min | +3min |
+| Métrica          | Actual | Target   | Delta    |
+| ---------------- | ------ | -------- | -------- |
+| Tests Unitarios  | 1033   | 1033     | +0       |
+| **Tests E2E**    | **0**  | **~180** | **+180** |
+| Coverage Unit    | 75%    | 75%      | +0%      |
+| **Coverage E2E** | **0%** | **65%**  | **+65%** |
+| Tiempo CI        | ~2min  | ~5min    | +3min    |
 
 **Workflow por Sub-Tarea**:
 
@@ -1830,6 +1831,7 @@ git push origin task-18.X-nombre-subtarea
 5. 📊 Generar reporte final de cobertura E2E
 
 **Referencias**:
+
 - Documento completo: `PLAN_TESTS_E2E.md`
 - Estándares: `TESTING_STANDARDS.md`
 - Helpers existentes: `test/helpers/`
