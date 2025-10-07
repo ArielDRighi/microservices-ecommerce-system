@@ -16,15 +16,16 @@ export default async () => {
   console.log('🔧 Setting up E2E test environment...');
 
   // Create test database connection
-  // Connects to ecommerce-postgres-dev container (port 5433)
-  // Uses separate test database to avoid corrupting development data
+  // Uses environment variables to support both local dev and CI environments
+  // Local dev: port 5433 (docker-compose.dev.yml)
+  // CI: port 5432 (GitHub Actions service container)
   const testDataSource = new DataSource({
     type: 'postgres',
-    host: 'localhost',
-    port: 5433, // ecommerce-postgres-dev container
-    username: 'postgres',
-    password: 'password',
-    database: 'ecommerce_async_dev_test', // Separate test database
+    host: process.env['DATABASE_HOST'] || 'localhost',
+    port: parseInt(process.env['DATABASE_PORT'] || '5433', 10),
+    username: process.env['DATABASE_USERNAME'] || process.env['DATABASE_USER'] || 'postgres',
+    password: process.env['DATABASE_PASSWORD'] || 'password',
+    database: process.env['DATABASE_NAME'] || 'ecommerce_async_dev_test',
     entities: ['src/**/*.entity{.ts,.js}'],
     synchronize: false, // Use existing schema (migrations handle this)
     dropSchema: false, // Don't drop schema
