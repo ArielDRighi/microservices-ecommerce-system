@@ -166,7 +166,6 @@ describe('Auth API (E2E)', () => {
   });
 
   describe('POST /auth/login', () => {
-
     it('should login successfully with valid credentials', async () => {
       const registerData = {
         email: `loginuser${Date.now()}@test.com`,
