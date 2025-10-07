@@ -173,7 +173,7 @@ describe('Orders API (E2E)', () => {
         .expect(202);
 
       // Esperar un poco para asegurar timestamps diferentes
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const response2 = await request(app.getHttpServer())
         .post('/orders')
