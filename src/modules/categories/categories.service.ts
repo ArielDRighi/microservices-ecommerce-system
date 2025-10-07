@@ -336,11 +336,26 @@ export class CategoriesService {
 
   // Utility functions
   async getCategoryPath(categoryId: string): Promise<string[]> {
-    const category = await this.findById(categoryId, { includeRelations: true });
+    const category = await this.findById(categoryId);
     if (!category) {
       throw new NotFoundException(`Category with ID ${categoryId} not found`);
     }
-    return category.getPath();
+
+    // Build path by recursively loading parents
+    const path: string[] = [];
+    let current: Category | null = category;
+
+    // Load all ancestors recursively
+    while (current) {
+      path.unshift(current.name);
+      if (current.parentId) {
+        current = await this.findById(current.parentId);
+      } else {
+        break;
+      }
+    }
+
+    return path;
   }
 
   async getDescendants(categoryId: string, maxDepth?: number): Promise<CategoryResponseDto[]> {
