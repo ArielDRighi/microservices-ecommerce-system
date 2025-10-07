@@ -15,7 +15,8 @@
   "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/src/$1"
   },
-  "setupFilesAfterEnv": ["<rootDir>/test/config/setup-e2e.ts"],
+  "globalSetup": "<rootDir>/test/config/global-setup-e2e.ts",
+  "globalTeardown": "<rootDir>/test/config/global-teardown-e2e.ts",
   "testTimeout": 60000,
   "maxWorkers": 1,
   "forceExit": true,
