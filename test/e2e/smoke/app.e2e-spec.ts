@@ -42,6 +42,35 @@ describe('Smoke Tests - Health & Basic Checks (E2E)', () => {
       expect(response.body).toHaveProperty('details');
       expect(response.body.details).toHaveProperty('database');
     });
+
+    it('GET /health/ready should return readiness status', async () => {
+      const response = await request(app.getHttpServer()).get('/health/ready').expect(200);
+
+      expect(response.body).toHaveProperty('status');
+      expect(response.body.status).toBe('ok');
+      expect(response.body).toHaveProperty('info');
+      expect(response.body).toHaveProperty('details');
+    });
+
+    it('GET /health/live should return liveness status', async () => {
+      const response = await request(app.getHttpServer()).get('/health/live').expect(200);
+
+      expect(response.body).toHaveProperty('status');
+      expect(response.body.status).toBe('ok');
+    });
+  });
+
+  describe('Monitoring', () => {
+    it('GET /metrics should return Prometheus metrics', async () => {
+      const response = await request(app.getHttpServer()).get('/metrics').expect(200);
+
+      expect(response.headers['content-type']).toMatch(/text\/plain/);
+      expect(response.text).toBeDefined();
+      expect(response.text.length).toBeGreaterThan(0);
+      // Verificar que contiene métricas básicas
+      expect(response.text).toContain('# HELP');
+      expect(response.text).toContain('# TYPE');
+    });
   });
 
   describe('Error Handling', () => {
