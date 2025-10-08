@@ -1,24 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../../src/app.module';
+import { TestAppHelper } from '../../helpers/test-app.helper';
 
 describe('Smoke Tests - Health & Basic Checks (E2E)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    // ✅ USA DEPENDENCIAS REALES: TestAppHelper con configuración completa
+    app = await TestAppHelper.createTestApp();
   });
 
   afterAll(async () => {
-    if (app) {
-      await app.close();
-    }
+    // ✅ CIERRE SEGURO: Espera a que terminen jobs de cola antes de cerrar
+    await TestAppHelper.closeApp(app);
   });
 
   describe('Application Health', () => {
