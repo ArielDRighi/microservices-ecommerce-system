@@ -279,17 +279,17 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
 
       expect(userOrdersResponse.status).toBe(200);
       expect(userOrdersResponse.body.data).toBeDefined();
-      
+
       // Handle both direct array and paginated response structures
-      const orders = Array.isArray(userOrdersResponse.body.data) 
-        ? userOrdersResponse.body.data 
+      const orders = Array.isArray(userOrdersResponse.body.data)
+        ? userOrdersResponse.body.data
         : userOrdersResponse.body.data.data || [];
-      
+
       expect(Array.isArray(orders)).toBe(true);
 
       // Should find our order in the list
       const foundOrder = orders.find((order: any) => order.id === orderId);
-      expect(foundOrder).toBeDefined();      // 7. Verify inventory system hasn't been corrupted
+      expect(foundOrder).toBeDefined(); // 7. Verify inventory system hasn't been corrupted
       const inventoryCheckResponse = await request(app.getHttpServer())
         .post('/inventory/check-availability')
         .set('Authorization', `Bearer ${userToken}`)
