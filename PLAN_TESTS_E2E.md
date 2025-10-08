@@ -650,13 +650,13 @@ describe('Smoke Tests (E2E)', () => {
 
 ---
 
-#### Tarea 8: Tests E2E: Orders API (Creación y estados)
+#### Tarea 8: Tests E2E: Orders API (Creación y estados) ✅ COMPLETADO
 
-**Duración estimada**: 2-3 horas
+**Duración estimada**: 2-3 horas ✅ **Completado en tiempo**
 
-**Archivo**: `test/e2e/api/orders.e2e-spec.ts`
+**Archivo**: `test/e2e/api/orders.e2e-spec.ts` ✅ **Refactorizado**
 
-**Tests a implementar** (~15 tests):
+**Tests implementados** ✅ **(17 tests - superó expectativa de ~15)**:
 
 **POST /orders**:
 - ✅ Crea orden con estado PENDING
@@ -684,11 +684,12 @@ describe('Smoke Tests (E2E)', () => {
 - ✅ Estados posibles: PENDING, PROCESSING, CONFIRMED, etc.
 
 **Validaciones de Calidad**:
-- [ ] Ejecutar `npm run test:e2e -- api/orders.e2e-spec.ts`
-- [ ] Verificar ~15 tests passing
-- [ ] Confirmar respuesta 202 Accepted
-- [ ] Validar idempotencia funciona
-- [ ] Verificar cálculo de totales
+- [x] Ejecutar `npm run test:e2e -- api/orders.e2e-spec.ts`
+- [x] Verificar ~17 tests passing (superó expectativa de ~15)
+- [x] Confirmar respuesta 202 Accepted
+- [x] Validar idempotencia funciona
+- [x] Verificar cálculo de totales
+- [x] **Refactorización a dependencias reales completada**
 - [ ] **CI Pipeline debe pasar completamente**
 
 ---

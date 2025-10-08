@@ -1,8 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../../src/app.module';
+import { TestAppHelper } from '../../helpers/test-app.helper';
 import { OrderStatus } from '../../../src/modules/orders/enums/order-status.enum';
+
+// Helper function to extract data from response
+const extractResponseData = (response: request.Response) => {
+  return response.body.data?.data || response.body.data;
+};
 
 describe('Orders API (E2E)', () => {
   let app: INestApplication;
@@ -12,24 +16,8 @@ describe('Orders API (E2E)', () => {
   let productId1: string;
   let productId2: string;
 
-  beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-
-    // Apply global validation pipe (same as main.ts)
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      }),
-    );
+  beforeEach(async () => {
+    app = await TestAppHelper.createTestApp();
 
     await app.init();
 
@@ -59,9 +47,9 @@ describe('Orders API (E2E)', () => {
       .send(userData2)
       .expect(201);
 
-    userToken = userResponse1.body.data.accessToken;
-    user2Token = userResponse2.body.data.accessToken;
-    userId = userResponse1.body.data.user.id;
+    userToken = extractResponseData(userResponse1).accessToken;
+    user2Token = extractResponseData(userResponse2).accessToken;
+    userId = extractResponseData(userResponse1).user.id;
 
     // Create test products
     const timestamp = Date.now();
@@ -93,13 +81,13 @@ describe('Orders API (E2E)', () => {
       })
       .expect(201);
 
-    productId1 = product1Response.body.data.id;
-    productId2 = product2Response.body.data.id;
+    productId1 = extractResponseData(product1Response).id;
+    productId2 = extractResponseData(product2Response).id;
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     if (app) {
-      await app.close();
+      await TestAppHelper.closeApp(app);
     }
   });
 
@@ -118,13 +106,14 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202); // Should return 202 Accepted
 
-      expect(response.body.data).toHaveProperty('id');
-      expect(response.body.data).toHaveProperty('status', OrderStatus.PENDING);
-      expect(response.body.data).toHaveProperty('userId', userId);
-      expect(response.body.data).toHaveProperty('totalAmount');
-      expect(response.body.data).toHaveProperty('idempotencyKey');
-      expect(response.body.data).toHaveProperty('items');
-      expect(response.body.data.items).toHaveLength(2);
+      const responseData = extractResponseData(response);
+      expect(responseData).toHaveProperty('id');
+      expect(responseData).toHaveProperty('status', OrderStatus.PENDING);
+      expect(responseData).toHaveProperty('userId', userId);
+      expect(responseData).toHaveProperty('totalAmount');
+      expect(responseData).toHaveProperty('idempotencyKey');
+      expect(responseData).toHaveProperty('items');
+      expect(responseData.items).toHaveLength(2);
     });
 
     it('should return 202 Accepted (not 201)', async () => {
@@ -150,8 +139,9 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      expect(response.body.data).toHaveProperty('id');
-      expect(response.body.data.id).toMatch(
+      const responseData = extractResponseData(response);
+      expect(responseData).toHaveProperty('id');
+      expect(responseData.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
       ); // UUID format
     });
@@ -181,9 +171,11 @@ describe('Orders API (E2E)', () => {
         .send(orderData2)
         .expect(202);
 
-      expect(response1.body.data.idempotencyKey).toBeDefined();
-      expect(response2.body.data.idempotencyKey).toBeDefined();
-      expect(response1.body.data.idempotencyKey).not.toBe(response2.body.data.idempotencyKey);
+      const responseData1 = extractResponseData(response1);
+      const responseData2 = extractResponseData(response2);
+      expect(responseData1.idempotencyKey).toBeDefined();
+      expect(responseData2.idempotencyKey).toBeDefined();
+      expect(responseData1.idempotencyKey).not.toBe(responseData2.idempotencyKey);
     });
 
     it('should validate that products exist', async () => {
@@ -214,12 +206,13 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
+      const responseData = extractResponseData(response);
       // Should calculate total automatically
-      expect(parseFloat(response.body.data.totalAmount)).toBeGreaterThan(0);
-      expect(response.body.data.items[0]).toHaveProperty('unitPrice');
-      expect(response.body.data.items[0]).toHaveProperty('totalPrice');
-      expect(response.body.data.items[1]).toHaveProperty('unitPrice');
-      expect(response.body.data.items[1]).toHaveProperty('totalPrice');
+      expect(parseFloat(responseData.totalAmount)).toBeGreaterThan(0);
+      expect(responseData.items[0]).toHaveProperty('unitPrice');
+      expect(responseData.items[0]).toHaveProperty('totalPrice');
+      expect(responseData.items[1]).toHaveProperty('unitPrice');
+      expect(responseData.items[1]).toHaveProperty('totalPrice');
     });
 
     it('should return error 400 with empty items', async () => {
@@ -265,16 +258,18 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
+      const responseData1 = extractResponseData(response1);
+      const responseData2 = extractResponseData(response2);
       // Should return the same order
-      expect(response1.body.data.id).toBe(response2.body.data.id);
-      expect(response1.body.data.idempotencyKey).toBe(response2.body.data.idempotencyKey);
+      expect(responseData1.id).toBe(responseData2.id);
+      expect(responseData1.idempotencyKey).toBe(responseData2.idempotencyKey);
     });
   });
 
   describe('GET /orders', () => {
     let testOrderId: string;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a test order for this user
       const orderData = {
         items: [{ productId: productId1, quantity: 1 }],
@@ -286,7 +281,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      testOrderId = response.body.data.id;
+      testOrderId = extractResponseData(response).id;
     });
 
     it('should list orders for authenticated user', async () => {
@@ -295,11 +290,12 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBeGreaterThan(0);
+      const responseData = extractResponseData(response);
+      expect(Array.isArray(responseData)).toBe(true);
+      expect(responseData.length).toBeGreaterThan(0);
 
       // Should include our test order
-      const testOrder = response.body.data.find((order: any) => order.id === testOrderId);
+      const testOrder = responseData.find((order: any) => order.id === testOrderId);
       expect(testOrder).toBeDefined();
       expect(testOrder.userId).toBe(userId);
     });
@@ -316,7 +312,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      const user2OrderId = user2OrderResponse.body.data.id;
+      const user2OrderId = extractResponseData(user2OrderResponse).id;
 
       // Get orders for user1 - should not include user2's order
       const response = await request(app.getHttpServer())
@@ -324,11 +320,12 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const user2Order = response.body.data.find((order: any) => order.id === user2OrderId);
+      const responseData = extractResponseData(response);
+      const user2Order = responseData.find((order: any) => order.id === user2OrderId);
       expect(user2Order).toBeUndefined();
 
       // All orders should belong to user1
-      response.body.data.forEach((order: any) => {
+      responseData.forEach((order: any) => {
         expect(order.userId).toBe(userId);
       });
     });
@@ -339,9 +336,10 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(Array.isArray(response.body.data)).toBe(true);
+      const responseData = extractResponseData(response);
+      expect(Array.isArray(responseData)).toBe(true);
       // Should handle pagination parameters (even if not many results)
-      expect(response.body.data.length).toBeLessThanOrEqual(5);
+      expect(responseData.length).toBeLessThanOrEqual(5);
     });
   });
 
@@ -349,7 +347,7 @@ describe('Orders API (E2E)', () => {
     let testOrderId: string;
     let otherUserOrderId: string;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create test order for user1
       const orderData = {
         items: [
@@ -364,7 +362,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      testOrderId = response.body.data.id;
+      testOrderId = extractResponseData(response).id;
 
       // Create order for user2
       const user2Response = await request(app.getHttpServer())
@@ -373,7 +371,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      otherUserOrderId = user2Response.body.data.id;
+      otherUserOrderId = extractResponseData(user2Response).id;
     });
 
     it('should get order detail with items', async () => {
@@ -382,20 +380,21 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('id', testOrderId);
-      expect(response.body.data).toHaveProperty('userId', userId);
-      expect(response.body.data).toHaveProperty('status');
-      expect(response.body.data).toHaveProperty('totalAmount');
-      expect(response.body.data).toHaveProperty('items');
-      expect(Array.isArray(response.body.data.items)).toBe(true);
-      expect(response.body.data.items.length).toBe(2);
+      const responseData = extractResponseData(response);
+      expect(responseData).toHaveProperty('id', testOrderId);
+      expect(responseData).toHaveProperty('userId', userId);
+      expect(responseData).toHaveProperty('status');
+      expect(responseData).toHaveProperty('totalAmount');
+      expect(responseData).toHaveProperty('items');
+      expect(Array.isArray(responseData.items)).toBe(true);
+      expect(responseData.items.length).toBe(2);
 
       // Check item details
-      expect(response.body.data.items[0]).toHaveProperty('productId');
-      expect(response.body.data.items[0]).toHaveProperty('productName');
-      expect(response.body.data.items[0]).toHaveProperty('quantity');
-      expect(response.body.data.items[0]).toHaveProperty('unitPrice');
-      expect(response.body.data.items[0]).toHaveProperty('totalPrice');
+      expect(responseData.items[0]).toHaveProperty('productId');
+      expect(responseData.items[0]).toHaveProperty('productName');
+      expect(responseData.items[0]).toHaveProperty('quantity');
+      expect(responseData.items[0]).toHaveProperty('unitPrice');
+      expect(responseData.items[0]).toHaveProperty('totalPrice');
     });
 
     it('should return error 404 with non-existent ID', async () => {
@@ -419,7 +418,7 @@ describe('Orders API (E2E)', () => {
   describe('GET /orders/:id/status', () => {
     let testOrderId: string;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create test order
       const orderData = {
         items: [{ productId: productId1, quantity: 1 }],
@@ -431,7 +430,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      testOrderId = response.body.data.id;
+      testOrderId = extractResponseData(response).id;
     });
 
     it('should return only the status', async () => {
@@ -440,14 +439,15 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('orderId', testOrderId);
-      expect(response.body.data).toHaveProperty('status');
-      expect(Object.values(OrderStatus)).toContain(response.body.data.status);
+      const responseData = extractResponseData(response);
+      expect(responseData).toHaveProperty('orderId', testOrderId);
+      expect(responseData).toHaveProperty('status');
+      expect(Object.values(OrderStatus)).toContain(responseData.status);
 
       // Should only contain orderId and status, not full order details
-      expect(response.body.data).not.toHaveProperty('items');
-      expect(response.body.data).not.toHaveProperty('totalAmount');
-      expect(response.body.data).not.toHaveProperty('userId');
+      expect(responseData).not.toHaveProperty('items');
+      expect(responseData).not.toHaveProperty('totalAmount');
+      expect(responseData).not.toHaveProperty('userId');
     });
 
     it('should return valid order status', async () => {
@@ -456,6 +456,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
+      const responseData = extractResponseData(response);
       const validStatuses = [
         OrderStatus.PENDING,
         OrderStatus.PROCESSING,
@@ -468,7 +469,7 @@ describe('Orders API (E2E)', () => {
         OrderStatus.REFUNDED,
       ];
 
-      expect(validStatuses).toContain(response.body.data.status);
+      expect(validStatuses).toContain(responseData.status);
     });
   });
 });
