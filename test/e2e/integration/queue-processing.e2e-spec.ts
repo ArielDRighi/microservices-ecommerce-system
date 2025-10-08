@@ -1,8 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
-import { AppModule } from '../../../src/app.module';
 import { QueueService } from '../../../src/queues/queue.service';
 import { QueueHelper } from '../../helpers/queue.helper';
 import { Queue } from 'bull';
@@ -10,59 +8,40 @@ import { ProductFactory } from '../../helpers/factories/product.factory';
 import { Product } from '../../../src/modules/products/entities/product.entity';
 import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 import { OrderProcessingJobData } from '../../../src/common/interfaces/queue-job.interface';
+import { TestAppHelper } from '../../helpers/test-app.helper';
+
+// Helper function to extract data from nested response structure
+const extractResponseData = (response: any) => {
+  return response.body.data?.data || response.body.data;
+};
 
 describe('Queue Processing - Integration (E2E)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let queueService: QueueService;
   let orderQueue: Queue<OrderProcessingJobData>;
-  let moduleRef: TestingModule;
   let productRepository: Repository<Product>;
   let inventoryRepository: Repository<Inventory>;
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    app = await TestAppHelper.createTestApp();
 
-    app = moduleRef.createNestApplication();
-
-    // Apply global validation pipe (same as main.ts)
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      }),
-    );
-
-    await app.init();
-
-    dataSource = moduleRef.get<DataSource>(DataSource);
+    dataSource = app.get<DataSource>(DataSource);
     queueService = app.get<QueueService>(QueueService);
     productRepository = dataSource.getRepository(Product);
     inventoryRepository = dataSource.getRepository(Inventory);
 
     // Get order processing queue directly from Bull
     const orderQueueToken = 'BullQueue_order-processing';
-    orderQueue = moduleRef.get<Queue<OrderProcessingJobData>>(orderQueueToken);
+    orderQueue = app.get<Queue<OrderProcessingJobData>>(orderQueueToken);
   });
 
   afterAll(async () => {
-    await app.close();
+    await TestAppHelper.closeApp(app);
   });
 
   beforeEach(async () => {
-    // Clean database tables in proper order
-    await dataSource.query('DELETE FROM order_items');
-    await dataSource.query('DELETE FROM orders');
-    await dataSource.query('DELETE FROM inventory');
-    await dataSource.query('DELETE FROM products');
-    await dataSource.query('DELETE FROM categories');
-    await dataSource.query('DELETE FROM users');
+    await TestAppHelper.cleanDatabase(app);
 
     // Clear all queues before each test
     const queues = queueService.getAllQueues();
@@ -75,21 +54,22 @@ describe('Queue Processing - Integration (E2E)', () => {
     it('should process order job end-to-end (order → job → completion)', async () => {
       const timestamp = Date.now();
 
-      // 0. Register user and get token
-      const userEmail = `test-${timestamp}@example.com`;
+      // 0. Register user and get token using direct request
+      const userEmail = `test-queue-${timestamp}@example.com`;
       const registerResponse = await request(app.getHttpServer())
         .post('/auth/register')
         .send({
           email: userEmail,
           password: 'Test123!',
           firstName: 'Test',
-          lastName: 'User',
+          lastName: 'Queue User',
         })
         .expect(201);
 
-      const { accessToken } = registerResponse.body.data;
+      const registerData = extractResponseData(registerResponse);
+      const { accessToken } = registerData;
 
-      // 1. Create product and inventory
+      // 1. Create product and inventory using factory
       const product = await ProductFactory.create(productRepository, {
         price: 100,
         sku: `TEST-QUEUE-${timestamp}`,
@@ -113,7 +93,8 @@ describe('Queue Processing - Integration (E2E)', () => {
         })
         .expect(202);
 
-      const orderId = orderResponse.body.data.id;
+      const orderData = extractResponseData(orderResponse);
+      const orderId = orderData.id;
 
       // 3. Wait for queue processing to complete
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -126,13 +107,14 @@ describe('Queue Processing - Integration (E2E)', () => {
         throw new Error('Order ID not received from order creation');
       }
 
-      const orderStatus = await request(app.getHttpServer())
+      const orderStatusResponse = await request(app.getHttpServer())
         .get(`/orders/${orderId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
+      const orderStatusData = extractResponseData(orderStatusResponse);
       // Order should be in a processed state (CONFIRMED, PROCESSING, etc.)
-      expect(['PENDING', 'PROCESSING', 'CONFIRMED']).toContain(orderStatus.body.data.status);
+      expect(['PENDING', 'PROCESSING', 'CONFIRMED']).toContain(orderStatusData.status);
 
       // 5. Verify queue metrics
       const metrics = await queueService.getQueueMetrics('order-processing');
