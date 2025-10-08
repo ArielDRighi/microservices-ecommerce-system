@@ -1,37 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../../src/app.module';
+import { TestAppHelper } from '../../helpers/test-app.helper';
+
+// Helper to extract data from nested response structure
+const extractResponseData = (response: any) => response.body.data.data;
 
 describe('Auth API (E2E)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    app = await TestAppHelper.createTestApp();
+  });
 
-    app = moduleFixture.createNestApplication();
-
-    // Apply global validation pipe (same as main.ts)
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      }),
-    );
-
-    await app.init();
+  beforeEach(async () => {
+    await TestAppHelper.cleanDatabase(app);
   });
 
   afterAll(async () => {
-    if (app) {
-      await app.close();
-    }
+    await TestAppHelper.closeApp(app);
   });
 
   describe('POST /auth/register', () => {
@@ -47,20 +33,23 @@ describe('Auth API (E2E)', () => {
         .send(validRegisterData)
         .expect(201);
 
-      expect(response.body.data).toHaveProperty('user');
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken');
+      // The actual data is nested due to response interceptor
+      const authData = response.body.data.data;
 
-      expect(response.body.data.user).toHaveProperty('id');
-      expect(response.body.data.user.email).toBe(validRegisterData.email);
-      expect(response.body.data.user.firstName).toBe(validRegisterData.firstName);
-      expect(response.body.data.user.lastName).toBe(validRegisterData.lastName);
-      expect(response.body.data.user).not.toHaveProperty('password');
+      expect(authData).toHaveProperty('user');
+      expect(authData).toHaveProperty('accessToken');
+      expect(authData).toHaveProperty('refreshToken');
 
-      expect(typeof response.body.data.accessToken).toBe('string');
-      expect(response.body.data.accessToken.length).toBeGreaterThan(0);
-      expect(typeof response.body.data.refreshToken).toBe('string');
-      expect(response.body.data.refreshToken.length).toBeGreaterThan(0);
+      expect(authData.user).toHaveProperty('id');
+      expect(authData.user.email).toBe(validRegisterData.email);
+      expect(authData.user.firstName).toBe(validRegisterData.firstName);
+      expect(authData.user.lastName).toBe(validRegisterData.lastName);
+      expect(authData.user).not.toHaveProperty('password');
+
+      expect(typeof authData.accessToken).toBe('string');
+      expect(authData.accessToken.length).toBeGreaterThan(0);
+      expect(typeof authData.refreshToken).toBe('string');
+      expect(authData.refreshToken.length).toBeGreaterThan(0);
     });
 
     it('should return 409 when registering with duplicate email', async () => {
@@ -161,7 +150,8 @@ describe('Auth API (E2E)', () => {
         .send(registerData)
         .expect(201);
 
-      expect(response.body.data.user.email).toBe(`trimuser${timestamp}@test.com`);
+      const authData = extractResponseData(response);
+      expect(authData.user.email).toBe(`trimuser${timestamp}@test.com`);
     });
   });
 
@@ -185,13 +175,14 @@ describe('Auth API (E2E)', () => {
         })
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('user');
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken');
+      const authData = extractResponseData(response);
+      expect(authData).toHaveProperty('user');
+      expect(authData).toHaveProperty('accessToken');
+      expect(authData).toHaveProperty('refreshToken');
 
-      expect(response.body.data.user.email).toBe(registerData.email);
-      expect(typeof response.body.data.accessToken).toBe('string');
-      expect(response.body.data.accessToken.length).toBeGreaterThan(0);
+      expect(authData.user.email).toBe(registerData.email);
+      expect(typeof authData.accessToken).toBe('string');
+      expect(authData.accessToken.length).toBeGreaterThan(0);
     });
 
     it('should return both accessToken and refreshToken', async () => {
@@ -213,11 +204,12 @@ describe('Auth API (E2E)', () => {
         })
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken');
-      expect(typeof response.body.data.accessToken).toBe('string');
-      expect(typeof response.body.data.refreshToken).toBe('string');
-      expect(response.body.data.accessToken).not.toBe(response.body.data.refreshToken);
+      const authData = extractResponseData(response);
+      expect(authData).toHaveProperty('accessToken');
+      expect(authData).toHaveProperty('refreshToken');
+      expect(typeof authData.accessToken).toBe('string');
+      expect(typeof authData.refreshToken).toBe('string');
+      expect(authData.accessToken).not.toBe(authData.refreshToken);
     });
 
     it('should return 401 with incorrect email', async () => {
@@ -287,8 +279,9 @@ describe('Auth API (E2E)', () => {
         })
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data.user.email).toBe(registerData.email.toLowerCase());
+      const authData = extractResponseData(response);
+      expect(authData).toHaveProperty('accessToken');
+      expect(authData.user.email).toBe(registerData.email.toLowerCase());
     });
   });
 
@@ -307,24 +300,25 @@ describe('Auth API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const accessToken = registerResponse.body.data.accessToken;
+      const accessToken = extractResponseData(registerResponse).accessToken;
 
       const response = await request(app.getHttpServer())
         .get('/auth/profile')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('id');
-      expect(response.body.data).toHaveProperty('email');
-      expect(response.body.data).toHaveProperty('firstName');
-      expect(response.body.data).toHaveProperty('lastName');
-      expect(response.body.data).toHaveProperty('fullName');
-      expect(response.body.data).toHaveProperty('isActive');
+      const profileData = extractResponseData(response);
+      expect(profileData).toHaveProperty('id');
+      expect(profileData).toHaveProperty('email');
+      expect(profileData).toHaveProperty('firstName');
+      expect(profileData).toHaveProperty('lastName');
+      expect(profileData).toHaveProperty('fullName');
+      expect(profileData).toHaveProperty('isActive');
 
-      expect(response.body.data.email).toBe(userData.email);
-      expect(response.body.data.firstName).toBe(userData.firstName);
-      expect(response.body.data.lastName).toBe(userData.lastName);
-      expect(response.body.data).not.toHaveProperty('password');
+      expect(profileData.email).toBe(userData.email);
+      expect(profileData.firstName).toBe(userData.firstName);
+      expect(profileData.lastName).toBe(userData.lastName);
+      expect(profileData).not.toHaveProperty('password');
     });
 
     it('should return 401 when no token is provided', async () => {
@@ -370,17 +364,18 @@ describe('Auth API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const accessToken = registerResponse.body.data.accessToken;
+      const accessToken = extractResponseData(registerResponse).accessToken;
 
       const response = await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('message');
-      expect(response.body.data).toHaveProperty('success');
-      expect(response.body.data.success).toBe(true);
-      expect(response.body.data.message).toContain('logged out');
+      const logoutData = extractResponseData(response);
+      expect(logoutData).toHaveProperty('message');
+      expect(logoutData).toHaveProperty('success');
+      expect(logoutData.success).toBe(true);
+      expect(logoutData.message).toContain('logged out');
     });
 
     it('should return 401 when no token is provided for logout', async () => {
@@ -406,17 +401,18 @@ describe('Auth API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const refreshToken = registerResponse.body.data.refreshToken;
+      const refreshToken = extractResponseData(registerResponse).refreshToken;
 
       const response = await request(app.getHttpServer())
         .post('/auth/refresh')
         .send({ refreshToken })
         .expect(200);
 
-      expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken');
-      expect(typeof response.body.data.accessToken).toBe('string');
-      expect(response.body.data.accessToken.length).toBeGreaterThan(0);
+      const refreshData = extractResponseData(response);
+      expect(refreshData).toHaveProperty('accessToken');
+      expect(refreshData).toHaveProperty('refreshToken');
+      expect(typeof refreshData.accessToken).toBe('string');
+      expect(refreshData.accessToken.length).toBeGreaterThan(0);
     });
 
     it('should return 401 with invalid refreshToken', async () => {
