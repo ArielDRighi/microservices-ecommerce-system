@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop, task-17-refactor-tests-unitarios, task-18-tests-e2e-plan]
+    branches: [main, develop, task-17-refactor-tests-unitarios, task-18-tests-e2e-plan, refactor/e2e-real-dependencies]
   pull_request:
     branches: [main, develop]
 
