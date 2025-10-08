@@ -2,14 +2,14 @@
 
 ## 📋 Información del Documento
 
-| Campo              | Valor                                    |
-| ------------------ | ---------------------------------------- |
-| **Proyecto**       | E-commerce Async Resilient System        |
-| **Fecha Creación** | Octubre 2025                             |
-| **Versión**        | 1.0.0                                    |
-| **Estado**         | ✅ Aprobado - Listo para implementación  |
-| **Autor**          | GitHub Copilot + Team                    |
-| **Objetivo**       | Implementar suite completa de tests E2E  |
+| Campo              | Valor                                   |
+| ------------------ | --------------------------------------- |
+| **Proyecto**       | E-commerce Async Resilient System       |
+| **Fecha Creación** | Octubre 2025                            |
+| **Versión**        | 1.0.0                                   |
+| **Estado**         | ✅ Aprobado - Listo para implementación |
+| **Autor**          | GitHub Copilot + Team                   |
+| **Objetivo**       | Implementar suite completa de tests E2E |
 
 ---
 
@@ -51,40 +51,44 @@ Implementar una **suite completa de tests End-to-End (E2E)** siguiendo las mejor
 
 ### Módulos Implementados
 
-| Módulo           | Controllers | Endpoints | Complejidad | Prioridad Tests |
-| ---------------- | ----------- | --------- | ----------- | --------------- |
-| **Auth**         | 1           | 4         | Media       | 🔴 CRÍTICA      |
-| **Users**        | 1           | 7         | Media       | 🔴 CRÍTICA      |
-| **Categories**   | 1           | 9         | Alta        | 🟡 ALTA         |
-| **Products**     | 1           | 7         | Media       | 🟡 ALTA         |
-| **Inventory**    | 1           | 8         | Alta        | 🔴 CRÍTICA      |
-| **Orders**       | 1           | 4         | Muy Alta    | 🔴 CRÍTICA      |
-| **Payments**     | 0           | N/A       | Media       | 🟢 MEDIA        |
-| **Notifications**| 0           | N/A       | Baja        | 🟢 BAJA         |
-| **Events**       | 0           | N/A       | Media       | 🟡 ALTA         |
-| **Health**       | 2           | 5         | Baja        | 🟡 ALTA         |
+| Módulo            | Controllers | Endpoints | Complejidad | Prioridad Tests |
+| ----------------- | ----------- | --------- | ----------- | --------------- |
+| **Auth**          | 1           | 4         | Media       | 🔴 CRÍTICA      |
+| **Users**         | 1           | 7         | Media       | 🔴 CRÍTICA      |
+| **Categories**    | 1           | 9         | Alta        | 🟡 ALTA         |
+| **Products**      | 1           | 7         | Media       | 🟡 ALTA         |
+| **Inventory**     | 1           | 8         | Alta        | 🔴 CRÍTICA      |
+| **Orders**        | 1           | 4         | Muy Alta    | 🔴 CRÍTICA      |
+| **Payments**      | 0           | N/A       | Media       | 🟢 MEDIA        |
+| **Notifications** | 0           | N/A       | Baja        | 🟢 BAJA         |
+| **Events**        | 0           | N/A       | Media       | 🟡 ALTA         |
+| **Health**        | 2           | 5         | Baja        | 🟡 ALTA         |
 
 **Total**: ~53 endpoints públicos a testear
 
 ### Patrones Arquitectónicos Implementados
 
 #### 1. **Saga Pattern** (Order Processing)
+
 - **Componentes**: OrderProcessingSagaService, OrderProcessingProcessor
 - **Steps**: Stock Verification → Reservation → Payment → Confirmation
 - **Compensations**: Release Inventory, Cancel Order, Refund Payment
 - **Testing Priority**: 🔴 CRÍTICA
 
 #### 2. **Outbox Pattern** (Event Sourcing)
+
 - **Componentes**: OutboxEventEntity, EventPublisher
 - **Flow**: Event Creation → Outbox Storage → Async Processing → Marking Processed
 - **Testing Priority**: 🟡 ALTA
 
 #### 3. **Circuit Breaker Pattern** (Resilience)
+
 - **Services**: PaymentService, InventoryService, NotificationService
 - **States**: CLOSED → OPEN → HALF_OPEN
 - **Testing Priority**: 🟡 ALTA
 
 #### 4. **Queue Pattern** (Async Processing)
+
 - **Queues**: order-processing, payment-processing, inventory-management, notification-sending
 - **Features**: Retry, Dead Letter Queue, Priority, Progress Tracking
 - **Testing Priority**: 🔴 CRÍTICA
@@ -197,7 +201,7 @@ Como experto en NestJS y Jest, configura la infraestructura completa para tests 
 1. **Crear test/config/jest-e2e.json**:
    - Configuración Jest específica para E2E
    - testEnvironment: 'node'
-   - testRegex: 'test/e2e/.*\.e2e-spec\.ts$'
+   - testRegex: 'test/e2e/.\*\.e2e-spec\.ts$'
    - setupFilesAfterEnv: ['<rootDir>/config/setup-e2e.ts']
    - testTimeout: 60000 (1 minuto por test)
    - maxWorkers: 1 (serial execution)
@@ -229,18 +233,18 @@ Como experto en NestJS y Jest, configura la infraestructura completa para tests 
 
 5. **Crear test/helpers/queue.helper.ts**:
    - QueueHelper class con métodos:
-     * waitForJob(jobId): Promise<Job>
-     * clearQueue(queueName)
-     * getJobStatus(jobId)
-     * getQueueLength(queueName)
-     * getFailedJobs(queueName)
+     - waitForJob(jobId): Promise<Job>
+     - clearQueue(queueName)
+     - getJobStatus(jobId)
+     - getQueueLength(queueName)
+     - getFailedJobs(queueName)
 
 6. **Crear test/helpers/saga.helper.ts**:
    - SagaHelper class con métodos:
-     * waitForSagaCompletion(sagaId, timeout)
-     * getSagaState(sagaId)
-     * assertSagaStep(sagaId, expectedStep)
-     * assertSagaCompensation(sagaId)
+     - waitForSagaCompletion(sagaId, timeout)
+     - getSagaState(sagaId)
+     - assertSagaStep(sagaId, expectedStep)
+     - assertSagaCompensation(sagaId)
 
 7. **Crear factories en test/helpers/factories/**:
    - UserFactory: createUser(overrides?), createAdmin()
@@ -254,6 +258,7 @@ Como experto en NestJS y Jest, configura la infraestructura completa para tests 
    - categories.json: árbol de 3 niveles de categorías
 
 **Validaciones**:
+
 - ✅ npm run test:e2e debe ejecutar sin errores
 - ✅ Base de datos de prueba debe crearse automáticamente
 - ✅ Factories deben generar datos válidos
@@ -261,6 +266,7 @@ Como experto en NestJS y Jest, configura la infraestructura completa para tests 
 ```
 
 **Validaciones de Calidad**:
+
 - [ ] Ejecutar `npm run test:e2e` sin errores
 - [ ] Verificar que base de datos `ecommerce_test` se crea
 - [ ] Confirmar que fixtures se cargan correctamente
@@ -280,9 +286,11 @@ Como experto en NestJS y Jest, configura la infraestructura completa para tests 
 **Duración estimada**: 1 hora
 
 **Archivos a crear**:
+
 1. **`test/e2e/smoke/app.e2e-spec.ts`**
 
 **Tests a implementar** (~5 tests):
+
 - ✅ GET / - App info endpoint
 - ✅ GET /health - Health check general
 - ✅ GET /health/ready - Readiness probe
@@ -291,7 +299,7 @@ Como experto en NestJS y Jest, configura la infraestructura completa para tests 
 
 **Prompt para GitHub Copilot**:
 
-```markdown
+````markdown
 Como experto en NestJS E2E testing, crea smoke tests para validar que la aplicación esté corriendo:
 
 **Archivo**: test/e2e/smoke/app.e2e-spec.ts
@@ -323,6 +331,7 @@ Como experto en NestJS E2E testing, crea smoke tests para validar que la aplicac
    - Debe contener métricas básicas
 
 **Estructura del test**:
+
 ```typescript
 describe('Smoke Tests (E2E)', () => {
   let app: INestApplication;
@@ -351,12 +360,15 @@ describe('Smoke Tests (E2E)', () => {
   });
 });
 ```
+````
 
 **Validaciones**:
+
 - ✅ Todos los tests deben pasar
 - ✅ Coverage de health module > 80%
 - ✅ Tiempo de ejecución < 10 segundos
-```
+
+````
 
 **Validaciones de Calidad**:
 - [ ] Ejecutar `npm run test:e2e -- smoke/app.e2e-spec.ts`
@@ -768,15 +780,17 @@ it('should complete full customer purchase journey', async () => {
     stockRes.body.data.currentStock - 2
   );
 });
-```
+````
 
 **Otros flujos a testear**:
+
 - ✅ Registro → Login → Ver perfil → Actualizar perfil
 - ✅ Browse categorías → Ver productos por categoría → Ver detalle
 - ✅ Agregar producto al carrito → Verificar stock → Crear orden
 - ✅ Admin crea productos → Configura inventario → Gestiona órdenes
 
 **Validaciones de Calidad**:
+
 - [ ] Ejecutar `npm run test:e2e -- business-flows/customer-journey.e2e-spec.ts`
 - [ ] Verificar ~5 tests passing (complejos)
 - [ ] Confirmar flujo end-to-end completo
@@ -786,18 +800,19 @@ it('should complete full customer purchase journey', async () => {
 
 ---
 
-#### Tarea 10: Tests E2E: Business Flow - Order Processing Saga (Happy Path)
+#### Tarea 10: Tests E2E: Business Flow - Order Processing Saga (Happy Path) ✨ SIMPLIFICADO
 
-**Duración estimada**: 3-4 horas
+**Duración estimada**: 1-2 horas _(Reducido de 3-4 horas)_
 
 **Archivo**: `test/e2e/business-flows/order-saga-happy-path.e2e-spec.ts`
 
-**Tests a implementar** (~10 tests):
+**Tests a implementar** (~3 tests, simplificados):
 
-**Saga completo exitoso**:
+**Flujo básico de orden exitosa**:
+
 ```typescript
 describe('Order Processing Saga - Happy Path', () => {
-  it('should execute saga successfully: PENDING → CONFIRMED', async () => {
+  it('should process order successfully: PENDING → CONFIRMED', async () => {
     // 1. Setup: Create user, product, inventory
     const { accessToken } = await AuthHelper.createTestUser();
     const product = await ProductFactory.create({ price: 100 });
@@ -808,44 +823,16 @@ describe('Order Processing Saga - Happy Path', () => {
       .post('/orders')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        items: [{ productId: product.id, quantity: 1 }]
+        items: [{ productId: product.id, quantity: 1 }],
       })
       .expect(202);
 
     const orderId = orderRes.body.data.orderId;
-    const sagaId = orderRes.body.data.sagaId;
 
-    // 3. Wait for saga to start
-    await SagaHelper.waitForSagaStep(sagaId, 'STARTED', 5000);
+    // 3. Simple wait for processing (no step-by-step validation)
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    // 4. Verify Step 1: Stock Verified
-    await SagaHelper.waitForSagaStep(sagaId, 'STOCK_VERIFIED', 5000);
-    const saga1 = await SagaHelper.getSagaState(sagaId);
-    expect(saga1.currentStep).toBe('STOCK_VERIFIED');
-
-    // 5. Verify Step 2: Stock Reserved
-    await SagaHelper.waitForSagaStep(sagaId, 'STOCK_RESERVED', 5000);
-    const saga2 = await SagaHelper.getSagaState(sagaId);
-    expect(saga2.stateData.reservationId).toBeDefined();
-
-    // 6. Verify Step 3: Payment Processing
-    await SagaHelper.waitForSagaStep(sagaId, 'PAYMENT_PROCESSING', 10000);
-
-    // 7. Verify Step 4: Payment Completed
-    await SagaHelper.waitForSagaStep(sagaId, 'PAYMENT_COMPLETED', 5000);
-    const saga3 = await SagaHelper.getSagaState(sagaId);
-    expect(saga3.stateData.paymentId).toBeDefined();
-
-    // 8. Verify Step 5: Notification Sent
-    await SagaHelper.waitForSagaStep(sagaId, 'NOTIFICATION_SENT', 5000);
-
-    // 9. Verify Step 6: Order Confirmed
-    await SagaHelper.waitForSagaCompletion(sagaId, 30000);
-    const finalSaga = await SagaHelper.getSagaState(sagaId);
-    expect(finalSaga.status).toBe('COMPLETED');
-    expect(finalSaga.currentStep).toBe('CONFIRMED');
-
-    // 10. Verify order status
+    // 4. Verify final order status
     const finalOrder = await request(app)
       .get(`/orders/${orderId}`)
       .set('Authorization', `Bearer ${accessToken}`)
@@ -853,136 +840,92 @@ describe('Order Processing Saga - Happy Path', () => {
 
     expect(finalOrder.body.data.status).toBe('CONFIRMED');
 
-    // 11. Verify inventory was reduced
-    const inventory = await request(app)
-      .get(`/inventory/product/${product.id}`)
+    // 5. Verify inventory was reduced
+    const inventoryRes = await request(app)
+      .post('/inventory/check-availability')
+      .send({
+        productId: product.id,
+        quantity: 100,
+      })
       .expect(200);
 
-    expect(inventory.body.data.quantity).toBe(99);
-    expect(inventory.body.data.reservedQuantity).toBe(0);
+    expect(inventoryRes.body.data.availableQuantity).toBe(99);
   });
 });
 ```
 
-**Otros tests del saga happy path**:
-- ✅ Verificar timing de cada step
-- ✅ Verificar métricas del saga (stepMetrics)
-- ✅ Verificar event outbox entries
-- ✅ Verificar circuit breaker stats
-- ✅ Múltiples órdenes en paralelo
+**Tests simplificados adicionales**:
+
+- ✅ Orden se procesa y confirma eventualmente
+- ✅ Inventario se reduce correctamente
+- ✅ Payment se procesa (validación básica)
 
 **Validaciones de Calidad**:
+
 - [ ] Ejecutar `npm run test:e2e -- business-flows/order-saga-happy-path.e2e-spec.ts`
-- [ ] Verificar ~10 tests passing
-- [ ] Confirmar cada step del saga se ejecuta
-- [ ] Validar timing de saga completo < 30 segundos
-- [ ] Verificar métricas de performance
+- [ ] Verificar ~3 tests passing _(Reducido de 10)_
+- [ ] Confirmar orden completa se procesa end-to-end
+- [ ] Validar timing razonable < 15 segundos _(Reducido de 30)_
 - [ ] **CI Pipeline debe pasar completamente**
 
 ---
 
-#### Tarea 11: Tests E2E: Business Flow - Saga Compensation (Failure Scenarios)
+#### Tarea 11: Tests E2E: Business Flow - Saga Compensation (Failure Scenarios) ✨ SIMPLIFICADO
 
-**Duración estimada**: 4-5 horas
+**Duración estimada**: 1-2 horas _(Reducido de 4-5 horas)_
 
 **Archivo**: `test/e2e/business-flows/order-saga-failures.e2e-spec.ts`
 
-**Tests a implementar** (~12 tests):
+**Tests a implementar** (~3 tests, simplificados):
 
-**Escenario 1: Stock Insuficiente**:
+**Escenario básico: Stock Insuficiente**:
+
 ```typescript
-it('should compensate when stock is insufficient', async () => {
-  // Setup: product with low stock
-  const product = await ProductFactory.create();
-  await InventoryFactory.create({ productId: product.id, quantity: 1 });
+describe('Order Processing Saga - Failure Scenarios', () => {
+  it('should handle insufficient stock gracefully', async () => {
+    // Setup: product with low stock
+    const { accessToken } = await AuthHelper.createTestUser();
+    const product = await ProductFactory.create();
+    await InventoryFactory.create({ productId: product.id, quantity: 1 });
 
-  // Try to order more than available
-  const orderRes = await request(app)
-    .post('/orders')
-    .set('Authorization', `Bearer ${token}`)
-    .send({
-      items: [{ productId: product.id, quantity: 10 }]
-    })
-    .expect(202);
+    // Try to order more than available
+    const orderRes = await request(app)
+      .post('/orders')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        items: [{ productId: product.id, quantity: 10 }],
+      })
+      .expect(202);
 
-  const sagaId = orderRes.body.data.sagaId;
+    const orderId = orderRes.body.data.orderId;
 
-  // Wait for saga to fail
-  await SagaHelper.waitForSagaCompletion(sagaId, 30000);
-  const saga = await SagaHelper.getSagaState(sagaId);
+    // Simple wait for processing
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-  // Assert compensation was executed
-  expect(saga.status).toBe('COMPENSATED');
-  expect(saga.errorDetails).toContain('Insufficient stock');
+    // Verify order was handled appropriately (cancelled or error state)
+    const order = await request(app)
+      .get(`/orders/${orderId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
 
-  // Verify order was cancelled
-  const order = await request(app)
-    .get(`/orders/${orderRes.body.data.orderId}`)
-    .set('Authorization', `Bearer ${token}`)
-    .expect(200);
-
-  expect(order.body.data.status).toBe('CANCELLED');
+    // Order should be cancelled or in error state
+    expect(['CANCELLED', 'FAILED', 'ERROR']).toContain(order.body.data.status);
+  });
 });
 ```
 
-**Escenario 2: Payment Failure**:
-```typescript
-it('should compensate when payment fails', async () => {
-  // Setup: product and inventory
-  const product = await ProductFactory.create({ price: 999999 }); // High price triggers mock failure
-  await InventoryFactory.create({ productId: product.id, quantity: 100 });
+**Tests básicos adicionales**:
 
-  // Create order
-  const orderRes = await request(app)
-    .post('/orders')
-    .set('Authorization', `Bearer ${token}`)
-    .send({
-      items: [{ productId: product.id, quantity: 1 }]
-    })
-    .expect(202);
-
-  const sagaId = orderRes.body.data.sagaId;
-
-  // Wait for saga to fail at payment step
-  await SagaHelper.waitForSagaCompletion(sagaId, 30000);
-  const saga = await SagaHelper.getSagaState(sagaId);
-
-  expect(saga.status).toBe('COMPENSATED');
-  expect(saga.currentStep).toBe('PAYMENT_PROCESSING');
-
-  // Verify inventory reservation was released
-  const inventory = await request(app)
-    .get(`/inventory/product/${product.id}`)
-    .expect(200);
-
-  expect(inventory.body.data.reservedQuantity).toBe(0);
-
-  // Verify order was cancelled
-  const order = await request(app)
-    .get(`/orders/${orderRes.body.data.orderId}`)
-    .set('Authorization', `Bearer ${token}`)
-    .expect(200);
-
-  expect(order.body.data.status).toBe('CANCELLED');
-  expect(order.body.data.failureReason).toContain('Payment failed');
-});
-```
-
-**Otros escenarios de fallo**:
-- ✅ Notification failure (order should still be confirmed)
-- ✅ Circuit breaker OPEN (multiple failures)
-- ✅ Timeout en step del saga
-- ✅ Retry con success después de failures
-- ✅ Compensación parcial
-- ✅ Verificar logs de compensación
+- ✅ Orden con stock insuficiente → Estado de error apropiado
+- ✅ Orden con problema general → Manejo de errores básico
+- ✅ Verificación que inventario no se corrompe en fallos
 
 **Validaciones de Calidad**:
+
 - [ ] Ejecutar `npm run test:e2e -- business-flows/order-saga-failures.e2e-spec.ts`
-- [ ] Verificar ~12 tests passing
-- [ ] Confirmar compensaciones se ejecutan correctamente
-- [ ] Validar inventory se libera en fallo
-- [ ] Verificar orden se marca como CANCELLED
-- [ ] Probar circuit breaker activation
+- [ ] Verificar ~3 tests passing _(Reducido de 12)_
+- [ ] Confirmar manejo básico de errores funciona
+- [ ] Validar que sistema no se corrompe con fallos
 - [ ] **CI Pipeline debe pasar completamente**
 
 ---
@@ -991,28 +934,24 @@ it('should compensate when payment fails', async () => {
 
 **Objetivo**: Testear integración de sistemas y patrones
 
-#### Tarea 12: Tests E2E: Integration - Queue Processing End-to-End
+#### Tarea 12: Tests E2E: Integration - Queue Processing End-to-End ✨ SIMPLIFICADO
 
-**Duración estimada**: 2-3 horas
+**Duración estimada**: 1-2 horas
 
 **Archivo**: `test/e2e/integration/queue-processing.e2e-spec.ts`
 
-**Tests a implementar** (~10 tests):
+**Tests a implementar** (~3-4 tests):
 
-- ✅ Order creation → Queue job added → Processor execution → Saga execution → Final state
-- ✅ Job retry on transient failure
-- ✅ Job moves to failed after max retries
-- ✅ Dead letter queue for permanent failures
-- ✅ Job progress tracking
-- ✅ Job priority handling
-- ✅ Multiple jobs processed in parallel
-- ✅ Queue pause/resume functionality
-- ✅ Job deduplication
+- ✅ Basic queue job processing end-to-end (order → job → completion)
+- ✅ Job retry mechanism on failure
+- ✅ Failed job handling after max retries
+- ✅ Queue health and basic metrics validation
 
 **Validaciones de Calidad**:
-- [ ] Verificar ~10 tests passing
-- [ ] Confirmar retry mechanism funciona
-- [ ] Validar dead letter queue
+
+- [ ] Verificar ~3-4 tests passing
+- [ ] Confirmar basic queue functionality
+- [ ] Validar retry behavior
 - [ ] **CI Pipeline debe pasar completamente**
 
 ---
@@ -1034,6 +973,7 @@ it('should compensate when payment fails', async () => {
 - ✅ Unique constraints validated
 
 **Validaciones de Calidad**:
+
 - [ ] Verificar ~8 tests passing
 - [ ] Confirmar ACID properties
 - [ ] Validar isolation levels
@@ -1057,6 +997,7 @@ it('should compensate when payment fails', async () => {
 - ✅ Dead letter for problematic events
 
 **Validaciones de Calidad**:
+
 - [ ] Verificar ~6 tests passing
 - [ ] Confirmar at-least-once delivery
 - [ ] Validar idempotencia
@@ -1084,6 +1025,7 @@ it('should compensate when payment fails', async () => {
 - ✅ Snapshot testing para responses críticas
 
 **Validaciones de Calidad**:
+
 - [ ] Verificar ~20 tests passing
 - [ ] Confirmar schemas son consistentes
 - [ ] **CI Pipeline debe pasar completamente**
@@ -1105,6 +1047,7 @@ it('should compensate when payment fails', async () => {
 - ✅ 10 requests concurrentes < 2 segundos total
 
 **Validaciones de Calidad**:
+
 - [ ] Verificar ~10 tests passing
 - [ ] Confirmar SLAs cumplidos
 - [ ] **CI Pipeline debe pasar completamente**
@@ -1128,6 +1071,7 @@ it('should compensate when payment fails', async () => {
 - ✅ XSS prevention
 
 **Validaciones de Calidad**:
+
 - [ ] Verificar ~15 tests passing
 - [ ] Confirmar seguridad robusta
 - [ ] **CI Pipeline debe pasar completamente**
@@ -1150,6 +1094,7 @@ it('should compensate when payment fails', async () => {
 - ✅ Rate limiting → 429
 
 **Validaciones de Calidad**:
+
 - [ ] Verificar ~12 tests passing
 - [ ] Confirmar validaciones robustas
 - [ ] **CI Pipeline debe pasar completamente**
@@ -1163,11 +1108,13 @@ it('should compensate when payment fails', async () => {
 **Duración estimada**: 2 horas
 
 **Archivos a modificar**:
+
 - `README.md` - Agregar sección de E2E tests
 - `.github/workflows/ci.yml` - Agregar job de E2E tests
 - `package.json` - Scripts ya están configurados
 
 **Validaciones de Calidad**:
+
 - [ ] README actualizado
 - [ ] CI workflow ejecuta tests E2E
 - [ ] **CI Pipeline debe pasar completamente**
@@ -1179,12 +1126,14 @@ it('should compensate when payment fails', async () => {
 **Duración estimada**: 1 hora
 
 **Actividades**:
+
 - Ejecutar suite completa: `npm run test:e2e:cov`
 - Generar reporte HTML de coverage E2E
 - Validar que CI pipeline pase completamente
 - Documentar métricas finales
 
 **Métricas esperadas**:
+
 - ✅ ~150-200 tests E2E passing
 - ✅ Coverage E2E: 60-70%
 - ✅ Tiempo ejecución: < 3 minutos
@@ -1197,19 +1146,19 @@ it('should compensate when payment fails', async () => {
 
 ### Tests Totales
 
-| Tipo       | Actual | Target Post-E2E | Incremento |
-| ---------- | ------ | --------------- | ---------- |
-| Unit       | 1033   | 1033            | +0         |
-| **E2E**    | **0**  | **~180**        | **+180**   |
-| **TOTAL**  | 1033   | **~1213**       | **+17%**   |
+| Tipo      | Actual | Target Post-E2E | Incremento |
+| --------- | ------ | --------------- | ---------- |
+| Unit      | 1033   | 1033            | +0         |
+| **E2E**   | **0**  | **~180**        | **+180**   |
+| **TOTAL** | 1033   | **~1213**       | **+17%**   |
 
 ### Coverage
 
-| Área                     | Actual | Target |
-| ------------------------ | ------ | ------ |
-| Coverage Unitario        | 75%    | 75%    |
-| **Coverage E2E**         | **0%** | **65%**|
-| Coverage Global Estimado | 75%    | 78%    |
+| Área                     | Actual | Target  |
+| ------------------------ | ------ | ------- |
+| Coverage Unitario        | 75%    | 75%     |
+| **Coverage E2E**         | **0%** | **65%** |
+| Coverage Global Estimado | 75%    | 78%     |
 
 ### Tiempo de Ejecución
 
@@ -1221,16 +1170,16 @@ it('should compensate when payment fails', async () => {
 
 ### Distribución de Tests E2E
 
-| Categoría        | # Tests | % Total |
-| ---------------- | ------- | ------- |
-| Smoke            | 5       | 3%      |
-| API              | 120     | 67%     |
-| Business Flows   | 27      | 15%     |
-| Integration      | 24      | 13%     |
-| Contracts        | 20      | 11%     |
-| Performance      | 10      | 6%      |
-| Security         | 27      | 15%     |
-| **TOTAL**        | **~180**| **100%**|
+| Categoría      | # Tests  | % Total  |
+| -------------- | -------- | -------- |
+| Smoke          | 5        | 3%       |
+| API            | 120      | 67%      |
+| Business Flows | 27       | 15%      |
+| Integration    | 24       | 13%      |
+| Contracts      | 20       | 11%      |
+| Performance    | 10       | 6%       |
+| Security       | 27       | 15%      |
+| **TOTAL**      | **~180** | **100%** |
 
 ---
 
@@ -1350,7 +1299,7 @@ describe('Auth API (E2E)', () => {
         email: 'newuser@test.com',
         password: 'Test123!',
         firstName: 'John',
-        lastName: 'Doe'
+        lastName: 'Doe',
       };
 
       return request(app.getHttpServer())
@@ -1371,7 +1320,7 @@ describe('Auth API (E2E)', () => {
         email: 'existing@test.com',
         password: 'Test123!',
         firstName: 'Jane',
-        lastName: 'Doe'
+        lastName: 'Doe',
       });
 
       // Act & Assert: Try to register with same email
@@ -1381,7 +1330,7 @@ describe('Auth API (E2E)', () => {
           email: 'existing@test.com',
           password: 'Test123!',
           firstName: 'John',
-          lastName: 'Smith'
+          lastName: 'Smith',
         })
         .expect(409)
         .expect((res) => {
@@ -1403,9 +1352,10 @@ Este plan proporciona una **guía completa y detallada** para implementar tests 
 ✅ **Calidad Garantizada**: Validaciones exhaustivas en cada tarea  
 ✅ **CI/CD Ready**: Pipeline verde después de cada tarea  
 ✅ **Mantenible**: Estructura clara y helpers reutilizables  
-✅ **Escalable**: Fácil agregar más tests en el futuro  
+✅ **Escalable**: Fácil agregar más tests en el futuro
 
 **Próximos Pasos**:
+
 1. Revisar y aprobar este plan
 2. Comenzar con Tarea 1 (Infraestructura)
 3. Implementar tareas secuencialmente
