@@ -45,7 +45,7 @@ describe('Queue Processing - Integration (E2E)', () => {
     queueService = app.get<QueueService>(QueueService);
     productRepository = dataSource.getRepository(Product);
     inventoryRepository = dataSource.getRepository(Inventory);
-    
+
     // Get order processing queue directly from Bull
     const orderQueueToken = 'BullQueue_order-processing';
     orderQueue = moduleRef.get<Queue<OrderProcessingJobData>>(orderQueueToken);
@@ -90,11 +90,11 @@ describe('Queue Processing - Integration (E2E)', () => {
       const { accessToken } = registerResponse.body.data;
 
       // 1. Create product and inventory
-      const product = await ProductFactory.create(productRepository, { 
+      const product = await ProductFactory.create(productRepository, {
         price: 100,
         sku: `TEST-QUEUE-${timestamp}`,
       });
-      
+
       const inventory = inventoryRepository.create({
         productId: product.id,
         sku: product.sku,
@@ -120,7 +120,7 @@ describe('Queue Processing - Integration (E2E)', () => {
 
       // 4. Check order was processed
       console.log('Order ID received:', orderId); // Debug log
-      
+
       if (!orderId) {
         console.error('Order response body:', orderResponse.body);
         throw new Error('Order ID not received from order creation');
@@ -167,20 +167,20 @@ describe('Queue Processing - Integration (E2E)', () => {
 
       // 4. Check job was processed (even if failed)
       const refreshedJob = await orderQueue.getJob(job.id);
-      
+
       // Job should exist regardless of status
       expect(refreshedJob).toBeDefined();
-      
+
       if (refreshedJob) {
         // Check if job is in any valid state (even if not attempted due to saga pattern)
         const isFailed = await refreshedJob.isFailed();
         const isActive = await refreshedJob.isActive();
         const isWaiting = await refreshedJob.isWaiting();
         const isCompleted = await refreshedJob.isCompleted();
-        
+
         // Job should be in one of these valid states
         expect(isFailed || isActive || isWaiting || isCompleted).toBeTruthy();
-        
+
         // Log the actual state for debugging
         console.log('Job state:', {
           id: refreshedJob.id,
@@ -221,7 +221,7 @@ describe('Queue Processing - Integration (E2E)', () => {
       // 4. Check job handling after max retries
       const failedJobs = await QueueHelper.getFailedJobs(orderQueue);
       const ourFailedJob = failedJobs.find((failedJob) => failedJob.id === job.id);
-      
+
       if (ourFailedJob) {
         expect(ourFailedJob.attemptsMade).toBe(2);
         expect(ourFailedJob.failedReason).toBeDefined();
