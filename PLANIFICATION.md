@@ -1775,15 +1775,15 @@ test/
 
 **Validaciones de Calidad** (cada sub-tarea):
 
-- ✅ npm run lint sin errores
-- ✅ npm run type-check sin errores
-- ✅ npm run format
-- ✅ npm run test:cov (unit tests siguen pasando)
-- ✅ npm run test:e2e (E2E tests pasan)
-- ✅ No tests flakey (ejecutar 3 veces)
-- ✅ Coverage E2E >= 60%
-- ✅ Timing E2E suite completa < 3 minutos
-- ✅ **CI Pipeline debe pasar completamente**
+- npm run lint sin errores
+- npm run type-check sin errores
+- npm run format
+- npm run test:cov (unit tests siguen pasando)
+- npm run test:e2e (E2E tests pasan)
+- No tests flakey (ejecutar 3 veces)
+- Coverage E2E >= 60%
+- Timing E2E suite completa < 3 minutos
+- **CI Pipeline debe pasar completamente**
 
 **Métricas Esperadas Post-Implementación**:
 

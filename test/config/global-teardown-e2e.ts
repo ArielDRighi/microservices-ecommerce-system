@@ -42,7 +42,7 @@ async function cleanupRedis(): Promise<void> {
 
   try {
     await redis.connect();
-    
+
     // Clear all test data
     await redis.flushdb();
     console.log('✅ Redis test database cleared');

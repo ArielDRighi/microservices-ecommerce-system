@@ -65,7 +65,7 @@ export class TestAppHelper {
    */
   static async seedDatabase(app: INestApplication, fixtures: any[]): Promise<void> {
     const dataSource = app.get(DataSource);
-    
+
     for (const fixture of fixtures) {
       if (fixture.users) {
         const userRepository = dataSource.getRepository(User);
@@ -113,7 +113,7 @@ export class TestAppHelper {
     payload: any = {},
   ): Promise<string> {
     const jwtService = app.get(JwtService);
-    
+
     const tokenPayload = {
       sub: userId,
       userId,

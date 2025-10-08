@@ -25,7 +25,7 @@ export default async () => {
   try {
     // 1. Setup PostgreSQL Database Connection
     await setupDatabase();
-    
+
     // 2. Setup Redis Cache/Queue Connection
     await setupRedis();
 
@@ -76,18 +76,22 @@ async function setupDatabase(): Promise<void> {
     console.log('✅ Setup connection closed');
   } catch (error) {
     console.error('❌ PostgreSQL setup failed:', error);
-    
+
     // Enhanced error reporting
     if (error instanceof Error) {
       if (error.message.includes('authentication failed')) {
-        console.error('💡 Check that PostgreSQL container is running: docker-compose up -d postgres');
+        console.error(
+          '💡 Check that PostgreSQL container is running: docker-compose up -d postgres',
+        );
         console.error('💡 Verify credentials in docker-compose.yml match .env.test');
       }
       if (error.message.includes('ECONNREFUSED')) {
-        console.error('💡 PostgreSQL server is not accessible. Start it with: docker-compose up -d postgres');
+        console.error(
+          '💡 PostgreSQL server is not accessible. Start it with: docker-compose up -d postgres',
+        );
       }
     }
-    
+
     throw error;
   }
 }
@@ -120,13 +124,15 @@ async function setupRedis(): Promise<void> {
     console.log('✅ Redis setup connection closed');
   } catch (error) {
     console.error('❌ Redis setup failed:', error);
-    
+
     if (error instanceof Error) {
       if (error.message.includes('ECONNREFUSED')) {
-        console.error('💡 Redis server is not accessible. Start it with: docker-compose up -d redis');
+        console.error(
+          '💡 Redis server is not accessible. Start it with: docker-compose up -d redis',
+        );
       }
     }
-    
+
     throw error;
   }
 }
