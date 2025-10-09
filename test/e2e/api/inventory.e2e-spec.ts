@@ -4,8 +4,6 @@ import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper to extract data from response
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Inventory API (E2E)', () => {
   let app: INestApplication;
@@ -37,7 +35,7 @@ describe('Inventory API (E2E)', () => {
       .send(userData);
 
     expect(registerResponse.status).toBe(201);
-    userToken = ResponseHelper.extractData(registerResponse).accessToken;
+    userToken = ResponseHelper.extractData<{ accessToken: string }>(registerResponse).accessToken;
 
     // Create test products directly (without categories)
     const timestamp = Date.now();
@@ -56,7 +54,7 @@ describe('Inventory API (E2E)', () => {
       });
 
     expect(product1Response.status).toBe(201);
-    productId1 = ResponseHelper.extractData(product1Response).id;
+    productId1 = ResponseHelper.extractData<{ id: string }>(product1Response).id;
 
     const product2Response = await request(app.getHttpServer())
       .post('/products')
@@ -348,7 +346,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('items');
       expect(data).toHaveProperty('meta');
       expect(data.meta).toHaveProperty('page', 1);
@@ -367,7 +365,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(
         data.items.every((item: any) => item.status === 'IN_STOCK' || item.availableStock > 0),
       ).toBe(true);
@@ -383,7 +381,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(
         data.items.every((item: any) => item.availableStock >= 10 && item.availableStock <= 200),
       ).toBe(true);
@@ -398,7 +396,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('items');
       expect(Array.isArray(data.items)).toBe(true);
       // Since database is empty, search should return empty array
@@ -417,7 +415,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('items');
       expect(data).toHaveProperty('meta');
       expect(Array.isArray(data.items)).toBe(true);
@@ -435,7 +433,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('items');
       expect(data).toHaveProperty('meta');
       expect(Array.isArray(data.items)).toBe(true);
@@ -452,7 +450,7 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('total');
       expect(data).toHaveProperty('totalValue');
       expect(data).toHaveProperty('lowStockCount');
@@ -469,7 +467,7 @@ describe('Inventory API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(response.status).toBe(200);
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(typeof data.total).toBe('number');
       expect(typeof data.totalValue).toBe('number');
     });

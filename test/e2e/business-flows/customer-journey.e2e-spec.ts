@@ -3,22 +3,11 @@ import { INestApplication } from '@nestjs/common';
 import { TestAppHelper } from '../../helpers';
 import { ResponseHelper } from '../../helpers/response.helper';
 
-// Helper function to extract data from API responses
-function ResponseHelper.extractData(response: any): any {
-  if (response?.body?.data?.data) {
-    return response.body.data.data;
-  }
-  if (response?.body?.data) {
-    return response.body.data;
-  }
-  return response?.body || response;
-}
-
 // Helper function to extract paginated data from list responses
 function extractPaginatedData(response: any): any[] {
-  const data = ResponseHelper.extractData(response);
-  if (data && Array.isArray(data.data)) {
-    return data.data;
+  const data = ResponseHelper.extractData<any>(response);
+  if (data && Array.isArray(data.items)) {
+    return data.items;
   }
   if (Array.isArray(data)) {
     return data;
@@ -53,7 +42,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = ResponseHelper.extractData(registerRes);
+      const registerData = ResponseHelper.extractData<any>(registerRes);
       expect(registerRes.body.success).toBe(true);
       expect(registerData.accessToken).toBeDefined();
       expect(registerData.user.email).toBe(customerEmail);
@@ -112,7 +101,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = ResponseHelper.extractData(registerRes);
+      const registerData = ResponseHelper.extractData<any>(registerRes);
       const accessToken = registerData.accessToken;
 
       // 2. Get user profile (authenticated endpoint)
@@ -168,7 +157,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const adminData = ResponseHelper.extractData(adminRegisterRes);
+      const adminData = ResponseHelper.extractData<any>(adminRegisterRes);
       const adminToken = adminData.accessToken;
 
       // Create a product (minimal required fields)
@@ -195,7 +184,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = ResponseHelper.extractData(registerRes);
+      const registerData = ResponseHelper.extractData<any>(registerRes);
       const { accessToken } = registerData;
 
       // 2. Browse products

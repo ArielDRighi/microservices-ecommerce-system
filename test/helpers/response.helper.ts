@@ -31,6 +31,9 @@ export class ResponseHelper {
    *
    * This method extracts the `data` property from the response body.
    *
+   * **TEMPORARY WORKAROUND:** Some responses have double-nested data structure
+   * (response.body.data.data) due to legacy wrapping. This method handles both cases.
+   *
    * @param response - Supertest response object
    * @returns Actual data from response
    *
@@ -39,8 +42,11 @@ export class ResponseHelper {
    * const authData = ResponseHelper.extractData<AuthResponseDto>(response);
    * expect(authData.accessToken).toBeDefined();
    * ```
+   *
+   * @see docs/refactor/double-nested-response-issue.md - Full documentation
+   * @todo Remove double-nesting workaround when backend refactoring is complete
    */
-  static extractData<T>(response: Response): T {
+  static extractData<T = any>(response: Response): T {
     if (!response.body) {
       throw new Error('Response body is undefined');
     }
@@ -51,7 +57,24 @@ export class ResponseHelper {
       );
     }
 
-    return response.body.data as T;
+    const data = response.body.data;
+
+    // TEMPORARY WORKAROUND: Handle double-nested data structure
+    // If data has its own 'data' property, it means we have double nesting
+    // This happens when services return {data: ..., meta: ...} and ResponseInterceptor wraps it again
+    if (
+      data &&
+      typeof data === 'object' &&
+      'data' in data &&
+      data.data !== undefined &&
+      data.data !== null
+    ) {
+      // Double-nested case: return data.data
+      return data.data as T;
+    }
+
+    // Normal case: return data directly
+    return data as T;
   }
 
   /**
@@ -79,7 +102,7 @@ export class ResponseHelper {
    * expect(products).toHaveLength(10);
    * ```
    */
-  static extractItems<T>(response: Response): T[] {
+  static extractItems<T = any>(response: Response): T[] {
     const data = this.extractData<{ items: T[] }>(response);
 
     if (!data.items) {
@@ -197,7 +220,7 @@ export class ResponseHelper {
    * @param response - Supertest response object
    * @returns Extracted data
    */
-  static extractDataLegacy<T>(response: Response): T {
+  static extractDataLegacy<T = any>(response: Response): T {
     if (!response.body || !response.body.data) {
       throw new Error('Response body or data is undefined');
     }

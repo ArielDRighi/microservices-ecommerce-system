@@ -4,8 +4,6 @@ import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper function to extract data from nested response structure
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Categories API (E2E)', () => {
   let app: INestApplication;
@@ -35,7 +33,7 @@ describe('Categories API (E2E)', () => {
       .send(adminData)
       .expect(201);
 
-    adminToken = ResponseHelper.extractData(adminResponse).accessToken;
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(adminResponse).accessToken;
   });
 
   describe('GET /categories (List with pagination)', () => {
@@ -53,7 +51,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      rootCategoryId = ResponseHelper.extractData(rootRes).id;
+      rootCategoryId = ResponseHelper.extractData<{ id: string }>(rootRes).id;
 
       // Create subcategory
       await request(app.getHttpServer())
@@ -74,7 +72,7 @@ describe('Categories API (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('items');
       expect(responseData).toHaveProperty('meta');
       expect(Array.isArray(responseData.items)).toBe(true);
@@ -89,7 +87,7 @@ describe('Categories API (E2E)', () => {
         .query({ isActive: true })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData.items).toBeInstanceOf(Array);
       responseData.items.forEach((category: any) => {
         expect(category.isActive).toBe(true);
@@ -102,7 +100,7 @@ describe('Categories API (E2E)', () => {
         .query({ sortBy: 'sortOrder', sortOrder: 'ASC' })
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       const categories = data.data;
       if (categories.length > 1) {
         for (let i = 0; i < categories.length - 1; i++) {
@@ -129,7 +127,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const parentData = ResponseHelper.extractData(parentRes);
+      const parentData = ResponseHelper.extractData<any>(parentRes);
       parentId = parentData.id;
 
       const childRes = await request(app.getHttpServer())
@@ -143,7 +141,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const childData = ResponseHelper.extractData(childRes);
+      const childData = ResponseHelper.extractData<any>(childRes);
       childId = childData.id;
 
       const grandchildRes = await request(app.getHttpServer())
@@ -157,14 +155,14 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const grandchildData = ResponseHelper.extractData(grandchildRes);
+      const grandchildData = ResponseHelper.extractData<any>(grandchildRes);
       grandchildId = grandchildData.id;
     });
 
     it('should return complete category tree structure', async () => {
       const response = await request(app.getHttpServer()).get('/categories/tree').expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBeGreaterThan(0);
 
@@ -178,7 +176,7 @@ describe('Categories API (E2E)', () => {
     it('should include nested subcategories in tree', async () => {
       const response = await request(app.getHttpServer()).get('/categories/tree').expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       const parentNode = data.find((cat: any) => cat.id === parentId);
       expect(parentNode).toBeDefined();
 
@@ -195,7 +193,7 @@ describe('Categories API (E2E)', () => {
     it('should respect sortOrder in tree structure', async () => {
       const response = await request(app.getHttpServer()).get('/categories/tree').expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       const parentNode = data.find((cat: any) => cat.id === parentId);
       if (parentNode && parentNode.children && parentNode.children.length > 1) {
         // Verify children are sorted
@@ -222,7 +220,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const createdCategory = ResponseHelper.extractData(response);
+      const createdCategory = ResponseHelper.extractData<any>(response);
       categoryId = createdCategory.id;
     });
 
@@ -231,7 +229,7 @@ describe('Categories API (E2E)', () => {
         .get(`/categories/${categoryId}`)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('id', categoryId);
       expect(data).toHaveProperty('name');
       expect(data).toHaveProperty('description');
@@ -275,7 +273,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const createdCategory = ResponseHelper.extractData(response);
+      const createdCategory = ResponseHelper.extractData<any>(response);
       testSlug = createdCategory.slug;
     });
 
@@ -284,7 +282,7 @@ describe('Categories API (E2E)', () => {
         .get(`/categories/slug/${testSlug}`)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('slug', testSlug);
       expect(data).toHaveProperty('name');
       expect(data).toHaveProperty('id');
@@ -318,7 +316,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const parentData = ResponseHelper.extractData(parentRes);
+      const parentData = ResponseHelper.extractData<any>(parentRes);
       parentId = parentData.id;
 
       const child1Res = await request(app.getHttpServer())
@@ -332,7 +330,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const child1Data = ResponseHelper.extractData(child1Res);
+      const child1Data = ResponseHelper.extractData<any>(child1Res);
       child1Id = child1Data.id;
 
       const child2Res = await request(app.getHttpServer())
@@ -346,7 +344,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const child2Data = ResponseHelper.extractData(child2Res);
+      const child2Data = ResponseHelper.extractData<any>(child2Res);
       child2Id = child2Data.id;
 
       const grandchildRes = await request(app.getHttpServer())
@@ -360,7 +358,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const grandchildData = ResponseHelper.extractData(grandchildRes);
+      const grandchildData = ResponseHelper.extractData<any>(grandchildRes);
       grandchildId = grandchildData.id;
     });
 
@@ -369,7 +367,7 @@ describe('Categories API (E2E)', () => {
         .get(`/categories/${parentId}/descendants`)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBeGreaterThanOrEqual(3);
 
@@ -385,7 +383,7 @@ describe('Categories API (E2E)', () => {
         .query({ maxDepth: 1 })
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(Array.isArray(data)).toBe(true);
       // Should only include direct children, not grandchildren
       const descendantIds = data.map((cat: any) => cat.id);
@@ -415,7 +413,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const rootData = ResponseHelper.extractData(rootRes);
+      const rootData = ResponseHelper.extractData<{ id: string }>(rootRes);
       rootId = rootData.id;
 
       level1Name = `Level1 ${Date.now()}`;
@@ -429,7 +427,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const level1Data = ResponseHelper.extractData(level1Res);
+      const level1Data = ResponseHelper.extractData<any>(level1Res);
       level1Id = level1Data.id;
 
       level2Name = `Level2 ${Date.now()}`;
@@ -443,7 +441,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const level2Data = ResponseHelper.extractData(level2Res);
+      const level2Data = ResponseHelper.extractData<any>(level2Res);
       level2Id = level2Data.id;
     });
 
@@ -452,7 +450,7 @@ describe('Categories API (E2E)', () => {
         .get(`/categories/${level2Id}/path`)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBe(3);
       expect(data[0]).toBe(rootName);
@@ -475,7 +473,7 @@ describe('Categories API (E2E)', () => {
         .send(categoryData)
         .expect(201);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('id');
       expect(data.name).toBe(categoryData.name);
       expect(data.description).toBe(categoryData.description);
@@ -495,7 +493,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const parentData = ResponseHelper.extractData(parentRes);
+      const parentData = ResponseHelper.extractData<any>(parentRes);
       const parentId = parentData.id;
 
       // Create subcategory
@@ -512,7 +510,7 @@ describe('Categories API (E2E)', () => {
         .send(subCategoryData)
         .expect(201);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data.parentId).toBe(parentId);
       expect(data.name).toBe(subCategoryData.name);
     });
@@ -529,7 +527,7 @@ describe('Categories API (E2E)', () => {
         .send(categoryData)
         .expect(201);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data).toHaveProperty('slug');
       expect(data.slug).toBeTruthy();
       expect(data.slug).toContain('auto-slug-category');
@@ -591,7 +589,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const created = ResponseHelper.extractData(response);
+      const created = ResponseHelper.extractData<any>(response);
       categoryId = created.id;
     });
 
@@ -608,7 +606,7 @@ describe('Categories API (E2E)', () => {
         .send(updateData)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data.id).toBe(categoryId);
       expect(data.name).toBe(updateData.name);
       expect(data.description).toBe(updateData.description);
@@ -665,7 +663,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const created = ResponseHelper.extractData(response);
+      const created = ResponseHelper.extractData<any>(response);
       const categoryId = created.id;
 
       await request(app.getHttpServer())
@@ -725,7 +723,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const created = ResponseHelper.extractData(response);
+      const created = ResponseHelper.extractData<any>(response);
       categoryId = created.id;
 
       // Deactivate it first
@@ -741,7 +739,7 @@ describe('Categories API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data.id).toBe(categoryId);
       expect(data.isActive).toBe(true);
     });
@@ -760,7 +758,7 @@ describe('Categories API (E2E)', () => {
         })
         .expect(201);
 
-      const created = ResponseHelper.extractData(response);
+      const created = ResponseHelper.extractData<any>(response);
       categoryId = created.id;
     });
 
@@ -770,7 +768,7 @@ describe('Categories API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const data = ResponseHelper.extractData(response);
+      const data = ResponseHelper.extractData<any>(response);
       expect(data.id).toBe(categoryId);
       expect(data.isActive).toBe(false);
     });

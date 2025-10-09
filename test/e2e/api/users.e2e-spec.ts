@@ -4,8 +4,6 @@ import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper function to extract data from nested response structure
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Users API (E2E)', () => {
   let app: INestApplication;
@@ -64,7 +62,7 @@ describe('Users API (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('items');
       expect(responseData).toHaveProperty('meta');
       expect(Array.isArray(responseData.items)).toBe(true);
@@ -80,7 +78,7 @@ describe('Users API (E2E)', () => {
         .query({ status: 'active', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData.items).toBeInstanceOf(Array);
       // All users should be active
       responseData.items.forEach((user: any) => {
@@ -95,7 +93,7 @@ describe('Users API (E2E)', () => {
         .query({ sortBy: 'createdAt', sortOrder: 'DESC', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData.items).toBeInstanceOf(Array);
       expect(responseData.meta.page).toBe(1);
     });
@@ -107,7 +105,7 @@ describe('Users API (E2E)', () => {
         .query({ sortBy: 'email', sortOrder: 'ASC', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData.items).toBeInstanceOf(Array);
       if (responseData.items.length > 1) {
         const emails = responseData.items.map((u: any) => u.email);
@@ -131,7 +129,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${regularUserToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData).toHaveProperty('email');
       expect(responseData).toHaveProperty('firstName');
@@ -156,7 +154,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData.id).toBe(regularUserId);
       expect(responseData).toHaveProperty('email');
@@ -201,7 +199,7 @@ describe('Users API (E2E)', () => {
         .send(newUserData)
         .expect(201);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData.email).toBe(newUserData.email);
       expect(responseData.firstName).toBe(newUserData.firstName);
@@ -263,7 +261,7 @@ describe('Users API (E2E)', () => {
         .send(updateData)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData.firstName).toBe(updateData.firstName);
       expect(responseData.lastName).toBe(updateData.lastName);
       expect(responseData.id).toBe(regularUserId);
@@ -461,7 +459,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${regularUserToken}`)
         .expect(200);
 
-      const profileData = ResponseHelper.extractData(response);
+      const profileData = ResponseHelper.extractData<any>(response);
       expect(profileData).not.toHaveProperty('password');
 
       // Also check in list

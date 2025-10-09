@@ -4,10 +4,6 @@ import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 import { OrderStatus } from '../../../src/modules/orders/enums/order-status.enum';
 
-// Helper function to extract data from response
-  return response.body.data?.data || response.body.data;
-};
-
 describe('Orders API (E2E)', () => {
   let app: INestApplication;
   let userToken: string;
@@ -47,9 +43,9 @@ describe('Orders API (E2E)', () => {
       .send(userData2)
       .expect(201);
 
-    userToken = ResponseHelper.extractData(userResponse1).accessToken;
-    user2Token = ResponseHelper.extractData(userResponse2).accessToken;
-    userId = ResponseHelper.extractData(userResponse1).user.id;
+    userToken = ResponseHelper.extractData<{ accessToken: string; user: { id: string } }>(userResponse1).accessToken;
+    user2Token = ResponseHelper.extractData<{ accessToken: string }>(userResponse2).accessToken;
+    userId = ResponseHelper.extractData<{ accessToken: string; user: { id: string } }>(userResponse1).user.id;
 
     // Create test products
     const timestamp = Date.now();
@@ -81,8 +77,8 @@ describe('Orders API (E2E)', () => {
       })
       .expect(201);
 
-    productId1 = ResponseHelper.extractData(product1Response).id;
-    productId2 = ResponseHelper.extractData(product2Response).id;
+    productId1 = ResponseHelper.extractData<{ id: string }>(product1Response).id;
+    productId2 = ResponseHelper.extractData<{ id: string }>(product2Response).id;
   });
 
   afterEach(async () => {
@@ -106,7 +102,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202); // Should return 202 Accepted
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData).toHaveProperty('status', OrderStatus.PENDING);
       expect(responseData).toHaveProperty('userId', userId);
@@ -139,7 +135,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
@@ -171,8 +167,8 @@ describe('Orders API (E2E)', () => {
         .send(orderData2)
         .expect(202);
 
-      const responseData1 = ResponseHelper.extractData(response1);
-      const responseData2 = ResponseHelper.extractData(response2);
+      const responseData1 = ResponseHelper.extractData<any>(response1);
+      const responseData2 = ResponseHelper.extractData<any>(response2);
       expect(responseData1.idempotencyKey).toBeDefined();
       expect(responseData2.idempotencyKey).toBeDefined();
       expect(responseData1.idempotencyKey).not.toBe(responseData2.idempotencyKey);
@@ -206,7 +202,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       // Should calculate total automatically
       expect(parseFloat(responseData.totalAmount)).toBeGreaterThan(0);
       expect(responseData.items[0]).toHaveProperty('unitPrice');
@@ -258,8 +254,8 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      const responseData1 = ResponseHelper.extractData(response1);
-      const responseData2 = ResponseHelper.extractData(response2);
+      const responseData1 = ResponseHelper.extractData<any>(response1);
+      const responseData2 = ResponseHelper.extractData<any>(response2);
       // Should return the same order
       expect(responseData1.id).toBe(responseData2.id);
       expect(responseData1.idempotencyKey).toBe(responseData2.idempotencyKey);
@@ -281,7 +277,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      testOrderId = ResponseHelper.extractData(response).id;
+      testOrderId = ResponseHelper.extractData<any>(response).id;
     });
 
     it('should list orders for authenticated user', async () => {
@@ -290,7 +286,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData.length).toBeGreaterThan(0);
 
@@ -320,7 +316,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       const user2Order = responseData.find((order: any) => order.id === user2OrderId);
       expect(user2Order).toBeUndefined();
 
@@ -336,7 +332,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(Array.isArray(responseData)).toBe(true);
       // Should handle pagination parameters (even if not many results)
       expect(responseData.length).toBeLessThanOrEqual(5);
@@ -362,7 +358,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      testOrderId = ResponseHelper.extractData(response).id;
+      testOrderId = ResponseHelper.extractData<any>(response).id;
 
       // Create order for user2
       const user2Response = await request(app.getHttpServer())
@@ -371,7 +367,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      otherUserOrderId = ResponseHelper.extractData(user2Response).id;
+      otherUserOrderId = ResponseHelper.extractData<{ id: string }>(user2Response).id;
     });
 
     it('should get order detail with items', async () => {
@@ -380,7 +376,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id', testOrderId);
       expect(responseData).toHaveProperty('userId', userId);
       expect(responseData).toHaveProperty('status');
@@ -430,7 +426,7 @@ describe('Orders API (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      testOrderId = ResponseHelper.extractData(response).id;
+      testOrderId = ResponseHelper.extractData<any>(response).id;
     });
 
     it('should return only the status', async () => {
@@ -439,7 +435,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('orderId', testOrderId);
       expect(responseData).toHaveProperty('status');
       expect(Object.values(OrderStatus)).toContain(responseData.status);
@@ -456,7 +452,7 @@ describe('Orders API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      const responseData = ResponseHelper.extractData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       const validStatuses = [
         OrderStatus.PENDING,
         OrderStatus.PROCESSING,

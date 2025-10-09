@@ -11,8 +11,6 @@ import { Product } from '../../../src/modules/products/entities/product.entity';
 import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 
 // Helper function to extract data from nested response structure
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Database Transactions & Consistency (E2E)', () => {
   let app: INestApplication;

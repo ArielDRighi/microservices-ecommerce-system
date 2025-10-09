@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
-import { ResponseHelper } from '../../helpers/response.helper';
+import { AuthResponse, UserProfileResponse, LogoutResponse } from '../../types/api-responses';
 
 describe('Auth API (E2E)', () => {
   let app: INestApplication;
@@ -149,7 +149,7 @@ describe('Auth API (E2E)', () => {
         .send(registerData)
         .expect(201);
 
-      const authData = ResponseHelper.extractData(response);
+      const authData = ResponseHelper.extractData<AuthResponse>(response);
       expect(authData.user.email).toBe(`trimuser${timestamp}@test.com`);
     });
   });
@@ -174,7 +174,7 @@ describe('Auth API (E2E)', () => {
         })
         .expect(200);
 
-      const authData = ResponseHelper.extractData(response);
+      const authData = ResponseHelper.extractData<AuthResponse>(response);
       expect(authData).toHaveProperty('user');
       expect(authData).toHaveProperty('accessToken');
       expect(authData).toHaveProperty('refreshToken');
@@ -203,7 +203,7 @@ describe('Auth API (E2E)', () => {
         })
         .expect(200);
 
-      const authData = ResponseHelper.extractData(response);
+      const authData = ResponseHelper.extractData<AuthResponse>(response);
       expect(authData).toHaveProperty('accessToken');
       expect(authData).toHaveProperty('refreshToken');
       expect(typeof authData.accessToken).toBe('string');
@@ -278,7 +278,7 @@ describe('Auth API (E2E)', () => {
         })
         .expect(200);
 
-      const authData = ResponseHelper.extractData(response);
+      const authData = ResponseHelper.extractData<AuthResponse>(response);
       expect(authData).toHaveProperty('accessToken');
       expect(authData.user.email).toBe(registerData.email.toLowerCase());
     });
@@ -299,14 +299,14 @@ describe('Auth API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const accessToken = ResponseHelper.extractData(registerResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<AuthResponse>(registerResponse).accessToken;
 
       const response = await request(app.getHttpServer())
         .get('/auth/profile')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const profileData = ResponseHelper.extractData(response);
+      const profileData = ResponseHelper.extractData<UserProfileResponse>(response);
       expect(profileData).toHaveProperty('id');
       expect(profileData).toHaveProperty('email');
       expect(profileData).toHaveProperty('firstName');
@@ -363,14 +363,14 @@ describe('Auth API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const accessToken = ResponseHelper.extractData(registerResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<AuthResponse>(registerResponse).accessToken;
 
       const response = await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const logoutData = ResponseHelper.extractData(response);
+      const logoutData = ResponseHelper.extractData<LogoutResponse>(response);
       expect(logoutData).toHaveProperty('message');
       expect(logoutData).toHaveProperty('success');
       expect(logoutData.success).toBe(true);
@@ -400,14 +400,14 @@ describe('Auth API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const refreshToken = ResponseHelper.extractData(registerResponse).refreshToken;
+      const refreshToken = ResponseHelper.extractData<AuthResponse>(registerResponse).refreshToken;
 
       const response = await request(app.getHttpServer())
         .post('/auth/refresh')
         .send({ refreshToken })
         .expect(200);
 
-      const refreshData = ResponseHelper.extractData(response);
+      const refreshData = ResponseHelper.extractData<AuthResponse>(response);
       expect(refreshData).toHaveProperty('accessToken');
       expect(refreshData).toHaveProperty('refreshToken');
       expect(typeof refreshData.accessToken).toBe('string');

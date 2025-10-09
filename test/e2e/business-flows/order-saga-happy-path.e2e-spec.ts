@@ -4,8 +4,6 @@ import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper function to extract data from nested response structure - exact copy from products test
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Order Processing Saga - Happy Path (E2E)', () => {
   let app: INestApplication;
@@ -38,7 +36,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
       .send(adminData)
       .expect(201);
 
-    adminToken = ResponseHelper.extractData(adminResponse).accessToken;
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(adminResponse).accessToken;
 
     // Create user for orders
     const userData = {
@@ -53,7 +51,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
       .send(userData)
       .expect(201);
 
-    userToken = ResponseHelper.extractData(userResponse).accessToken;
+    userToken = ResponseHelper.extractData<{ accessToken: string }>(userResponse).accessToken;
   });
 
   describe('Order Processing Saga - Happy Path', () => {

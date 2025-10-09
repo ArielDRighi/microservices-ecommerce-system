@@ -12,8 +12,6 @@ import { OrderProcessingJobData } from '../../../src/common/interfaces/queue-job
 import { TestAppHelper } from '../../helpers/test-app.helper';
 
 // Helper function to extract data from nested response structure
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Queue Processing - Integration (E2E)', () => {
   let app: INestApplication;
