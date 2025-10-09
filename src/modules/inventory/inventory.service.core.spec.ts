@@ -151,10 +151,10 @@ describe('InventoryService - Core Functionality', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.data).toHaveLength(1);
-      expect(result.meta).toHaveProperty('currentPage', 1);
-      expect(result.meta).toHaveProperty('itemsPerPage', 10);
-      expect(result.meta).toHaveProperty('totalItems', 1);
+      expect(result.items).toHaveLength(1);
+      expect(result.meta).toHaveProperty('page', 1);
+      expect(result.meta).toHaveProperty('limit', 10);
+      expect(result.meta).toHaveProperty('total', 1);
       expect(result.meta).toHaveProperty('totalPages', 1);
     });
 

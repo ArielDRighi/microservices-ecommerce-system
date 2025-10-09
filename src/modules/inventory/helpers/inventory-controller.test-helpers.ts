@@ -34,7 +34,7 @@ export const mockReservationResponse = {
  * Mock paginated response
  */
 export const mockPaginatedResponse = {
-  data: [
+  items: [
     {
       id: 'inv-123',
       ...mockInventoryStock,
@@ -43,9 +43,9 @@ export const mockPaginatedResponse = {
     },
   ],
   meta: {
-    currentPage: 1,
-    itemsPerPage: 20,
-    totalItems: 1,
+    page: 1,
+    limit: 20,
+    total: 1,
     totalPages: 1,
     hasNextPage: false,
     hasPreviousPage: false,

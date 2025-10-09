@@ -585,7 +585,7 @@ export class InventoryService {
     const [inventories, totalItems] = await queryBuilder.getManyAndCount();
     const totalPages = Math.ceil(totalItems / limit);
 
-    const data = await Promise.all(
+    const items = await Promise.all(
       inventories.map(async (inventory) => {
         const product = await inventory.product;
         return {
@@ -612,11 +612,11 @@ export class InventoryService {
     );
 
     return {
-      data,
+      items,
       meta: {
-        currentPage: page,
-        itemsPerPage: limit,
-        totalItems,
+        page,
+        limit,
+        total: totalItems,
         totalPages,
         hasNextPage: page < totalPages,
         hasPreviousPage: page > 1,

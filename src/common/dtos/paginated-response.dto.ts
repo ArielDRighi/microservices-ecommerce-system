@@ -11,9 +11,10 @@ export interface PaginationMeta {
 
 export class PaginatedResponseDto<T> {
   @ApiProperty({
-    description: 'Array of items',
+    description: 'Array of items in the current page',
+    type: 'array',
   })
-  data: T[];
+  items: T[];
 
   @ApiProperty({
     description: 'Pagination metadata',
@@ -28,8 +29,8 @@ export class PaginatedResponseDto<T> {
   })
   meta: PaginationMeta;
 
-  constructor(data: T[], total: number, page: number, limit: number) {
-    this.data = data;
+  constructor(items: T[], total: number, page: number, limit: number) {
+    this.items = items;
 
     const totalPages = Math.ceil(total / limit);
 
