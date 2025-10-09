@@ -1,0 +1,85 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`API Response Schemas - Contract Testing (E2E) Snapshot Testing for Critical Responses should match snapshot for OrderResponseDto structure: order-response-keys 1`] = `
+[
+  "createdAt",
+  "currency",
+  "id",
+  "idempotencyKey",
+  "items",
+  "status",
+  "totalAmount",
+  "updatedAt",
+  "userId",
+]
+`;
+
+exports[`API Response Schemas - Contract Testing (E2E) Snapshot Testing for Critical Responses should match snapshot for PaginationMeta structure: pagination-meta-keys 1`] = `
+[
+  "hasNext",
+  "hasPrev",
+  "limit",
+  "page",
+  "total",
+  "totalPages",
+]
+`;
+
+exports[`API Response Schemas - Contract Testing (E2E) Snapshot Testing for Critical Responses should match snapshot for ProductResponseDto structure: product-response-keys 1`] = `
+[
+  "attributes",
+  "brand",
+  "categoryId",
+  "compareAtPrice",
+  "costPrice",
+  "createdAt",
+  "deletedAt",
+  "description",
+  "discountPercentage",
+  "id",
+  "images",
+  "isActive",
+  "isOnSale",
+  "minimumStock",
+  "name",
+  "price",
+  "profitMargin",
+  "sku",
+  "tags",
+  "trackInventory",
+  "updatedAt",
+  "weight",
+]
+`;
+
+exports[`API Response Schemas - Contract Testing (E2E) Snapshot Testing for Critical Responses should match snapshot for UserResponseDto structure: user-response-keys 1`] = `
+[
+  "createdAt",
+  "dateOfBirth",
+  "email",
+  "emailVerifiedAt",
+  "firstName",
+  "fullName",
+  "id",
+  "isActive",
+  "language",
+  "lastLoginAt",
+  "lastName",
+  "phoneNumber",
+  "timezone",
+  "updatedAt",
+]
+`;
+
+exports[`API Response Schemas - Contract Testing (E2E) Snapshot Testing for Critical Responses should match snapshot for error response structure: error-response-keys 1`] = `
+[
+  "correlationId",
+  "error",
+  "message",
+  "method",
+  "path",
+  "statusCode",
+  "success",
+  "timestamp",
+]
+`;
