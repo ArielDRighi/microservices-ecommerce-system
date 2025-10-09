@@ -1876,3 +1876,7 @@ Una tarea se considera completada cuando:
 ```
 
 ```
+
+response.body.data
+response.body.data.data.user.id
+response.body.data.data = { id, email, ... } // Los datos reales del usuario
