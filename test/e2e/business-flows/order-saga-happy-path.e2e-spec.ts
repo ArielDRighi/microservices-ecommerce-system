@@ -1,9 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestAppHelper } from '../../helpers/test-app.helper';
+import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper function to extract data from nested response structure - exact copy from products test
-const extractResponseData = (response: any) => {
   return response.body.data?.data || response.body.data;
 };
 
@@ -38,7 +38,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
       .send(adminData)
       .expect(201);
 
-    adminToken = extractResponseData(adminResponse).accessToken;
+    adminToken = ResponseHelper.extractData(adminResponse).accessToken;
 
     // Create user for orders
     const userData = {
@@ -53,7 +53,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
       .send(userData)
       .expect(201);
 
-    userToken = extractResponseData(userResponse).accessToken;
+    userToken = ResponseHelper.extractData(userResponse).accessToken;
   });
 
   describe('Order Processing Saga - Happy Path', () => {
@@ -74,7 +74,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         })
         .expect(201);
 
-      const product = extractResponseData(productRes);
+      const product = ResponseHelper.extractData(productRes);
 
       // Add inventory via API (graceful handling if endpoint doesn't exist)
       await request(app.getHttpServer())
@@ -104,7 +104,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         })
         .expect([200, 201, 202]);
 
-      const order = extractResponseData(orderRes);
+      const order = ResponseHelper.extractData(orderRes);
       expect(order.status).toBe('PENDING');
 
       // Verify order processing - wait for saga completion
@@ -117,7 +117,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         .expect([200, 404]);
 
       if (finalOrderRes.status === 200) {
-        const finalOrder = extractResponseData(finalOrderRes);
+        const finalOrder = ResponseHelper.extractData(finalOrderRes);
         expect(['CONFIRMED', 'PENDING']).toContain(finalOrder.status);
       }
     }, 30000);
@@ -139,7 +139,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         })
         .expect(201);
 
-      const product = extractResponseData(productRes);
+      const product = ResponseHelper.extractData(productRes);
 
       // Create order
       const orderRes = await request(app.getHttpServer())
@@ -155,7 +155,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         })
         .expect([200, 201, 202]);
 
-      const order = extractResponseData(orderRes);
+      const order = ResponseHelper.extractData(orderRes);
       expect(order.id).toBeDefined();
       expect(order.status).toBe('PENDING');
 
@@ -169,7 +169,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         .expect([200, 404]);
 
       if (inventoryRes.status === 200) {
-        const inventory = extractResponseData(inventoryRes);
+        const inventory = ResponseHelper.extractData(inventoryRes);
         expect(inventory).toBeDefined();
       }
     }, 30000);
@@ -191,7 +191,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         })
         .expect(201);
 
-      const product = extractResponseData(productRes);
+      const product = ResponseHelper.extractData(productRes);
 
       // Create order
       const orderRes = await request(app.getHttpServer())
@@ -207,7 +207,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         })
         .expect([200, 201, 202]);
 
-      const order = extractResponseData(orderRes);
+      const order = ResponseHelper.extractData(orderRes);
       expect(order.id).toBeDefined();
       expect(order.totalAmount).toBeGreaterThan(0);
       expect(order.status).toBe('PENDING');
@@ -222,7 +222,7 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
         .expect([200, 404]);
 
       if (finalOrderRes.status === 200) {
-        const finalOrder = extractResponseData(finalOrderRes);
+        const finalOrder = ResponseHelper.extractData(finalOrderRes);
         expect(finalOrder.id).toBe(order.id);
         expect(['CONFIRMED', 'PENDING', 'PROCESSING']).toContain(finalOrder.status);
       }

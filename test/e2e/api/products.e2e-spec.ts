@@ -1,11 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestAppHelper } from '../../helpers/test-app.helper';
-
-// Helper function to extract data from nested response structure
-const extractResponseData = (response: any) => {
-  return response.body.data?.data || response.body.data;
-};
+import { ResponseHelper } from '../../helpers/response.helper';
 
 describe('Products API (E2E)', () => {
   let app: INestApplication;
@@ -35,7 +31,7 @@ describe('Products API (E2E)', () => {
       .send(adminData)
       .expect(201);
 
-    adminToken = extractResponseData(adminResponse).accessToken;
+    adminToken = ResponseHelper.extractData(adminResponse).accessToken;
   });
 
   describe('GET /products (List with pagination and filters)', () => {
@@ -59,7 +55,7 @@ describe('Products API (E2E)', () => {
           isActive: true,
         })
         .expect(201);
-      product1Id = extractResponseData(product1).id;
+      product1Id = ResponseHelper.extractData(product1).id;
 
       const product2 = await request(app.getHttpServer())
         .post('/products')
@@ -74,7 +70,7 @@ describe('Products API (E2E)', () => {
           isActive: true,
         })
         .expect(201);
-      product2Id = extractResponseData(product2).id;
+      product2Id = ResponseHelper.extractData(product2).id;
 
       const product3 = await request(app.getHttpServer())
         .post('/products')
@@ -89,7 +85,7 @@ describe('Products API (E2E)', () => {
           isActive: false, // Inactive
         })
         .expect(201);
-      product3Id = extractResponseData(product3).id;
+      product3Id = ResponseHelper.extractData(product3).id;
     });
 
     it('should list products with pagination', async () => {
@@ -98,10 +94,10 @@ describe('Products API (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      expect(responseData).toHaveProperty('data');
+      const responseData = ResponseHelper.extractData(response);
+      expect(responseData).toHaveProperty('items');
       expect(responseData).toHaveProperty('meta');
-      expect(Array.isArray(responseData.data)).toBe(true);
+      expect(Array.isArray(responseData.items)).toBe(true);
       expect(responseData.meta).toHaveProperty('page', 1);
       expect(responseData.meta).toHaveProperty('limit', 10);
       expect(responseData.meta).toHaveProperty('total');
@@ -114,8 +110,8 @@ describe('Products API (E2E)', () => {
         .query({ minPrice: 100, maxPrice: 200, status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      expect(responseData.data).toEqual(
+      const responseData = ResponseHelper.extractData(response);
+      expect(responseData.items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: product3Id,
@@ -125,7 +121,7 @@ describe('Products API (E2E)', () => {
       );
 
       // Verify all products are within price range
-      responseData.data.forEach((product: any) => {
+      responseData.items.forEach((product: any) => {
         const price = parseFloat(product.price);
         expect(price).toBeGreaterThanOrEqual(100);
         expect(price).toBeLessThanOrEqual(200);
@@ -138,8 +134,8 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'price', sortOrder: 'ASC', status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      const products = responseData.data;
+      const responseData = ResponseHelper.extractData(response);
+      const products = responseData.items;
       expect(products.length).toBeGreaterThan(0);
 
       // Verify ascending order
@@ -156,8 +152,8 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'price', sortOrder: 'DESC', status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      const products = responseData.data;
+      const responseData = ResponseHelper.extractData(response);
+      const products = responseData.items;
       expect(products.length).toBeGreaterThan(0);
 
       // Verify descending order
@@ -174,8 +170,8 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'name', sortOrder: 'ASC', status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      const products = responseData.data;
+      const responseData = ResponseHelper.extractData(response);
+      const products = responseData.items;
       expect(products.length).toBeGreaterThan(0);
 
       // Verify alphabetical order
@@ -190,8 +186,8 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'createdAt', sortOrder: 'DESC', status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      const products = responseData.data;
+      const responseData = ResponseHelper.extractData(response);
+      const products = responseData.items;
       expect(products.length).toBeGreaterThan(0);
 
       // Verify date order
@@ -205,14 +201,14 @@ describe('Products API (E2E)', () => {
     it('should filter by isActive (active only by default)', async () => {
       const response = await request(app.getHttpServer()).get('/products').expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       // All products should be active by default
-      responseData.data.forEach((product: any) => {
+      responseData.items.forEach((product: any) => {
         expect(product.isActive).toBe(true);
       });
 
       // product3 should not be in the list (it's inactive)
-      const product3InList = responseData.data.find((p: any) => p.id === product3Id);
+      const product3InList = responseData.items.find((p: any) => p.id === product3Id);
       expect(product3InList).toBeUndefined();
     });
 
@@ -222,14 +218,14 @@ describe('Products API (E2E)', () => {
         .query({ status: 'inactive' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       // All products should be inactive
-      responseData.data.forEach((product: any) => {
+      responseData.items.forEach((product: any) => {
         expect(product.isActive).toBe(false);
       });
 
       // product3 should be in the list
-      const product3InList = responseData.data.find((p: any) => p.id === product3Id);
+      const product3InList = responseData.items.find((p: any) => p.id === product3Id);
       expect(product3InList).toBeDefined();
     });
 
@@ -239,10 +235,10 @@ describe('Products API (E2E)', () => {
         .query({ status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       // Should include both active and inactive products
-      const hasActive = responseData.data.some((p: any) => p.isActive === true);
-      const hasInactive = responseData.data.some((p: any) => p.isActive === false);
+      const hasActive = responseData.items.some((p: any) => p.isActive === true);
+      const hasInactive = responseData.items.some((p: any) => p.isActive === false);
 
       expect(hasActive).toBe(true);
       expect(hasInactive).toBe(true);
@@ -254,14 +250,14 @@ describe('Products API (E2E)', () => {
         .query({ brand: 'GameGear', status: 'all' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       // All products should be from GameGear brand
-      responseData.data.forEach((product: any) => {
+      responseData.items.forEach((product: any) => {
         expect(product.brand).toBe('GameGear');
       });
 
       // Should include product2 and product3
-      const productIds = responseData.data.map((p: any) => p.id);
+      const productIds = responseData.items.map((p: any) => p.id);
       expect(productIds).toContain(product2Id);
       expect(productIds).toContain(product3Id);
     });
@@ -272,9 +268,9 @@ describe('Products API (E2E)', () => {
         .query({ onSale: true })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       // All products should have compareAtPrice > price
-      responseData.data.forEach((product: any) => {
+      responseData.items.forEach((product: any) => {
         expect(product.isOnSale).toBe(true);
         const compareAtPrice = parseFloat(product.compareAtPrice);
         const price = parseFloat(product.price);
@@ -282,7 +278,7 @@ describe('Products API (E2E)', () => {
       });
 
       // Should include product1 (has compareAtPrice)
-      const product1InList = responseData.data.find((p: any) => p.id === product1Id);
+      const product1InList = responseData.items.find((p: any) => p.id === product1Id);
       expect(product1InList).toBeDefined();
     });
   });
@@ -304,7 +300,7 @@ describe('Products API (E2E)', () => {
           tags: ['bluetooth', 'speaker', 'portable'],
         })
         .expect(201);
-      searchProduct1Id = extractResponseData(product1).id;
+      searchProduct1Id = ResponseHelper.extractData(product1).id;
 
       const product2 = await request(app.getHttpServer())
         .post('/products')
@@ -317,7 +313,7 @@ describe('Products API (E2E)', () => {
           tags: ['wireless', 'charger', 'fast-charging'],
         })
         .expect(201);
-      searchProduct2Id = extractResponseData(product2).id;
+      searchProduct2Id = ResponseHelper.extractData(product2).id;
     });
 
     it('should search products by name', async () => {
@@ -326,7 +322,7 @@ describe('Products API (E2E)', () => {
         .query({ q: 'Bluetooth' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData.length).toBeGreaterThan(0);
 
@@ -342,7 +338,7 @@ describe('Products API (E2E)', () => {
         .query({ q: 'charging' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(Array.isArray(responseData)).toBe(true);
 
       // Should include searchProduct2
@@ -357,7 +353,7 @@ describe('Products API (E2E)', () => {
         .query({ q: 'portable' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(Array.isArray(responseData)).toBe(true);
 
       // Should include searchProduct1 (has 'portable' tag)
@@ -371,7 +367,7 @@ describe('Products API (E2E)', () => {
         .query({ q: 'wireless', limit: 2 })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData.length).toBeLessThanOrEqual(2);
     });
@@ -382,7 +378,7 @@ describe('Products API (E2E)', () => {
         .query({ q: 'nonexistentproduct12345' })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(Array.isArray(responseData)).toBe(true);
       expect(responseData.length).toBe(0);
     });
@@ -414,13 +410,13 @@ describe('Products API (E2E)', () => {
         })
         .expect(201);
 
-      productId = extractResponseData(response).id;
+      productId = ResponseHelper.extractData(response).id;
     });
 
     it('should get product with complete details', async () => {
       const response = await request(app.getHttpServer()).get(`/products/${productId}`).expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData).toMatchObject({
         id: productId,
         name: expect.stringContaining('Test Product Detail'),
@@ -481,7 +477,7 @@ describe('Products API (E2E)', () => {
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData).toMatchObject({
         name: productData.name,
         description: productData.description,
@@ -511,7 +507,7 @@ describe('Products API (E2E)', () => {
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData).toMatchObject({
         name: productData.name,
         price: '29.99', // Decimal returned as string
@@ -656,7 +652,7 @@ describe('Products API (E2E)', () => {
           brand: 'OriginalBrand',
         })
         .expect(201);
-      productId = extractResponseData(response).id;
+      productId = ResponseHelper.extractData(response).id;
     });
 
     it('should update product successfully', async () => {
@@ -674,7 +670,7 @@ describe('Products API (E2E)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData).toMatchObject({
         id: productId,
         name: updateData.name,
@@ -693,7 +689,7 @@ describe('Products API (E2E)', () => {
         })
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData.price).toBe('299.99'); // Decimal returned as string
       // Other fields should remain unchanged
       expect(responseData.name).toContain('Original Product');
@@ -737,7 +733,7 @@ describe('Products API (E2E)', () => {
           isActive: false,
         })
         .expect(201);
-      inactiveProductId = extractResponseData(response).id;
+      inactiveProductId = ResponseHelper.extractData(response).id;
     });
 
     it('should activate product successfully', async () => {
@@ -747,7 +743,7 @@ describe('Products API (E2E)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData.isActive).toBe(true);
       expect(responseData.id).toBe(inactiveProductId);
     });
@@ -782,7 +778,7 @@ describe('Products API (E2E)', () => {
           isActive: true,
         })
         .expect(201);
-      activeProductId = extractResponseData(response).id;
+      activeProductId = ResponseHelper.extractData(response).id;
     });
 
     it('should deactivate product successfully', async () => {
@@ -792,7 +788,7 @@ describe('Products API (E2E)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData(response);
       expect(responseData.isActive).toBe(false);
       expect(responseData.id).toBe(activeProductId);
     });
@@ -826,7 +822,7 @@ describe('Products API (E2E)', () => {
           sku: `DEL-${Date.now()}-001`,
         })
         .expect(201);
-      productToDeleteId = extractResponseData(response).id;
+      productToDeleteId = ResponseHelper.extractData(response).id;
     });
 
     it('should soft delete product successfully', async () => {
@@ -838,8 +834,8 @@ describe('Products API (E2E)', () => {
       // Verify product is not in default listing
       const listResponse = await request(app.getHttpServer()).get('/products').expect(200);
 
-      const responseData = extractResponseData(listResponse);
-      const deletedProductInList = responseData.data.find((p: any) => p.id === productToDeleteId);
+      const responseData = ResponseHelper.extractData(listResponse);
+      const deletedProductInList = responseData.items.find((p: any) => p.id === productToDeleteId);
       expect(deletedProductInList).toBeUndefined();
 
       // Verify accessing soft deleted product returns 404
@@ -865,7 +861,7 @@ describe('Products API (E2E)', () => {
         })
         .expect(201);
 
-      const productId = extractResponseData(response).id;
+      const productId = ResponseHelper.extractData(response).id;
       await request(app.getHttpServer()).delete(`/products/${productId}`).expect(401);
     });
   });

@@ -1,9 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestAppHelper } from '../../helpers/test-app.helper';
+import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper to extract data from response
-const extractResponseData = (response: any) => {
   return response.body.data?.data || response.body.data;
 };
 
@@ -37,7 +37,7 @@ describe('Inventory API (E2E)', () => {
       .send(userData);
 
     expect(registerResponse.status).toBe(201);
-    userToken = extractResponseData(registerResponse).accessToken;
+    userToken = ResponseHelper.extractData(registerResponse).accessToken;
 
     // Create test products directly (without categories)
     const timestamp = Date.now();
@@ -56,7 +56,7 @@ describe('Inventory API (E2E)', () => {
       });
 
     expect(product1Response.status).toBe(201);
-    productId1 = extractResponseData(product1Response).id;
+    productId1 = ResponseHelper.extractData(product1Response).id;
 
     const product2Response = await request(app.getHttpServer())
       .post('/products')
@@ -348,12 +348,12 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
-      expect(data).toHaveProperty('data');
+      const data = ResponseHelper.extractData(response);
+      expect(data).toHaveProperty('items');
       expect(data).toHaveProperty('meta');
-      expect(data.meta).toHaveProperty('currentPage', 1);
-      expect(data.meta).toHaveProperty('itemsPerPage', 10);
-      expect(Array.isArray(data.data)).toBe(true);
+      expect(data.meta).toHaveProperty('page', 1);
+      expect(data.meta).toHaveProperty('limit', 10);
+      expect(Array.isArray(data.items)).toBe(true);
     });
 
     it('should filter by status', async () => {
@@ -367,9 +367,9 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
+      const data = ResponseHelper.extractData(response);
       expect(
-        data.data.every((item: any) => item.status === 'IN_STOCK' || item.availableStock > 0),
+        data.items.every((item: any) => item.status === 'IN_STOCK' || item.availableStock > 0),
       ).toBe(true);
     });
 
@@ -383,9 +383,9 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
+      const data = ResponseHelper.extractData(response);
       expect(
-        data.data.every((item: any) => item.availableStock >= 10 && item.availableStock <= 200),
+        data.items.every((item: any) => item.availableStock >= 10 && item.availableStock <= 200),
       ).toBe(true);
     });
 
@@ -398,11 +398,11 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
-      expect(data).toHaveProperty('data');
-      expect(Array.isArray(data.data)).toBe(true);
+      const data = ResponseHelper.extractData(response);
+      expect(data).toHaveProperty('items');
+      expect(Array.isArray(data.items)).toBe(true);
       // Since database is empty, search should return empty array
-      expect(data.data.length).toBe(0);
+      expect(data.items.length).toBe(0);
     });
   });
 
@@ -417,10 +417,10 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
-      expect(data).toHaveProperty('data');
+      const data = ResponseHelper.extractData(response);
+      expect(data).toHaveProperty('items');
       expect(data).toHaveProperty('meta');
-      expect(Array.isArray(data.data)).toBe(true);
+      expect(Array.isArray(data.items)).toBe(true);
     });
   });
 
@@ -435,10 +435,10 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
-      expect(data).toHaveProperty('data');
+      const data = ResponseHelper.extractData(response);
+      expect(data).toHaveProperty('items');
       expect(data).toHaveProperty('meta');
-      expect(Array.isArray(data.data)).toBe(true);
+      expect(Array.isArray(data.items)).toBe(true);
     });
   });
 
@@ -452,8 +452,8 @@ describe('Inventory API (E2E)', () => {
         });
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
-      expect(data).toHaveProperty('totalItems');
+      const data = ResponseHelper.extractData(response);
+      expect(data).toHaveProperty('total');
       expect(data).toHaveProperty('totalValue');
       expect(data).toHaveProperty('lowStockCount');
       expect(data).toHaveProperty('outOfStockCount');
@@ -469,8 +469,8 @@ describe('Inventory API (E2E)', () => {
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(response.status).toBe(200);
-      const data = extractResponseData(response);
-      expect(typeof data.totalItems).toBe('number');
+      const data = ResponseHelper.extractData(response);
+      expect(typeof data.total).toBe('number');
       expect(typeof data.totalValue).toBe('number');
     });
   });

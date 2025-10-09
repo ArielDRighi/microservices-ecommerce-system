@@ -2,13 +2,13 @@
 
 ## 📋 Información del Documento
 
-| Campo | Valor |
-|-------|-------|
-| **Problema** | `response.body.data.data` (doble anidación) |
-| **Fecha Análisis** | Octubre 9, 2025 |
-| **Severidad** | 🟡 Media - No crítico pero confuso |
-| **Impacto** | Tests, Frontend, Documentación API |
-| **Estado** | 📝 Analizado - Pendiente decisión |
+| Campo              | Valor                                       |
+| ------------------ | ------------------------------------------- |
+| **Problema**       | `response.body.data.data` (doble anidación) |
+| **Fecha Análisis** | Octubre 9, 2025                             |
+| **Severidad**      | 🟡 Media - No crítico pero confuso          |
+| **Impacto**        | Tests, Frontend, Documentación API          |
+| **Estado**         | 📝 Analizado - Pendiente decisión           |
 
 ---
 
@@ -60,7 +60,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ResponseFormat
       map((data) => ({
         statusCode,
         message: this.getSuccessMessage(statusCode),
-        data,        // ← ENVUELVE la respuesta del controller
+        data, // ← ENVUELVE la respuesta del controller
         timestamp: new Date().toISOString(),
         path: request.url,
         success: statusCode >= 200 && statusCode < 300,
@@ -130,12 +130,14 @@ const authData = extractResponseData(response);
 ```
 
 **Ubicaciones**:
+
 - ✅ `test/e2e/api/auth.e2e-spec.ts` (13 usos)
 - ✅ `test/e2e/business-flows/*.e2e-spec.ts` (20+ usos)
 - ✅ `test/e2e/integration/*.e2e-spec.ts` (30+ usos)
 - ❌ Algunas usas acceso directo: `response.body.data.data`
 
 **Costo de corrección**:
+
 ```
 Si cambias la estructura de respuesta:
 - Necesitas actualizar ~80 referencias
@@ -165,11 +167,13 @@ Si cambias la estructura de respuesta:
 ```
 
 **Impacto**:
+
 - ❌ Frontend/Postman: Confusión sobre estructura real
 - ❌ Contratos API: No reflejan realidad
 - ❌ Documentación: Inconsistente
 
 **Costo de corrección**:
+
 ```
 Si arreglas esto:
 - Necesitas actualizar Swagger decorators
@@ -186,11 +190,12 @@ Si arreglas esto:
 ```typescript
 // Frontend (React/Angular/Vue):
 const { data } = await api.post('/auth/register', userData);
-const accessToken = data.accessToken;  // ¿Funciona?
+const accessToken = data.accessToken; // ¿Funciona?
 // O necesita: data.data.accessToken ? ❌ Confuso
 ```
 
 **Costo de corrección**:
+
 ```
 Si cambias estructura:
 - Frontend necesita actualizar TODOS los calls
@@ -206,13 +211,14 @@ Si cambias estructura:
 
 ```typescript
 // ¿Cuál es correcto?
-response.body.data              // ?
-response.body.data.data         // ?
-response.body.data?.data        // ?
-extractResponseData(response)   // ? (helper mágico)
+response.body.data; // ?
+response.body.data.data; // ?
+response.body.data?.data; // ?
+extractResponseData(response); // ? (helper mágico)
 ```
 
 **Impacto**:
+
 - ❌ Curva de aprendizaje más alta
 - ❌ Code reviews más lentos
 - ❌ Más preguntas en onboarding
@@ -224,16 +230,19 @@ extractResponseData(response)   // ? (helper mágico)
 ### Opción 1: Mantener Status Quo ✅ (RECOMENDADO PARA PORTFOLIO)
 
 **Pros**:
+
 - ✅ No cambios necesarios
 - ✅ Tests ya funcionan
 - ✅ No breaking changes
 - ✅ Helper `extractResponseData()` resuelve el problema
 
 **Contras**:
+
 - ❌ Estructura confusa
 - ❌ Helper duplicado en múltiples archivos
 
 **Acción**:
+
 ```typescript
 // 1. Centralizar helper en un solo lugar
 // test/helpers/response.helper.ts
@@ -258,10 +267,12 @@ export class ResponseHelper {
 **Descripción**: Eliminar el interceptor global completamente.
 
 **Pros**:
+
 - ✅ Respuestas simples, sin wrapping
 - ✅ DTOs directos
 
 **Contras**:
+
 - ❌ Pierdes formato consistente
 - ❌ Pierdes metadatos útiles (timestamp, path, success)
 - ❌ Rompe TODOS los tests existentes
@@ -295,11 +306,13 @@ export class ResponseHelper {
 ```
 
 **Pros**:
+
 - ✅ Más intuitivo
 - ✅ Acceso directo: `response.body.accessToken`
 - ✅ Metadatos en `_meta`
 
 **Contras**:
+
 - ❌ Rompe TODOS los tests
 - ❌ Breaking change para frontend
 - ❌ Posible conflicto si DTO tiene campo `_meta`
@@ -315,15 +328,16 @@ export class ResponseHelper {
 **Acciones**:
 
 1. **Crear ResponseHelper centralizado** (30 min):
+
 ```typescript
 // test/helpers/response.helper.ts
 export class ResponseHelper {
   /**
    * Extract actual data from API response
-   * 
+   *
    * API responses are wrapped by ResponseInterceptor:
    * { data: <actual-data>, success: true, statusCode: 200 }
-   * 
+   *
    * @param response - Supertest response object
    * @returns Actual data from response
    */
@@ -343,6 +357,7 @@ export class ResponseHelper {
 ```
 
 2. **Refactorizar tests para usar helper centralizado** (2-3 horas):
+
 ```typescript
 // ANTES (en cada archivo)
 const extractResponseData = (response: any) => {
@@ -356,7 +371,8 @@ const authData = ResponseHelper.extractData(response);
 ```
 
 3. **Documentar en README/Wiki** (30 min):
-```markdown
+
+````markdown
 ## API Response Structure
 
 All API responses follow this format:
@@ -371,26 +387,28 @@ All API responses follow this format:
   "path": "/api/endpoint"
 }
 ```
+````
 
 **Testing**: Use `ResponseHelper.extractData()` to access actual data.
-```
+
+````
 
 4. **Agregar comentarios en ResponseInterceptor** (15 min):
 ```typescript
 /**
  * Global Response Interceptor
- * 
+ *
  * Wraps all controller responses in a standard format:
  * { data: <controller-response>, success: true, ... }
- * 
+ *
  * Note: This creates nested structure when controllers return
  * objects with their own 'data' property (e.g., pagination).
- * 
+ *
  * For consistent data extraction in tests, use ResponseHelper.
  */
 @Injectable()
 export class ResponseInterceptor<T> ...
-```
+````
 
 **Costo**: ⏱️ **3-4 horas** | Riesgo: **🟢 Muy Bajo** | Beneficio: **Alto**
 
@@ -398,12 +416,12 @@ export class ResponseInterceptor<T> ...
 
 ## 📊 Comparación de Opciones
 
-| Opción | Tiempo | Riesgo | Breaking Changes | Beneficio | Recomendación |
-|--------|--------|--------|-----------------|-----------|---------------|
-| **1. Status Quo** | 0h | Ninguno | No | Bajo | 🟡 OK |
-| **2. Eliminar Interceptor** | 10-15h | Muy Alto | Sí | Medio | ❌ No |
-| **3. Cambiar Estructura** | 8-10h | Alto | Sí | Alto | ⚠️ Considerar |
-| **4. Documentar + Helper** | 3-4h | Muy Bajo | No | Alto | ✅ **RECOMENDADO** |
+| Opción                      | Tiempo | Riesgo   | Breaking Changes | Beneficio | Recomendación      |
+| --------------------------- | ------ | -------- | ---------------- | --------- | ------------------ |
+| **1. Status Quo**           | 0h     | Ninguno  | No               | Bajo      | 🟡 OK              |
+| **2. Eliminar Interceptor** | 10-15h | Muy Alto | Sí               | Medio     | ❌ No              |
+| **3. Cambiar Estructura**   | 8-10h  | Alto     | Sí               | Alto      | ⚠️ Considerar      |
+| **4. Documentar + Helper**  | 3-4h   | Muy Bajo | No               | Alto      | ✅ **RECOMENDADO** |
 
 ---
 
@@ -412,6 +430,7 @@ export class ResponseInterceptor<T> ...
 ### Para Portfolio Profesional: **Opción 4** ✅
 
 **Justificación**:
+
 1. **No rompe nada existente** (importante para portfolio funcional)
 2. **Mejora calidad de código** (helper centralizado)
 3. **Demuestra buenas prácticas** (documentación)
@@ -445,11 +464,13 @@ Día 1 - Final:
 ## 📝 Checklist de Implementación
 
 ### Fase 1: Preparación
+
 - [ ] Crear `test/helpers/response.helper.ts`
 - [ ] Agregar tests unitarios para el helper
 - [ ] Documentar uso del helper
 
 ### Fase 2: Refactorización
+
 - [ ] Refactorizar `auth.e2e-spec.ts`
 - [ ] Refactorizar `order-saga-happy-path.e2e-spec.ts`
 - [ ] Refactorizar `order-saga-failures.e2e-spec.ts`
@@ -460,11 +481,13 @@ Día 1 - Final:
 - [ ] Refactorizar tests de API restantes
 
 ### Fase 3: Documentación
+
 - [ ] Agregar comentarios en `ResponseInterceptor`
 - [ ] Actualizar README con sección de estructura de respuestas
 - [ ] Agregar ejemplo de uso en `TESTING_STANDARDS.md`
 
 ### Fase 4: Validación
+
 - [ ] Ejecutar `npm run test:e2e` (todos pasan)
 - [ ] Ejecutar 3 veces (detectar flaky tests)
 - [ ] Verificar que helper funciona en todos los casos
@@ -488,13 +511,14 @@ Día 1 - Final:
 
 ### En entrevistas, puedes mencionar:
 
-> "El proyecto usa un interceptor global que envuelve todas las respuestas en un formato estándar. Identifiqué que esto creaba confusión en tests al tener estructuras anidadas. 
-> 
+> "El proyecto usa un interceptor global que envuelve todas las respuestas en un formato estándar. Identifiqué que esto creaba confusión en tests al tener estructuras anidadas.
+>
 > En lugar de hacer un refactor costoso y riesgoso, creé un helper centralizado (`ResponseHelper`) que abstrae la complejidad, documenté el comportamiento y mantuve la funcionalidad intacta.
-> 
+>
 > Esta decisión priorizó estabilidad sobre perfección, algo crucial en producción."
 
 **Esto demuestra**:
+
 - ✅ Pensamiento pragmático
 - ✅ Balance entre idealismo y realismo
 - ✅ Consideración de costos/beneficios
@@ -505,11 +529,13 @@ Día 1 - Final:
 ## 📚 Referencias
 
 ### Documentos Relacionados
+
 - [Testing Standards](../../TESTING_STANDARDS.md)
 - [Response Interceptor](../../src/common/interceptors/response.interceptor.ts)
 - [E2E Tests](../../test/e2e/)
 
 ### Patrones de Diseño
+
 - [Response Wrapper Pattern](https://docs.nestjs.com/interceptors)
 - [DTO Pattern](https://docs.nestjs.com/techniques/validation)
 
@@ -519,13 +545,15 @@ Día 1 - Final:
 
 **Decisión**: Implementar **Opción 4** (Documentar + Helper Centralizado)
 
-**Razón**: 
+**Razón**:
+
 - Bajo costo (3-4 horas)
 - Sin riesgos
 - Mejora calidad de código
 - Demuestra profesionalismo
 
-**Próximo paso**: 
+**Próximo paso**:
+
 1. Crear `test/helpers/response.helper.ts`
 2. Comenzar refactorización progresiva
 
@@ -533,4 +561,4 @@ Día 1 - Final:
 
 **Fecha**: Octubre 9, 2025  
 **Estado**: 📝 Analizado - Listo para implementación  
-**Decisión**: ✅ Opción 4 aprobada  
+**Decisión**: ✅ Opción 4 aprobada
