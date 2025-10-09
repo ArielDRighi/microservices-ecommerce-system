@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
+import { ResponseHelper } from '../../helpers/response.helper';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ProductFactory } from '../../helpers/factories/product.factory';
 import { InventoryFactory } from '../../helpers/factories/inventory.factory';
@@ -8,9 +9,6 @@ import { Product } from '../../../src/modules/products/entities/product.entity';
 import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 
 // Helper function to extract data from nested response structure - exact copy from products test
-const extractResponseData = (response: any) => {
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
   let app: INestApplication;
@@ -51,7 +49,9 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(201);
 
-      const accessToken = extractResponseData(userResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(
+        userResponse,
+      ).accessToken;
 
       // Setup: product with low stock
       const product = await ProductFactory.create(productRepository);
@@ -70,7 +70,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(202);
 
-      const orderData = extractResponseData(orderRes);
+      const orderData = ResponseHelper.extractData(orderRes);
       const orderId = orderData.id;
 
       // Simple wait for processing
@@ -82,7 +82,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const finalOrder = extractResponseData(orderResponse);
+      const finalOrder = ResponseHelper.extractData(orderResponse);
 
       // Order should be cancelled or in error state
       expect(['CANCELLED', 'FAILED', 'ERROR']).toContain(finalOrder.status);
@@ -102,7 +102,9 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(201);
 
-      const accessToken = extractResponseData(userResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(
+        userResponse,
+      ).accessToken;
 
       // Setup: products for potential failure testing
       const product1 = await ProductFactory.create(productRepository);
@@ -120,7 +122,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(202);
 
-      const orderData2 = extractResponseData(orderRes);
+      const orderData2 = ResponseHelper.extractData(orderRes);
       const orderId = orderData2.id;
 
       // Simple wait for processing
@@ -132,7 +134,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const finalOrder2 = extractResponseData(orderResponse2);
+      const finalOrder2 = ResponseHelper.extractData(orderResponse2);
 
       // Should handle failures gracefully
       expect(['PENDING', 'FAILED', 'CANCELLED', 'ERROR']).toContain(finalOrder2.status);
@@ -152,7 +154,9 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(201);
 
-      const accessToken = extractResponseData(userResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(
+        userResponse,
+      ).accessToken;
 
       // Setup: product for integrity test
       const product = await ProductFactory.create(productRepository);
@@ -166,7 +170,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(202);
 
-      const orderData3 = extractResponseData(orderRes);
+      const orderData3 = ResponseHelper.extractData(orderRes);
       const orderId = orderData3.id;
 
       // Simple wait for processing
@@ -178,7 +182,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const finalOrder3 = extractResponseData(orderResponse3);
+      const finalOrder3 = ResponseHelper.extractData(orderResponse3);
       expect(finalOrder3.id).toBe(orderId);
 
       // Verify product still exists and is accessible
@@ -186,7 +190,7 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         .get(`/products/${product.id}`)
         .expect(200);
 
-      const productData = extractResponseData(productCheckResponse);
+      const productData = ResponseHelper.extractData(productCheckResponse);
       expect(productData.id).toBe(product.id);
 
       // Verify user can still access their orders

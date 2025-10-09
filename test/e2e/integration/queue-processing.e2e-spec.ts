@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
+import { ResponseHelper } from '../../helpers/response.helper';
 import { QueueService } from '../../../src/queues/queue.service';
 import { QueueHelper } from '../../helpers/queue.helper';
 import { Queue } from 'bull';
@@ -11,9 +12,6 @@ import { OrderProcessingJobData } from '../../../src/common/interfaces/queue-job
 import { TestAppHelper } from '../../helpers/test-app.helper';
 
 // Helper function to extract data from nested response structure
-const extractResponseData = (response: any) => {
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Queue Processing - Integration (E2E)', () => {
   let app: INestApplication;
@@ -66,7 +64,7 @@ describe('Queue Processing - Integration (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = extractResponseData(registerResponse);
+      const registerData = ResponseHelper.extractData(registerResponse);
       const { accessToken } = registerData;
 
       // 1. Create product and inventory using factory
@@ -93,7 +91,7 @@ describe('Queue Processing - Integration (E2E)', () => {
         })
         .expect(202);
 
-      const orderData = extractResponseData(orderResponse);
+      const orderData = ResponseHelper.extractData(orderResponse);
       const orderId = orderData.id;
 
       // 3. Wait for queue processing to complete
@@ -112,7 +110,7 @@ describe('Queue Processing - Integration (E2E)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const orderStatusData = extractResponseData(orderStatusResponse);
+      const orderStatusData = ResponseHelper.extractData(orderStatusResponse);
       // Order should be in a processed state (CONFIRMED, PROCESSING, etc.)
       expect(['PENDING', 'PROCESSING', 'CONFIRMED']).toContain(orderStatusData.status);
 

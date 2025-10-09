@@ -1,11 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestAppHelper } from '../../helpers/test-app.helper';
+import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper function to extract data from nested response structure
-const extractResponseData = (response: any) => {
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Users API (E2E)', () => {
   let app: INestApplication;
@@ -37,7 +35,7 @@ describe('Users API (E2E)', () => {
       .send(adminData)
       .expect(201);
 
-    adminToken = extractResponseData(adminRegisterResponse).accessToken;
+    adminToken = ResponseHelper.extractData(adminRegisterResponse).accessToken;
 
     // Create regular user for each test
     const regularUserData = {
@@ -52,8 +50,8 @@ describe('Users API (E2E)', () => {
       .send(regularUserData)
       .expect(201);
 
-    regularUserToken = extractResponseData(regularUserResponse).accessToken;
-    regularUserId = extractResponseData(regularUserResponse).user.id;
+    regularUserToken = ResponseHelper.extractData(regularUserResponse).accessToken;
+    regularUserId = ResponseHelper.extractData(regularUserResponse).user.id;
   });
 
   describe('GET /users (List with pagination)', () => {
@@ -64,10 +62,12 @@ describe('Users API (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      expect(responseData).toHaveProperty('data');
+      const responseData = ResponseHelper.extractData<any>(response);
+      // Support both 'items' (new) and 'data' (legacy) formats
+      const itemsKey = 'items' in responseData ? 'items' : 'data';
+      expect(responseData).toHaveProperty(itemsKey);
       expect(responseData).toHaveProperty('meta');
-      expect(Array.isArray(responseData.data)).toBe(true);
+      expect(Array.isArray(responseData[itemsKey])).toBe(true);
       expect(responseData.meta).toHaveProperty('page');
       expect(responseData.meta).toHaveProperty('limit');
       expect(responseData.meta).toHaveProperty('total');
@@ -80,10 +80,10 @@ describe('Users API (E2E)', () => {
         .query({ status: 'active', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      expect(responseData.data).toBeInstanceOf(Array);
+      const items = ResponseHelper.extractItems<any>(response);
+      expect(items).toBeInstanceOf(Array);
       // All users should be active
-      responseData.data.forEach((user: any) => {
+      items.forEach((user: any) => {
         expect(user.isActive).toBe(true);
       });
     });
@@ -95,9 +95,10 @@ describe('Users API (E2E)', () => {
         .query({ sortBy: 'createdAt', sortOrder: 'DESC', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      expect(responseData.data).toBeInstanceOf(Array);
-      expect(responseData.meta.page).toBe(1);
+      const items = ResponseHelper.extractItems<any>(response);
+      const meta = ResponseHelper.extractMeta(response);
+      expect(items).toBeInstanceOf(Array);
+      expect(meta.page).toBe(1);
     });
 
     it('should sort by email ascending', async () => {
@@ -107,10 +108,10 @@ describe('Users API (E2E)', () => {
         .query({ sortBy: 'email', sortOrder: 'ASC', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = extractResponseData(response);
-      expect(responseData.data).toBeInstanceOf(Array);
-      if (responseData.data.length > 1) {
-        const emails = responseData.data.map((u: any) => u.email);
+      const items = ResponseHelper.extractItems<any>(response);
+      expect(items).toBeInstanceOf(Array);
+      if (items.length > 1) {
+        const emails = items.map((u: any) => u.email);
         const sortedEmails = [...emails].sort();
         expect(emails).toEqual(sortedEmails);
       }
@@ -131,7 +132,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${regularUserToken}`)
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData).toHaveProperty('email');
       expect(responseData).toHaveProperty('firstName');
@@ -156,7 +157,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData.id).toBe(regularUserId);
       expect(responseData).toHaveProperty('email');
@@ -201,7 +202,7 @@ describe('Users API (E2E)', () => {
         .send(newUserData)
         .expect(201);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData).toHaveProperty('id');
       expect(responseData.email).toBe(newUserData.email);
       expect(responseData.firstName).toBe(newUserData.firstName);
@@ -263,7 +264,7 @@ describe('Users API (E2E)', () => {
         .send(updateData)
         .expect(200);
 
-      const responseData = extractResponseData(response);
+      const responseData = ResponseHelper.extractData<any>(response);
       expect(responseData.firstName).toBe(updateData.firstName);
       expect(responseData.lastName).toBe(updateData.lastName);
       expect(responseData.id).toBe(regularUserId);
@@ -298,7 +299,7 @@ describe('Users API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const userIdToDelete = extractResponseData(createResponse).id;
+      const userIdToDelete = ResponseHelper.extractData(createResponse).id;
 
       // Delete user
       await request(app.getHttpServer())
@@ -312,7 +313,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const userResponseData = extractResponseData(getUserResponse);
+      const userResponseData = ResponseHelper.extractData(getUserResponse);
       expect(userResponseData.isActive).toBe(false);
     });
 
@@ -331,7 +332,7 @@ describe('Users API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const userId = extractResponseData(createResponse).id;
+      const userId = ResponseHelper.extractData(createResponse).id;
 
       // Delete user
       await request(app.getHttpServer())
@@ -346,7 +347,7 @@ describe('Users API (E2E)', () => {
         .query({ status: 'active' })
         .expect(200);
 
-      const listData = extractResponseData(listResponse);
+      const listData = ResponseHelper.extractData(listResponse);
       const userIds = listData.data.map((u: any) => u.id);
       expect(userIds).not.toContain(userId);
     });
@@ -366,7 +367,7 @@ describe('Users API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const userId = extractResponseData(createResponse).id;
+      const userId = ResponseHelper.extractData(createResponse).id;
 
       // Soft delete
       await request(app.getHttpServer())
@@ -380,7 +381,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const activateData = extractResponseData(activateResponse);
+      const activateData = ResponseHelper.extractData(activateResponse);
       expect(activateData.isActive).toBe(true);
     });
   });
@@ -401,7 +402,7 @@ describe('Users API (E2E)', () => {
         .send(userData)
         .expect(201);
 
-      const userId = extractResponseData(createResponse).id;
+      const userId = ResponseHelper.extractData(createResponse).id;
 
       // Deactivate
       await request(app.getHttpServer())
@@ -415,7 +416,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const activateData = extractResponseData(activateResponse);
+      const activateData = ResponseHelper.extractData(activateResponse);
       expect(activateData).toHaveProperty('id');
       expect(activateData.id).toBe(userId);
       expect(activateData.isActive).toBe(true);
@@ -441,7 +442,7 @@ describe('Users API (E2E)', () => {
         .query({ page: 1, limit: 5 })
         .expect(200);
 
-      const data1 = extractResponseData(response1);
+      const data1 = ResponseHelper.extractData(response1);
       expect(data1.meta.limit).toBe(5);
       expect(data1.data.length).toBeLessThanOrEqual(5);
 
@@ -451,7 +452,7 @@ describe('Users API (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(200);
 
-      const data2 = extractResponseData(response2);
+      const data2 = ResponseHelper.extractData(response2);
       expect(data2.meta.limit).toBe(10);
     });
 
@@ -461,7 +462,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${regularUserToken}`)
         .expect(200);
 
-      const profileData = extractResponseData(response);
+      const profileData = ResponseHelper.extractData<any>(response);
       expect(profileData).not.toHaveProperty('password');
 
       // Also check in list
@@ -470,7 +471,7 @@ describe('Users API (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      const listData = extractResponseData(listResponse);
+      const listData = ResponseHelper.extractData(listResponse);
       listData.data.forEach((user: any) => {
         expect(user).not.toHaveProperty('password');
       });

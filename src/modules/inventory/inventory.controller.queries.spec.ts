@@ -104,8 +104,8 @@ describe('InventoryController - Queries & Statistics', () => {
 
       // Assert
       expect(result).toEqual(mockPaginatedResponse);
-      expect(result.meta.currentPage).toBe(1);
-      expect(result.meta.itemsPerPage).toBe(20);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(20);
       expect(service.getInventoryList).toHaveBeenCalledWith(queryDto);
     });
 

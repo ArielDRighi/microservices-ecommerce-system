@@ -27,7 +27,7 @@ import { Category } from '../../../src/modules/categories/entities/category.enti
  * @todo Eliminar este helper cuando se complete la refactorización de DTOs (data → items)
  */
 const extractData = (response: request.Response) => {
-  return response.body.data?.data || response.body.data;
+  return response.body.data?.data ?? response.body.data;
 };
 
 /**

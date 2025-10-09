@@ -87,17 +87,17 @@ export class InventoryQueryDto extends PaginationDto {
 
 export class PaginatedResponseDto<T> {
   @ApiPropertyOptional({
-    description: 'Array of items',
+    description: 'Array of items in the current page',
   })
-  data!: T[];
+  items!: T[];
 
   @ApiPropertyOptional({
     description: 'Pagination metadata',
   })
   meta!: {
-    currentPage: number;
-    itemsPerPage: number;
-    totalItems: number;
+    page: number;
+    limit: number;
+    total: number;
     totalPages: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;

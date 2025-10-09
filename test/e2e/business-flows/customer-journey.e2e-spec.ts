@@ -1,21 +1,16 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { TestAppHelper } from '../../helpers';
-
-// Helper function to extract data from API responses
-function extractResponseData(response: any): any {
-  if (response?.body?.data?.data) {
-    return response.body.data.data;
-  }
-  if (response?.body?.data) {
-    return response.body.data;
-  }
-  return response?.body || response;
-}
+import { ResponseHelper } from '../../helpers/response.helper';
 
 // Helper function to extract paginated data from list responses
 function extractPaginatedData(response: any): any[] {
-  const data = extractResponseData(response);
+  const data = ResponseHelper.extractData<any>(response);
+
+  // Support both 'items' (new format) and 'data' (legacy format)
+  if (data && Array.isArray(data.items)) {
+    return data.items;
+  }
   if (data && Array.isArray(data.data)) {
     return data.data;
   }
@@ -52,7 +47,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = extractResponseData(registerRes);
+      const registerData = ResponseHelper.extractData<any>(registerRes);
       expect(registerRes.body.success).toBe(true);
       expect(registerData.accessToken).toBeDefined();
       expect(registerData.user.email).toBe(customerEmail);
@@ -84,7 +79,7 @@ describe('Customer Journey (E2E)', () => {
           .get(`/products/${firstProduct.id}`)
           .expect(200);
 
-        const productDetailData = extractResponseData(productDetailRes);
+        const productDetailData = ResponseHelper.extractData(productDetailRes);
         expect(productDetailRes.body.success).toBe(true);
         expect(productDetailData.id).toBe(firstProduct.id);
         expect(productDetailData.name).toBeDefined();
@@ -111,7 +106,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = extractResponseData(registerRes);
+      const registerData = ResponseHelper.extractData<any>(registerRes);
       const accessToken = registerData.accessToken;
 
       // 2. Get user profile (authenticated endpoint)
@@ -120,7 +115,7 @@ describe('Customer Journey (E2E)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const profileData = extractResponseData(profileRes);
+      const profileData = ResponseHelper.extractData(profileRes);
       expect(profileRes.body.success).toBe(true);
       expect(profileData.email).toBe(customerEmail);
       expect(profileData.firstName).toBe('Auth');
@@ -143,7 +138,7 @@ describe('Customer Journey (E2E)', () => {
           })
           .expect(200);
 
-        const inventoryData = extractResponseData(inventoryRes);
+        const inventoryData = ResponseHelper.extractData(inventoryRes);
         expect(inventoryRes.body.success).toBe(true);
         expect(inventoryData.available).toBeDefined();
       }
@@ -167,7 +162,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const adminData = extractResponseData(adminRegisterRes);
+      const adminData = ResponseHelper.extractData<any>(adminRegisterRes);
       const adminToken = adminData.accessToken;
 
       // Create a product (minimal required fields)
@@ -194,7 +189,7 @@ describe('Customer Journey (E2E)', () => {
         })
         .expect(201);
 
-      const registerData = extractResponseData(registerRes);
+      const registerData = ResponseHelper.extractData<any>(registerRes);
       const { accessToken } = registerData;
 
       // 2. Browse products
@@ -217,7 +212,7 @@ describe('Customer Journey (E2E)', () => {
 
       let stockAvailable = false;
       if (stockRes.status === 200) {
-        const stockData = extractResponseData(stockRes);
+        const stockData = ResponseHelper.extractData(stockRes);
         stockAvailable = stockData.available === true;
         expect(stockData.available).toBeDefined();
       } else if (stockRes.status === 404) {
@@ -238,7 +233,7 @@ describe('Customer Journey (E2E)', () => {
           })
           .expect(202); // Accepted
 
-        const orderData = extractResponseData(orderRes);
+        const orderData = ResponseHelper.extractData(orderRes);
         const orderId = orderData.orderId;
 
         // 5. Wait for order processing (simplified - just check initial creation)
@@ -250,7 +245,7 @@ describe('Customer Journey (E2E)', () => {
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(200);
 
-        const finalOrderData = extractResponseData(finalOrderRes);
+        const finalOrderData = ResponseHelper.extractData(finalOrderRes);
         expect(finalOrderData.id).toBe(orderId);
         expect(finalOrderData.status).toBeDefined();
         expect(finalOrderData.items).toBeDefined();
@@ -273,7 +268,7 @@ describe('Customer Journey (E2E)', () => {
       // Inventory check should either work (200) or not exist (404), both are acceptable
       expect([200, 404]).toContain(inventoryRes.status);
       if (inventoryRes.status === 200) {
-        const inventoryData = extractResponseData(inventoryRes);
+        const inventoryData = ResponseHelper.extractData(inventoryRes);
         expect(inventoryData.available).toBeDefined();
       }
 

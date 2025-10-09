@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
+import { ResponseHelper } from '../../helpers/response.helper';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ProductFactory } from '../../helpers/factories/product.factory';
 import { InventoryFactory } from '../../helpers/factories/inventory.factory';
@@ -10,9 +11,6 @@ import { Product } from '../../../src/modules/products/entities/product.entity';
 import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 
 // Helper function to extract data from nested response structure
-const extractResponseData = (response: any) => {
-  return response.body.data?.data || response.body.data;
-};
 
 describe('Database Transactions & Consistency (E2E)', () => {
   let app: INestApplication;
@@ -54,7 +52,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Create products with inventory
       const products = await Promise.all([
@@ -86,7 +84,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         .send(orderData)
         .expect(202);
 
-      const orderId = extractResponseData(response).id;
+      const orderId = ResponseHelper.extractData(response).id;
 
       // Assert: Verify order and all items were created atomically
       const order = await orderRepository.findOne({
@@ -124,7 +122,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Create valid product and use invalid product ID
       const validProduct = await ProductFactory.create(productRepository);
@@ -191,8 +189,8 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const user1Token = extractResponseData(user1Response).accessToken;
-      const user2Token = extractResponseData(user2Response).accessToken;
+      const user1Token = ResponseHelper.extractData(user1Response).accessToken;
+      const user2Token = ResponseHelper.extractData(user2Response).accessToken;
 
       // Arrange: Create product with specific stock
       const product = await ProductFactory.create(productRepository);
@@ -256,7 +254,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Create product with low stock
       const product = await ProductFactory.create(productRepository);
@@ -312,7 +310,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Create valid order first
       const product = await ProductFactory.create(productRepository);
@@ -379,7 +377,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Create order with items
       const products = await Promise.all([
@@ -406,7 +404,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(202);
 
-      const orderId = extractResponseData(orderResponse).id;
+      const orderId = ResponseHelper.extractData(orderResponse).id;
 
       // Verify order items were created
       const initialItemCount = await orderItemRepository.count({
@@ -471,7 +469,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Create product and order
       const product = await ProductFactory.create(productRepository);
@@ -489,7 +487,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(202);
 
-      const orderId = extractResponseData(orderResponse).id;
+      const orderId = ResponseHelper.extractData(orderResponse).id;
 
       // Act & Assert: Try to insert duplicate OrderItem
       const queryRunner = dataSource.createQueryRunner();
@@ -549,7 +547,7 @@ describe('Database Transactions & Consistency (E2E)', () => {
         })
         .expect(201);
 
-      const userToken = extractResponseData(userResponse).accessToken;
+      const userToken = ResponseHelper.extractData(userResponse).accessToken;
 
       // Arrange: Setup complex scenario with multiple products and stock
       const products = await Promise.all([
