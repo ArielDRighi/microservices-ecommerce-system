@@ -41,33 +41,68 @@ Hacer todo esto **de forma síncrona** bloquea al usuario y hace el sistema frá
 - **🛡️ Circuit Breaker** para resilencia
 - **🔁 Retry Pattern** con exponential backoff
 
-## 🏛️ Diagrama de Arquitectura
+## 🏛️ Arquitectura del Sistema
+
+Este proyecto implementa una **arquitectura asíncrona de 8 capas** con patrones avanzados de resiliencia y escalabilidad.
 
 ```mermaid
 graph TB
-    Client[Cliente] --> API[API Gateway]
-    API --> OrderController[Orders Controller]
-    OrderController --> OrderService[Orders Service]
-    OrderService --> DB[(PostgreSQL)]
-    OrderService --> EventPublisher[Event Publisher]
-    EventPublisher --> Outbox[(Outbox Table)]
-    EventPublisher --> Queue[Bull Queue - Redis]
-
-    Queue --> OrderProcessor[Order Processor]
-    OrderProcessor --> InventoryService[Inventory Service]
-    OrderProcessor --> PaymentService[Payment Service]
-    OrderProcessor --> NotificationService[Notification Service]
-
+    Client[🌐 Cliente HTTP] --> API[📡 API Layer - NestJS]
+    
+    API --> OrderController[🛒 Orders Controller]
+    API --> ProductController[📦 Products Controller]
+    API --> InventoryController[📊 Inventory Controller]
+    
+    OrderController --> OrderService[⚙️ Order Service]
+    ProductController --> ProductService[⚙️ Product Service]
+    InventoryController --> InventoryService[⚙️ Inventory Service]
+    
+    OrderService --> EventPublisher[📤 Event Publisher]
+    EventPublisher --> OutboxTable[(📝 Outbox Events Table)]
+    EventPublisher --> Queue[🔄 Bull Queues - Redis]
+    
+    Queue --> OrderProcessor[⚡ Order Processor Worker]
+    Queue --> PaymentProcessor[💳 Payment Processor]
+    Queue --> InventoryProcessor[📦 Inventory Processor]
+    Queue --> NotificationProcessor[📧 Notification Processor]
+    
+    OrderProcessor --> SagaOrchestrator[🎭 Saga Orchestrator]
+    SagaOrchestrator --> SagaStateTable[(🗂️ Saga States Table)]
+    
+    OrderService --> DB[(🗄️ PostgreSQL)]
+    ProductService --> DB
     InventoryService --> DB
-    PaymentService --> ExternalGateway[Payment Gateway]
-    NotificationService --> EmailProvider[Email Provider]
-
-    subgraph "Monitoring & Health"
-        HealthCheck[Health Checks]
-        Metrics[Prometheus Metrics]
-        Logs[Winston Logs]
+    PaymentProcessor --> PaymentGateway[💰 Payment Gateway API]
+    NotificationProcessor --> EmailProvider[📮 Email Provider]
+    
+    subgraph "🔍 Observability Layer"
+        HealthCheck[❤️ Health Checks - Terminus]
+        Metrics[📊 Prometheus Metrics]
+        Logs[📜 Winston Structured Logs]
+        BullBoard[📈 Bull Board Dashboard]
     end
+    
+    style Client fill:#e1f5ff
+    style API fill:#fff3e0
+    style Queue fill:#f3e5f5
+    style DB fill:#e8f5e9
+    style SagaOrchestrator fill:#fff9c4
 ```
+
+### 📐 Capas Arquitectónicas
+
+| Capa | Responsabilidad | Tecnologías |
+|------|----------------|-------------|
+| **1. Client** | Aplicaciones frontend/mobile | HTTP/REST |
+| **2. API** | Controllers, Guards, Validation | NestJS, JWT, Swagger |
+| **3. Application** | Services, Business Logic | TypeScript, DTOs |
+| **4. Event** | Event Publishing, Outbox Pattern | Outbox Table, Events |
+| **5. Queue** | Async Job Management | Bull, Redis |
+| **6. Worker** | Background Processors | Bull Processors |
+| **7. Saga** | Long-running Workflows | Saga Pattern, Compensation |
+| **8. Data** | Persistence, Queries | PostgreSQL, TypeORM |
+
+> 📖 **Documentación Detallada**: Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para diagramas completos, flujos de datos, y decisiones arquitectónicas.
 
 ## 🚀 Funcionalidades Clave
 
@@ -264,27 +299,63 @@ ENABLE_PROMETHEUS=true
 HEALTH_CHECK_TIMEOUT=5000
 ```
 
-## 📚 Documentación API
+## 📚 Documentación Completa
 
-Una vez ejecutada la aplicación, la documentación Swagger estará disponible en:
+### 📖 Documentos Técnicos Principales
+
+| Documento | Descripción | Link |
+|-----------|-------------|------|
+| **🏗️ Architecture** | Arquitectura completa del sistema con diagramas Mermaid | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| **🗄️ Database Design** | Diseño de base de datos, tablas, índices, relaciones | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) |
+| **🌐 API Documentation** | Documentación exhaustiva de endpoints, request/response | [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) |
+| **⚙️ Project Setup** | Guía de instalación, configuración, despliegue | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md) |
+| **📋 ADRs** | Architecture Decision Records (decisiones arquitectónicas) | [docs/adr/README.md](docs/adr/README.md) |
+
+### 🔍 ADRs Disponibles (Architecture Decision Records)
+
+| ADR | Título | Estado |
+|-----|--------|--------|
+| [001](docs/adr/001-async-non-blocking-architecture.md) | Arquitectura Asíncrona No-Bloqueante | ✅ Aceptado |
+| [002](docs/adr/002-event-driven-outbox-pattern.md) | Event-Driven con Outbox Pattern | ✅ Aceptado |
+| [003](docs/adr/003-saga-pattern-orchestration.md) | Saga Pattern para Orquestación | ✅ Aceptado |
+| [008](docs/adr/008-redis-bull-queue-system.md) | Redis + Bull para Sistema de Colas | ✅ Aceptado |
+
+> 📌 **Nota**: Los ADRs 004-007 y 009-025 están en progreso y serán añadidos próximamente.
+
+### 🌐 API Swagger UI
+
+Una vez ejecutada la aplicación, la documentación interactiva Swagger está disponible en:
 
 - **Desarrollo**: http://localhost:3000/api/docs
 - **Producción**: https://your-domain.com/api/docs
 
-### Endpoints Principales
+### 📡 Endpoints Principales
 
-| Método | Endpoint                    | Descripción                          |
-| ------ | --------------------------- | ------------------------------------ |
-| `POST` | `/api/v1/orders`            | Crear nueva orden                    |
-| `GET`  | `/api/v1/orders`            | Listar órdenes del usuario           |
-| `GET`  | `/api/v1/orders/:id`        | Obtener orden específica             |
-| `GET`  | `/api/v1/orders/:id/status` | Estado de la orden                   |
-| `GET`  | `/api/v1/health`            | Health check general                 |
-| `GET`  | `/api/v1/health/ready`      | Readiness probe (k8s)                |
-| `GET`  | `/api/v1/health/live`       | Liveness probe (k8s)                 |
-| `GET`  | `/api/v1/health/detailed`   | Estado detallado (DB, Redis, Queues) |
-| `GET`  | `/api/v1/metrics`           | Prometheus metrics                   |
-| `GET`  | `/admin/queues`             | Bull Board Dashboard (Colas)         |
+| Módulo | Método | Endpoint | Descripción | Auth |
+|--------|--------|----------|-------------|------|
+| **Auth** | `POST` | `/api/v1/auth/register` | Registro de usuario | ❌ |
+| **Auth** | `POST` | `/api/v1/auth/login` | Login | ❌ |
+| **Auth** | `GET` | `/api/v1/auth/profile` | Perfil usuario | ✅ JWT |
+| **Users** | `GET` | `/api/v1/users` | Listar usuarios | ✅ JWT |
+| **Users** | `GET` | `/api/v1/users/:id` | Obtener usuario | ✅ JWT |
+| **Products** | `GET` | `/api/v1/products` | Listar productos | ❌ |
+| **Products** | `GET` | `/api/v1/products/search` | Buscar productos | ❌ |
+| **Products** | `POST` | `/api/v1/products` | Crear producto | ✅ JWT |
+| **Categories** | `GET` | `/api/v1/categories` | Listar categorías | ❌ |
+| **Categories** | `GET` | `/api/v1/categories/tree` | Árbol de categorías | ❌ |
+| **Orders** | `POST` | `/api/v1/orders` | **Crear orden (202 Async)** | ✅ JWT |
+| **Orders** | `GET` | `/api/v1/orders` | Listar órdenes | ✅ JWT |
+| **Orders** | `GET` | `/api/v1/orders/:id/status` | Estado de orden | ✅ JWT |
+| **Inventory** | `POST` | `/api/v1/inventory/check-availability` | Verificar stock | ❌ |
+| **Inventory** | `POST` | `/api/v1/inventory/reserve` | Reservar stock | ✅ JWT |
+| **Inventory** | `GET` | `/api/v1/inventory/low-stock` | Items con bajo stock | ❌ |
+| **Health** | `GET` | `/api/v1/health` | Health check general | ❌ |
+| **Health** | `GET` | `/api/v1/health/ready` | Readiness probe (k8s) | ❌ |
+| **Health** | `GET` | `/api/v1/health/detailed` | Estado detallado | ❌ |
+| **Metrics** | `GET` | `/api/v1/metrics` | Prometheus metrics | ❌ |
+| **Queues** | `GET` | `/api/v1/admin/queues` | Bull Board Dashboard | ❌ |
+
+> 💡 **Tip**: Usa Swagger UI para testing interactivo con ejemplos de request/response para cada endpoint.
 
 ## 🔧 Arquitectura del Código
 
@@ -488,13 +559,57 @@ Usa nuestros [issue templates](/.github/ISSUE_TEMPLATE/) para:
 
 Este proyecto está bajo la licencia [MIT](LICENSE).
 
+## � Estructura del Proyecto
+
+```
+ecommerce-async-resilient-system/
+├── docs/                            # � Documentación técnica completa
+│   ├── ARCHITECTURE.md              # Arquitectura del sistema con diagramas
+│   ├── DATABASE_DESIGN.md           # Diseño de base de datos
+│   ├── API_DOCUMENTATION.md         # Documentación de API REST
+│   ├── PROJECT_SETUP.md             # Guía de instalación y configuración
+│   └── adr/                         # Architecture Decision Records
+│       ├── README.md                # Índice de ADRs
+│       ├── 001-async-non-blocking-architecture.md
+│       ├── 002-event-driven-outbox-pattern.md
+│       ├── 003-saga-pattern-orchestration.md
+│       └── 008-redis-bull-queue-system.md
+├── src/                             # 💻 Código fuente
+│   ├── modules/                     # Módulos de negocio
+│   │   ├── auth/                    # Autenticación JWT
+│   │   ├── users/                   # Gestión de usuarios
+│   │   ├── products/                # Catálogo de productos
+│   │   ├── categories/              # Categorías de productos
+│   │   ├── orders/                  # Procesamiento de órdenes
+│   │   ├── inventory/               # Gestión de inventario
+│   │   ├── payments/                # Sistema de pagos
+│   │   ├── notifications/           # Notificaciones
+│   │   └── events/                  # Event sourcing y Outbox
+│   ├── queues/                      # Sistema de colas Bull
+│   │   ├── processors/              # Workers para procesamiento async
+│   │   ├── queue.service.ts         # Servicio de gestión de colas
+│   │   └── bull-board.controller.ts # Dashboard de monitoreo
+│   ├── health/                      # Health checks y métricas
+│   ├── database/                    # Migraciones y seeds
+│   ├── config/                      # Configuraciones
+│   └── common/                      # Utilities compartidas
+├── test/                            # 🧪 Tests E2E
+├── coverage/                        # 📊 Reportes de cobertura
+├── scripts/                         # 🔧 Scripts de utilidad
+├── docker-compose.yml               # 🐳 Orquestación de servicios
+├── Dockerfile                       # 🐳 Imagen de producción
+├── package.json                     # 📦 Dependencias
+├── tsconfig.json                    # ⚙️ Configuración TypeScript
+└── README.md                        # 📘 Este archivo
+```
+
 ## 👨‍💻 Autor
 
-**Tu Nombre**
+**Ariel D. Righi**
 
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-- LinkedIn: [tu-perfil](https://linkedin.com/in/tu-perfil)
-- Email: tu-email@domain.com
+- GitHub: [@ArielDRighi](https://github.com/ArielDRighi)
+- LinkedIn: [ariel-righi](https://linkedin.com/in/ariel-righi)
+- Email: arielrighi@example.com
 
 ---
 
@@ -502,8 +617,25 @@ Este proyecto está bajo la licencia [MIT](LICENSE).
 
 Este proyecto forma parte de mi portfolio profesional demostrando expertise en:
 
-- **Arquitecturas Asíncronas y Resilientes**
-- **Event-Driven Design**
-- **Microservicios con NestJS**
-- **DevOps y CI/CD**
-- **Testing y Code Quality**
+- ✅ **Arquitecturas Asíncronas y Resilientes** con patrones avanzados
+- ✅ **Event-Driven Design** con Outbox Pattern y Event Sourcing
+- ✅ **Saga Pattern** para orquestación de procesos distribuidos
+- ✅ **CQRS** (Command Query Responsibility Segregation)
+- ✅ **Message Queuing** con Bull y Redis
+- ✅ **Microservicios** con NestJS y TypeScript
+- ✅ **Database Design** con PostgreSQL y TypeORM
+- ✅ **RESTful APIs** con documentación OpenAPI/Swagger
+- ✅ **Testing** (Unit, Integration, E2E) con Jest
+- ✅ **DevOps** con Docker, Docker Compose
+- ✅ **Observability** con Health Checks, Metrics, Structured Logging
+- ✅ **Code Quality** con ESLint, Prettier, TypeScript strict mode
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia [MIT](LICENSE).
+
+---
+
+**Proyecto 2 de 3** del Portfolio Profesional | **Última actualización**: Octubre 2025
