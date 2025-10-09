@@ -49,7 +49,9 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(201);
 
-      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(userResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(
+        userResponse,
+      ).accessToken;
 
       // Setup: product with low stock
       const product = await ProductFactory.create(productRepository);
@@ -100,7 +102,9 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(201);
 
-      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(userResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(
+        userResponse,
+      ).accessToken;
 
       // Setup: products for potential failure testing
       const product1 = await ProductFactory.create(productRepository);
@@ -150,7 +154,9 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
         })
         .expect(201);
 
-      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(userResponse).accessToken;
+      const accessToken = ResponseHelper.extractData<{ accessToken: string }>(
+        userResponse,
+      ).accessToken;
 
       // Setup: product for integrity test
       const product = await ProductFactory.create(productRepository);

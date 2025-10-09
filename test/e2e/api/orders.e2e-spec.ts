@@ -43,9 +43,13 @@ describe('Orders API (E2E)', () => {
       .send(userData2)
       .expect(201);
 
-    userToken = ResponseHelper.extractData<{ accessToken: string; user: { id: string } }>(userResponse1).accessToken;
+    userToken = ResponseHelper.extractData<{ accessToken: string; user: { id: string } }>(
+      userResponse1,
+    ).accessToken;
     user2Token = ResponseHelper.extractData<{ accessToken: string }>(userResponse2).accessToken;
-    userId = ResponseHelper.extractData<{ accessToken: string; user: { id: string } }>(userResponse1).user.id;
+    userId = ResponseHelper.extractData<{ accessToken: string; user: { id: string } }>(
+      userResponse1,
+    ).user.id;
 
     // Create test products
     const timestamp = Date.now();

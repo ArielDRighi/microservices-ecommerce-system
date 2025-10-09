@@ -1,1 +1,0 @@
-bash: pm: command not found
