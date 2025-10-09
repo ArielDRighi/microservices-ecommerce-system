@@ -11,6 +11,7 @@ import {
   ParseUUIDPipe,
   ValidationPipe,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,6 +22,8 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { InventoryService } from './inventory.service';
 import {
   CheckStockDto,
@@ -41,12 +44,13 @@ const TRANSFORM_VALIDATION_PIPE = new ValidationPipe({ transform: true });
 @ApiTags('Inventory')
 @Controller('inventory')
 @ApiBearerAuth()
-// @UseGuards(JwtAuthGuard) // TODO: Uncomment when auth is implemented
+@UseGuards(JwtAuthGuard)
 export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
 
   constructor(private readonly inventoryService: InventoryService) {}
 
+  @Public()
   @Post('check-availability')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -174,6 +178,7 @@ export class InventoryController {
     return await this.inventoryService.removeStock(movementDto);
   }
 
+  @Public()
   @Get('product/:productId')
   @ApiOperation({
     summary: 'Get inventory by product ID',
@@ -205,6 +210,7 @@ export class InventoryController {
     return await this.inventoryService.getInventoryByProduct(productId, location);
   }
 
+  @Public()
   @Get()
   @ApiOperation({
     summary: 'Get inventory list',
@@ -273,6 +279,7 @@ export class InventoryController {
     return await this.inventoryService.getInventoryList(queryDto);
   }
 
+  @Public()
   @Get('low-stock')
   @ApiOperation({
     summary: 'Get low stock items',
@@ -310,6 +317,7 @@ export class InventoryController {
     return await this.inventoryService.getInventoryList(queryDto);
   }
 
+  @Public()
   @Get('out-of-stock')
   @ApiOperation({
     summary: 'Get out of stock items',
@@ -347,6 +355,7 @@ export class InventoryController {
     return await this.inventoryService.getInventoryList(queryDto);
   }
 
+  @Public()
   @Get('stats')
   @ApiOperation({
     summary: 'Get inventory statistics',

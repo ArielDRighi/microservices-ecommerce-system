@@ -130,7 +130,14 @@ describe('CategoriesService - Hierarchy & Tree Operations', () => {
         getPath: () => ['Grandparent', 'Parent', 'Child'],
       });
 
-      jest.spyOn(service as any, 'findById').mockResolvedValue(category);
+      // Mock findById to return correct category based on ID
+      // This is needed because getCategoryPath now loads parents recursively
+      jest.spyOn(service as any, 'findById').mockImplementation((id: unknown) => {
+        if (id === 'c') return Promise.resolve(category);
+        if (id === 'p') return Promise.resolve(parent);
+        if (id === 'gp') return Promise.resolve(grandparent);
+        return Promise.resolve(null);
+      });
 
       const result = await service.getCategoryPath('c');
 

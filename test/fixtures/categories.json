@@ -1,0 +1,110 @@
+[
+  {
+    "id": "cat-001",
+    "name": "Electronics",
+    "slug": "electronics",
+    "description": "Electronic devices and accessories",
+    "parentId": null,
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "cat-002",
+    "name": "Computers",
+    "slug": "computers",
+    "description": "Desktop and laptop computers",
+    "parentId": "cat-001",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "cat-003",
+    "name": "Laptops",
+    "slug": "laptops",
+    "description": "Portable computers",
+    "parentId": "cat-002",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "cat-004",
+    "name": "Desktops",
+    "slug": "desktops",
+    "description": "Desktop computers",
+    "parentId": "cat-002",
+    "isActive": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "cat-005",
+    "name": "Mobile Devices",
+    "slug": "mobile-devices",
+    "description": "Smartphones and tablets",
+    "parentId": "cat-001",
+    "isActive": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "cat-006",
+    "name": "Smartphones",
+    "slug": "smartphones",
+    "description": "Mobile phones",
+    "parentId": "cat-005",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "cat-007",
+    "name": "Tablets",
+    "slug": "tablets",
+    "description": "Tablet computers",
+    "parentId": "cat-005",
+    "isActive": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "cat-008",
+    "name": "Accessories",
+    "slug": "accessories",
+    "description": "Electronic accessories",
+    "parentId": "cat-001",
+    "isActive": true,
+    "sortOrder": 3
+  },
+  {
+    "id": "cat-009",
+    "name": "Home & Garden",
+    "slug": "home-garden",
+    "description": "Products for home and garden",
+    "parentId": null,
+    "isActive": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "cat-010",
+    "name": "Furniture",
+    "slug": "furniture",
+    "description": "Home furniture",
+    "parentId": "cat-009",
+    "isActive": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "cat-011",
+    "name": "Books",
+    "slug": "books",
+    "description": "Books and literature",
+    "parentId": null,
+    "isActive": true,
+    "sortOrder": 3
+  },
+  {
+    "id": "cat-012",
+    "name": "Inactive Category",
+    "slug": "inactive-category",
+    "description": "This category is inactive for testing",
+    "parentId": null,
+    "isActive": false,
+    "sortOrder": 99
+  }
+]

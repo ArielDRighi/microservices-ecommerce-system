@@ -2,7 +2,14 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop, task-17-refactor-tests-unitarios]
+    branches:
+      [
+        main,
+        develop,
+        task-17-refactor-tests-unitarios,
+        task-18-tests-e2e-plan,
+        refactor/e2e-real-dependencies,
+      ]
   pull_request:
     branches: [main, develop]
 
@@ -127,8 +134,19 @@ jobs:
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: npm run test
 
-      # E2E tests removed - focus on unit tests (954 passing)
-      # E2E tests will be reimplemented with proper CI infrastructure in the future
+      - name: Run E2E tests
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-key-for-testing
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+        run: npm run test:e2e
 
       - name: Generate coverage report
         env:
@@ -251,6 +269,20 @@ jobs:
           echo "Checking coverage threshold..."
           # The coverage threshold is configured in jest.config.js
 
+      - name: Generate E2E coverage report
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-key-for-testing
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+        run: npm run test:e2e:cov
+
       - name: Quality Gate Summary
         run: |
           echo "✅ All quality gates passed:"
@@ -258,8 +290,9 @@ jobs:
           echo "- Formatting: Prettier formatted"
           echo "- Types: TypeScript compilation successful"
           echo "- Security: No critical vulnerabilities"
-          echo "- Tests: All tests passing"
-          echo "- Coverage: Above 80% threshold"
+          echo "- Tests: All unit tests passing"
+          echo "- E2E Tests: All end-to-end tests passing"
+          echo "- Coverage: Above threshold (Unit + E2E)"
           echo "- Build: Successful compilation"
 
   # Job 6: Notification on Success
