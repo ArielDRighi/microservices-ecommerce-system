@@ -10,8 +10,21 @@ import { Product } from '../../../src/modules/products/entities/product.entity';
 import { Category } from '../../../src/modules/categories/entities/category.entity';
 
 /**
- * Helper para extraer datos de respuestas con doble anidación
- * La API envuelve respuestas dos veces: response.body.data.data
+ * Helper para extraer datos de respuestas con doble anidación.
+ *
+ * La API envuelve respuestas dos veces debido a:
+ * 1. ResponseInterceptor (global): wrappea todas las respuestas en { data: ... }
+ * 2. Servicios de paginación: retornan { data: [...], meta: {...} }
+ *
+ * Resultado: response.body.data.data en endpoints paginados
+ *
+ * Este helper maneja ambos casos (con y sin doble anidación) de forma transparente.
+ *
+ * @param response - Response de supertest
+ * @returns Los datos extraídos (response.body.data.data o response.body.data)
+ *
+ * @see docs/refactor/double-nested-response-issue.md - Documentación completa del issue
+ * @todo Eliminar este helper cuando se complete la refactorización de DTOs (data → items)
  */
 const extractData = (response: request.Response) => {
   return response.body.data?.data || response.body.data;
@@ -260,7 +273,14 @@ describe('API Response Schemas - Contract Testing (E2E)', () => {
       expect(minStock).toBeGreaterThanOrEqual(0);
     });
 
-    // Tests simplificados - Los campos opcionales varían según la API real
+    /**
+     * This test is intentionally simplified to only check for the presence of basic product fields.
+     * Optional fields in ProductResponseDto may change depending on the actual API implementation,
+     * and asserting their presence or structure could make the test brittle if the API evolves.
+     * Future maintainers should review the API contract and update this test if the set of required
+     * or optional fields changes. The goal is to ensure the basic contract is met without over-constraining
+     * the test to implementation details that may vary.
+     */
     it('should include basic product fields in ProductResponseDto', async () => {
       const response = await request(app.getHttpServer())
         .get(`/products/${testProduct.id}`)
@@ -331,7 +351,13 @@ describe('API Response Schemas - Contract Testing (E2E)', () => {
       expect(orderData.currency).toBe('USD');
     });
 
-    // Test simplificado - La estructura de items varía según la implementación
+    /**
+     * Test simplificado: la estructura de 'items' puede variar según la implementación.
+     * Este test solo valida la presencia del array 'items' en la respuesta, sin verificar su estructura interna.
+     * Si la estructura de 'items' cambia (por ejemplo, si se agregan o eliminan campos), este test podría requerir ajustes.
+     * Para detalles sobre la estructura esperada de 'items', consulta los DTOs relevantes (OrderItemResponseDto) o la documentación de la API.
+     * Esta decisión permite que el test sea flexible ante cambios en la implementación, pero requiere atención si se modifican los modelos.
+     */
     it('should include items array in order response', async () => {
       const response = await request(app.getHttpServer())
         .post('/orders')
@@ -452,7 +478,11 @@ describe('API Response Schemas - Contract Testing (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(HttpStatus.OK);
 
-      // La estructura puede variar: body.data.data o body.data
+      /**
+       * La estructura puede variar: body.data.data o body.data.
+       * Para manejar esto de forma consistente, usamos el helper extractData() que maneja automáticamente la doble anidación.
+       * Ver documentación del issue en: docs/refactor/double-nested-response-issue.md
+       */
       const data = extractData(response);
 
       // Validar misma estructura que /users
@@ -475,7 +505,11 @@ describe('API Response Schemas - Contract Testing (E2E)', () => {
         .query({ page: 1, limit: 10 })
         .expect(HttpStatus.OK);
 
-      // La estructura puede variar: body.data.data o body.data
+      /**
+       * La estructura puede variar: body.data.data o body.data.
+       * Usamos el helper extractData() para manejar la doble anidación de forma consistente.
+       * Ver documentación del issue en: docs/refactor/double-nested-response-issue.md
+       */
       const data = extractData(response);
 
       // Validar misma estructura
