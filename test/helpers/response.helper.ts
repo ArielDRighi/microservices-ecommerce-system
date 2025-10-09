@@ -85,11 +85,14 @@ export class ResponseHelper {
    * {
    *   "success": true,
    *   "data": {
-   *     "items": [...],
+   *     "items": [...],  // New format
    *     "meta": { page: 1, limit: 20, total: 100, ... }
    *   }
    * }
    * ```
+   *
+   * **TEMPORARY WORKAROUND:** Some endpoints still use legacy `data` property
+   * instead of `items`. This method handles both cases.
    *
    * This method extracts the `items` array from paginated responses.
    *
@@ -101,26 +104,46 @@ export class ResponseHelper {
    * const products = ResponseHelper.extractItems<ProductDto>(response);
    * expect(products).toHaveLength(10);
    * ```
+   *
+   * @todo Remove legacy `data` support when all endpoints use `items`
    */
   static extractItems<T = any>(response: Response): T[] {
-    const data = this.extractData<{ items: T[] }>(response);
+    const data = this.extractData<{ items?: T[]; data?: T[] }>(response);
 
-    if (!data.items) {
-      throw new Error(`Expected data.items to be defined. Got: ${JSON.stringify(data)}`);
+    // TEMPORARY WORKAROUND: Support both 'items' (new) and 'data' (legacy) properties
+    let items: T[] | undefined;
+
+    if (data.items !== undefined) {
+      // New format: use 'items' property
+      items = data.items;
+    } else if (data.data !== undefined) {
+      // Legacy format: use 'data' property
+      items = data.data;
     }
 
-    if (!Array.isArray(data.items)) {
-      throw new Error(`Expected data.items to be an array. Got: ${typeof data.items}`);
+    if (!items) {
+      throw new Error(
+        `Expected data.items or data.data to be defined. Got: ${JSON.stringify(data)}`,
+      );
     }
 
-    return data.items;
+    if (!Array.isArray(items)) {
+      throw new Error(`Expected items to be an array. Got: ${typeof items}`);
+    }
+
+    return items;
   }
 
   /**
    * Extract pagination metadata from API response
    *
+   * **TEMPORARY WORKAROUND:** Normalizes meta property names to handle both
+   * legacy and new formats:
+   * - Legacy: `hasNext`/`hasPrev`, `currentPage`, `itemsPerPage`, `totalItems`
+   * - New: `hasNextPage`/`hasPreviousPage`, `page`, `limit`, `total`
+   *
    * @param response - Supertest response object
-   * @returns Pagination metadata
+   * @returns Pagination metadata (normalized to new format)
    *
    * @example
    * ```typescript
@@ -130,15 +153,28 @@ export class ResponseHelper {
    * expect(meta.total).toBe(100);
    * expect(meta.totalPages).toBe(5);
    * ```
+   *
+   * @todo Remove normalization when all endpoints use new format
    */
   static extractMeta(response: Response): PaginationMeta {
-    const data = this.extractData<{ meta: PaginationMeta }>(response);
+    const data = this.extractData<{ meta: any }>(response);
 
     if (!data.meta) {
       throw new Error(`Expected data.meta to be defined. Got: ${JSON.stringify(data)}`);
     }
 
-    return data.meta;
+    const rawMeta = data.meta;
+
+    // TEMPORARY WORKAROUND: Normalize meta property names
+    // Support both legacy and new formats
+    return {
+      page: rawMeta.page ?? rawMeta.currentPage ?? 1,
+      limit: rawMeta.limit ?? rawMeta.itemsPerPage ?? 10,
+      total: rawMeta.total ?? rawMeta.totalItems ?? 0,
+      totalPages: rawMeta.totalPages ?? 1,
+      hasNextPage: rawMeta.hasNextPage ?? rawMeta.hasNext ?? false,
+      hasPreviousPage: rawMeta.hasPreviousPage ?? rawMeta.hasPrev ?? false,
+    };
   }
 
   /**

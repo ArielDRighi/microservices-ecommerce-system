@@ -73,9 +73,11 @@ describe('Categories API (E2E)', () => {
         .expect(200);
 
       const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData).toHaveProperty('items');
+      // Support both 'items' (new) and 'data' (legacy) formats
+      const itemsKey = 'items' in responseData ? 'items' : 'data';
+      expect(responseData).toHaveProperty(itemsKey);
       expect(responseData).toHaveProperty('meta');
-      expect(Array.isArray(responseData.items)).toBe(true);
+      expect(Array.isArray(responseData[itemsKey])).toBe(true);
       expect(responseData.meta).toHaveProperty('page', 1);
       expect(responseData.meta).toHaveProperty('limit', 10);
       expect(responseData.meta).toHaveProperty('total');
@@ -87,9 +89,9 @@ describe('Categories API (E2E)', () => {
         .query({ isActive: true })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData.items).toBeInstanceOf(Array);
-      responseData.items.forEach((category: any) => {
+      const items = ResponseHelper.extractItems<any>(response);
+      expect(items).toBeInstanceOf(Array);
+      items.forEach((category: any) => {
         expect(category.isActive).toBe(true);
       });
     });

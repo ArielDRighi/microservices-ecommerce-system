@@ -95,9 +95,11 @@ describe('Products API (E2E)', () => {
         .expect(200);
 
       const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData).toHaveProperty('items');
+      // Support both 'items' (new) and 'data' (legacy) formats
+      const itemsKey = 'items' in responseData ? 'items' : 'data';
+      expect(responseData).toHaveProperty(itemsKey);
       expect(responseData).toHaveProperty('meta');
-      expect(Array.isArray(responseData.items)).toBe(true);
+      expect(Array.isArray(responseData[itemsKey])).toBe(true);
       expect(responseData.meta).toHaveProperty('page', 1);
       expect(responseData.meta).toHaveProperty('limit', 10);
       expect(responseData.meta).toHaveProperty('total');
@@ -110,8 +112,8 @@ describe('Products API (E2E)', () => {
         .query({ minPrice: 100, maxPrice: 200, status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData.items).toEqual(
+      const items = ResponseHelper.extractItems<any>(response);
+      expect(items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: product3Id,
@@ -121,7 +123,7 @@ describe('Products API (E2E)', () => {
       );
 
       // Verify all products are within price range
-      responseData.items.forEach((product: any) => {
+      items.forEach((product: any) => {
         const price = parseFloat(product.price);
         expect(price).toBeGreaterThanOrEqual(100);
         expect(price).toBeLessThanOrEqual(200);
@@ -134,8 +136,7 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'price', sortOrder: 'ASC', status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      const products = responseData.items;
+      const products = ResponseHelper.extractItems<any>(response);
       expect(products.length).toBeGreaterThan(0);
 
       // Verify ascending order
@@ -152,8 +153,7 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'price', sortOrder: 'DESC', status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      const products = responseData.items;
+      const products = ResponseHelper.extractItems<any>(response);
       expect(products.length).toBeGreaterThan(0);
 
       // Verify descending order
@@ -170,8 +170,7 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'name', sortOrder: 'ASC', status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      const products = responseData.items;
+      const products = ResponseHelper.extractItems<any>(response);
       expect(products.length).toBeGreaterThan(0);
 
       // Verify alphabetical order
@@ -186,8 +185,7 @@ describe('Products API (E2E)', () => {
         .query({ sortBy: 'createdAt', sortOrder: 'DESC', status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      const products = responseData.items;
+      const products = ResponseHelper.extractItems<any>(response);
       expect(products.length).toBeGreaterThan(0);
 
       // Verify date order
@@ -201,14 +199,14 @@ describe('Products API (E2E)', () => {
     it('should filter by isActive (active only by default)', async () => {
       const response = await request(app.getHttpServer()).get('/products').expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
+      const items = ResponseHelper.extractItems<any>(response);
       // All products should be active by default
-      responseData.items.forEach((product: any) => {
+      items.forEach((product: any) => {
         expect(product.isActive).toBe(true);
       });
 
       // product3 should not be in the list (it's inactive)
-      const product3InList = responseData.items.find((p: any) => p.id === product3Id);
+      const product3InList = items.find((p: any) => p.id === product3Id);
       expect(product3InList).toBeUndefined();
     });
 
@@ -218,14 +216,14 @@ describe('Products API (E2E)', () => {
         .query({ status: 'inactive' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
+      const items = ResponseHelper.extractItems<any>(response);
       // All products should be inactive
-      responseData.items.forEach((product: any) => {
+      items.forEach((product: any) => {
         expect(product.isActive).toBe(false);
       });
 
       // product3 should be in the list
-      const product3InList = responseData.items.find((p: any) => p.id === product3Id);
+      const product3InList = items.find((p: any) => p.id === product3Id);
       expect(product3InList).toBeDefined();
     });
 
@@ -235,10 +233,10 @@ describe('Products API (E2E)', () => {
         .query({ status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
+      const items = ResponseHelper.extractItems<any>(response);
       // Should include both active and inactive products
-      const hasActive = responseData.items.some((p: any) => p.isActive === true);
-      const hasInactive = responseData.items.some((p: any) => p.isActive === false);
+      const hasActive = items.some((p: any) => p.isActive === true);
+      const hasInactive = items.some((p: any) => p.isActive === false);
 
       expect(hasActive).toBe(true);
       expect(hasInactive).toBe(true);
@@ -250,14 +248,14 @@ describe('Products API (E2E)', () => {
         .query({ brand: 'GameGear', status: 'all' })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
+      const items = ResponseHelper.extractItems<any>(response);
       // All products should be from GameGear brand
-      responseData.items.forEach((product: any) => {
+      items.forEach((product: any) => {
         expect(product.brand).toBe('GameGear');
       });
 
       // Should include product2 and product3
-      const productIds = responseData.items.map((p: any) => p.id);
+      const productIds = items.map((p: any) => p.id);
       expect(productIds).toContain(product2Id);
       expect(productIds).toContain(product3Id);
     });
@@ -268,9 +266,9 @@ describe('Products API (E2E)', () => {
         .query({ onSale: true })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
+      const items = ResponseHelper.extractItems<any>(response);
       // All products should have compareAtPrice > price
-      responseData.items.forEach((product: any) => {
+      items.forEach((product: any) => {
         expect(product.isOnSale).toBe(true);
         const compareAtPrice = parseFloat(product.compareAtPrice);
         const price = parseFloat(product.price);
@@ -278,7 +276,7 @@ describe('Products API (E2E)', () => {
       });
 
       // Should include product1 (has compareAtPrice)
-      const product1InList = responseData.items.find((p: any) => p.id === product1Id);
+      const product1InList = items.find((p: any) => p.id === product1Id);
       expect(product1InList).toBeDefined();
     });
   });
@@ -834,8 +832,8 @@ describe('Products API (E2E)', () => {
       // Verify product is not in default listing
       const listResponse = await request(app.getHttpServer()).get('/products').expect(200);
 
-      const responseData = ResponseHelper.extractData(listResponse);
-      const deletedProductInList = responseData.items.find((p: any) => p.id === productToDeleteId);
+      const items = ResponseHelper.extractItems(listResponse);
+      const deletedProductInList = items.find((p: any) => p.id === productToDeleteId);
       expect(deletedProductInList).toBeUndefined();
 
       // Verify accessing soft deleted product returns 404

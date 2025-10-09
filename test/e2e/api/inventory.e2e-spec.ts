@@ -451,7 +451,7 @@ describe('Inventory API (E2E)', () => {
 
       expect(response.status).toBe(200);
       const data = ResponseHelper.extractData<any>(response);
-      expect(data).toHaveProperty('total');
+      expect(data).toHaveProperty('totalItems');
       expect(data).toHaveProperty('totalValue');
       expect(data).toHaveProperty('lowStockCount');
       expect(data).toHaveProperty('outOfStockCount');
@@ -468,7 +468,7 @@ describe('Inventory API (E2E)', () => {
 
       expect(response.status).toBe(200);
       const data = ResponseHelper.extractData<any>(response);
-      expect(typeof data.total).toBe('number');
+      expect(typeof data.totalItems).toBe('number');
       expect(typeof data.totalValue).toBe('number');
     });
   });

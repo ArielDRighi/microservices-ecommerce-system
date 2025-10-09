@@ -63,9 +63,11 @@ describe('Users API (E2E)', () => {
         .expect(200);
 
       const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData).toHaveProperty('items');
+      // Support both 'items' (new) and 'data' (legacy) formats
+      const itemsKey = 'items' in responseData ? 'items' : 'data';
+      expect(responseData).toHaveProperty(itemsKey);
       expect(responseData).toHaveProperty('meta');
-      expect(Array.isArray(responseData.items)).toBe(true);
+      expect(Array.isArray(responseData[itemsKey])).toBe(true);
       expect(responseData.meta).toHaveProperty('page');
       expect(responseData.meta).toHaveProperty('limit');
       expect(responseData.meta).toHaveProperty('total');
@@ -78,10 +80,10 @@ describe('Users API (E2E)', () => {
         .query({ status: 'active', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData.items).toBeInstanceOf(Array);
+      const items = ResponseHelper.extractItems<any>(response);
+      expect(items).toBeInstanceOf(Array);
       // All users should be active
-      responseData.items.forEach((user: any) => {
+      items.forEach((user: any) => {
         expect(user.isActive).toBe(true);
       });
     });
@@ -93,9 +95,10 @@ describe('Users API (E2E)', () => {
         .query({ sortBy: 'createdAt', sortOrder: 'DESC', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData.items).toBeInstanceOf(Array);
-      expect(responseData.meta.page).toBe(1);
+      const items = ResponseHelper.extractItems<any>(response);
+      const meta = ResponseHelper.extractMeta(response);
+      expect(items).toBeInstanceOf(Array);
+      expect(meta.page).toBe(1);
     });
 
     it('should sort by email ascending', async () => {
@@ -105,10 +108,10 @@ describe('Users API (E2E)', () => {
         .query({ sortBy: 'email', sortOrder: 'ASC', page: 1, limit: 10 })
         .expect(200);
 
-      const responseData = ResponseHelper.extractData<any>(response);
-      expect(responseData.items).toBeInstanceOf(Array);
-      if (responseData.items.length > 1) {
-        const emails = responseData.items.map((u: any) => u.email);
+      const items = ResponseHelper.extractItems<any>(response);
+      expect(items).toBeInstanceOf(Array);
+      if (items.length > 1) {
+        const emails = items.map((u: any) => u.email);
         const sortedEmails = [...emails].sort();
         expect(emails).toEqual(sortedEmails);
       }

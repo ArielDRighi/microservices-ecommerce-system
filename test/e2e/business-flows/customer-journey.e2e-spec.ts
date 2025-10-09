@@ -6,8 +6,13 @@ import { ResponseHelper } from '../../helpers/response.helper';
 // Helper function to extract paginated data from list responses
 function extractPaginatedData(response: any): any[] {
   const data = ResponseHelper.extractData<any>(response);
+  
+  // Support both 'items' (new format) and 'data' (legacy format)
   if (data && Array.isArray(data.items)) {
     return data.items;
+  }
+  if (data && Array.isArray(data.data)) {
+    return data.data;
   }
   if (Array.isArray(data)) {
     return data;
