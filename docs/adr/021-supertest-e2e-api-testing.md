@@ -38,12 +38,12 @@ describe('Orders API (e2e)', () => {
       .compile();
 
     app = module.createNestApplication();
-    
+
     // Apply same middleware as main.ts
     app.use(helmet());
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe());
-    
+
     await app.init();
 
     // Authenticate test user
@@ -150,6 +150,7 @@ describe('Orders API (e2e)', () => {
 ## Test Patterns
 
 **Setup/Teardown:**
+
 ```typescript
 beforeAll(async () => {
   // Create app, login, seed data
@@ -167,6 +168,7 @@ afterAll(async () => {
 ```
 
 **Authentication Helper:**
+
 ```typescript
 async function authenticateUser(role: UserRole = UserRole.CUSTOMER) {
   const response = await request(app.getHttpServer())
@@ -178,6 +180,7 @@ async function authenticateUser(role: UserRole = UserRole.CUSTOMER) {
 ```
 
 **Database Seeding:**
+
 ```typescript
 async function seedTestData() {
   const user = await userRepository.save(mockUser);
@@ -191,6 +194,7 @@ async function seedTestData() {
 ## Assertions
 
 **Response Body:**
+
 ```typescript
 expect(response.body).toMatchObject({
   id: expect.any(String),
@@ -199,17 +203,17 @@ expect(response.body).toMatchObject({
 ```
 
 **Headers:**
+
 ```typescript
 expect(response.headers['content-type']).toContain('application/json');
 expect(response.headers['x-correlation-id']).toBeDefined();
 ```
 
 **Array Matching:**
+
 ```typescript
 expect(response.body.items).toHaveLength(2);
-expect(response.body.items).toContainEqual(
-  expect.objectContaining({ productId: 'uuid-123' }),
-);
+expect(response.body.items).toContainEqual(expect.objectContaining({ productId: 'uuid-123' }));
 ```
 
 ---
@@ -219,7 +223,7 @@ expect(response.body.items).toContainEqual(
 ✅ **Real HTTP Requests:** Test entire request/response cycle  
 ✅ **Chainable API:** `.set()`, `.send()`, `.expect()` methods  
 ✅ **Type-Safe:** Full TypeScript support  
-✅ **Integration with Jest:** Runs in Jest test suite  
+✅ **Integration with Jest:** Runs in Jest test suite
 
 ---
 

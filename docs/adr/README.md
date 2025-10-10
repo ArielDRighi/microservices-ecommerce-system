@@ -25,9 +25,11 @@ Cada ADR sigue esta estructura:
 ## Consecuencias
 
 ### Positivas
+
 - [Beneficios de la decisión]
 
 ### Negativas
+
 - [Trade-offs o desventajas]
 
 ## Alternativas Consideradas
@@ -91,32 +93,38 @@ Cada ADR sigue esta estructura:
 ## Proceso de Creación de ADRs
 
 ### 1. **Identificar una Decisión Arquitectónica**
-   - ¿Afecta la estructura del sistema?
-   - ¿Tiene impacto a largo plazo?
-   - ¿Es difícil de revertir?
+
+- ¿Afecta la estructura del sistema?
+- ¿Tiene impacto a largo plazo?
+- ¿Es difícil de revertir?
 
 ### 2. **Documentar la Decisión**
-   - Usar el template de ADR
-   - Incluir contexto completo
-   - Listar alternativas consideradas
+
+- Usar el template de ADR
+- Incluir contexto completo
+- Listar alternativas consideradas
 
 ### 3. **Revisión y Aprobación**
-   - Revisar con equipo técnico
-   - Obtener feedback
-   - Aprobar y marcar como "Aceptado"
+
+- Revisar con equipo técnico
+- Obtener feedback
+- Aprobar y marcar como "Aceptado"
 
 ### 4. **Actualización**
-   - Si una decisión cambia, crear nuevo ADR
-   - Marcar ADR anterior como "Superseded"
-   - Referenciar el nuevo ADR
+
+- Si una decisión cambia, crear nuevo ADR
+- Marcar ADR anterior como "Superseded"
+- Referenciar el nuevo ADR
 
 ## Convenciones
 
 ### Numeración
+
 - ADRs se numeran secuencialmente (001, 002, 003...)
 - Números no se reutilizan aunque se rechace un ADR
 
 ### Estados Posibles
+
 - **Propuesto**: En discusión, no implementado aún
 - **Aceptado**: Aprobado e implementado
 - **Rechazado**: Evaluado pero no aceptado
@@ -124,6 +132,7 @@ Cada ADR sigue esta estructura:
 - **Superseded**: Reemplazado por otro ADR (indicar cuál)
 
 ### Naming
+
 - Archivos: `NNN-titulo-descriptivo-kebab-case.md`
 - Ejemplo: `001-async-non-blocking-architecture.md`
 

@@ -59,6 +59,7 @@ export class BullBoardController {
 ```
 
 **main.ts Setup:**
+
 ```typescript
 // Mount Bull Board before setting global prefix
 app.use('/api/v1/admin/queues', serverAdapter.getRouter());
@@ -72,6 +73,7 @@ logger.log('📊 Bull Board: http://localhost:3002/api/v1/admin/queues');
 **Access:** `http://localhost:3002/api/v1/admin/queues`
 
 **Views:**
+
 1. **Overview:** All queues, job counts (active, waiting, completed, failed)
 2. **Queue Details:** Specific queue, paginated job list
 3. **Job Inspector:** View job data, error stack, logs
@@ -114,6 +116,7 @@ logger.log('📊 Bull Board: http://localhost:3002/api/v1/admin/queues');
 ## DLQ Management
 
 **Failed Jobs View:**
+
 ```
 Job ID: 12345
 Status: Failed
@@ -133,6 +136,7 @@ Actions:
 ```
 
 **Bulk Actions:**
+
 - Retry all failed jobs in queue
 - Delete all failed jobs older than 30 days
 - Export failed jobs as JSON
@@ -146,13 +150,14 @@ Actions:
 ✅ **Manual Recovery:** Retry jobs without code deploy  
 ✅ **Debugging:** View job data, errors, stack traces  
 ✅ **Zero Setup:** Bull Board auto-discovers queues  
-✅ **Production Ready:** Used in production by many companies  
+✅ **Production Ready:** Used in production by many companies
 
 ---
 
 ## Use Cases
 
 **1. Post-Incident Recovery**
+
 ```
 Payment gateway was down for 2 hours
 → 150 payment jobs moved to DLQ
@@ -162,6 +167,7 @@ Payment gateway was down for 2 hours
 ```
 
 **2. Debugging Production Bug**
+
 ```
 Order processing failing with "Cannot read property 'x' of undefined"
 → Bull Board: View failed order job
@@ -171,6 +177,7 @@ Order processing failing with "Cannot read property 'x' of undefined"
 ```
 
 **3. Queue Health Monitoring**
+
 ```
 Bull Board shows: order-processing has 1,200 waiting jobs (unusual)
 → Check payment circuit breaker: OPEN (Stripe API down)
@@ -185,11 +192,14 @@ Bull Board shows: order-processing has 1,200 waiting jobs (unusual)
 **Current:** No authentication (dev only)
 
 **Planned for Production:**
+
 ```typescript
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)  // Admin only
+@Roles(UserRole.ADMIN) // Admin only
 @Controller('admin/queues')
-export class BullBoardController { /* ... */ }
+export class BullBoardController {
+  /* ... */
+}
 ```
 
 **Alternative:** IP whitelist, VPN access, or separate admin service

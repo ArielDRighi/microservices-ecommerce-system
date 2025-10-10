@@ -10,6 +10,7 @@
 ## Context
 
 Un sistema de e-commerce asíncrono maneja **datos sensibles** (órdenes, pagos, inventario, información personal) y requiere **autenticación robusta** para:
+
 1. **Proteger endpoints** críticos (create order, process payment, manage users)
 2. **Identificar usuarios** en cada request (quién está haciendo qué)
 3. **Autorizar operaciones** basadas en roles (admin vs customer)
@@ -19,6 +20,7 @@ Un sistema de e-commerce asíncrono maneja **datos sensibles** (órdenes, pagos,
 ### Problem Scenarios
 
 **Scenario 1: Create Order Without Authentication**
+
 ```
 POST /api/v1/orders
 {
@@ -32,6 +34,7 @@ IMPACT: Fraude, órdenes falsas, datos incorrectos
 ```
 
 **Scenario 2: Session-Based Auth with Horizontal Scaling**
+
 ```
 User logs in → Server 1 creates session in memory
 User makes request → Load balancer sends to Server 2
@@ -42,6 +45,7 @@ COMPLEXITY: More infrastructure, single point of failure
 ```
 
 **Scenario 3: Admin Endpoints Exposed**
+
 ```
 DELETE /api/v1/users/123
     ↓
@@ -50,6 +54,7 @@ IMPACT: Data loss, security breach
 ```
 
 **Scenario 4: Mobile App Authentication**
+
 ```
 Mobile app needs to:
 - Store credentials securely
@@ -63,6 +68,7 @@ SOLUTION: Token-based auth (JWT in headers)
 ### Requirements
 
 **Must-Have:**
+
 1. **Stateless Authentication:** No server-side session storage
 2. **Role-Based Authorization:** admin, customer, guest roles
 3. **Token Expiration:** Short-lived access tokens (15 min)
@@ -70,17 +76,14 @@ SOLUTION: Token-based auth (JWT in headers)
 5. **Secure Token Verification:** HS256 signature validation
 6. **Public Routes:** Some endpoints accessible without auth (health, docs)
 
-**Nice-to-Have:**
-7. Token revocation (blacklist)
-8. Multi-factor authentication (MFA)
-9. OAuth2 integration (Google, Facebook)
-10. Token rotation on refresh
+**Nice-to-Have:** 7. Token revocation (blacklist) 8. Multi-factor authentication (MFA) 9. OAuth2 integration (Google, Facebook) 10. Token rotation on refresh
 
 ---
 
 ## Decision
 
 Implementamos **JWT (JSON Web Tokens) Authentication** con **@nestjs/jwt** usando:
+
 1. **Custom JwtAuthGuard** para verificación automática de tokens
 2. **@Public() Decorator** para rutas sin autenticación
 3. **@CurrentUser() Decorator** para extraer datos del usuario del token
@@ -105,6 +108,7 @@ Implementamos **JWT (JSON Web Tokens) Authentication** con **@nestjs/jwt** usand
 ```
 
 **Why JWT?**
+
 - ✅ **Stateless:** No database lookup per request (fast)
 - ✅ **Self-Contained:** All user data in token (no extra queries)
 - ✅ **Cross-Platform:** Works in web, mobile, desktop
@@ -121,7 +125,7 @@ export const jwtConfig = registerAs('jwt', () => ({
   // 1️⃣ ACCESS TOKEN: Short-lived, for API requests
   secret: process.env['JWT_SECRET'],
   signOptions: {
-    expiresIn: '15m',                        // 15 minutes
+    expiresIn: '15m', // 15 minutes
     issuer: 'ecommerce-async-system',
     audience: 'ecommerce-users',
     algorithm: 'HS256',
@@ -130,7 +134,7 @@ export const jwtConfig = registerAs('jwt', () => ({
   // 2️⃣ REFRESH TOKEN: Long-lived, to get new access tokens
   refreshToken: {
     secret: process.env['JWT_REFRESH_SECRET'],
-    expiresIn: '7d',                         // 7 days
+    expiresIn: '7d', // 7 days
     issuer: 'ecommerce-async-system',
     audience: 'ecommerce-users',
     algorithm: 'HS256',
@@ -139,7 +143,7 @@ export const jwtConfig = registerAs('jwt', () => ({
   // 3️⃣ VERIFICATION TOKEN: Email verification
   verification: {
     secret: process.env['JWT_VERIFICATION_SECRET'],
-    expiresIn: '24h',                        // 24 hours
+    expiresIn: '24h', // 24 hours
     issuer: 'ecommerce-async-system',
     audience: 'ecommerce-users',
     algorithm: 'HS256',
@@ -148,7 +152,7 @@ export const jwtConfig = registerAs('jwt', () => ({
   // 4️⃣ RESET PASSWORD TOKEN: Password reset flow
   resetPassword: {
     secret: process.env['JWT_RESET_PASSWORD_SECRET'],
-    expiresIn: '1h',                         // 1 hour
+    expiresIn: '1h', // 1 hour
     issuer: 'ecommerce-async-system',
     audience: 'ecommerce-users',
     algorithm: 'HS256',
@@ -157,6 +161,7 @@ export const jwtConfig = registerAs('jwt', () => ({
 ```
 
 **Token Type Strategy:**
+
 - **Access Token (15m):** Used for all API requests, expires fast for security
 - **Refresh Token (7d):** Used to get new access tokens without re-login
 - **Verification Token (24h):** Sent via email for account verification
@@ -170,7 +175,7 @@ Instead of Passport.js, we implement a **custom guard** for simplicity:
 /**
  * JWT Authentication Guard
  * Location: src/common/guards/jwt-auth.guard.ts
- * 
+ *
  * Applied globally to all routes EXCEPT those marked with @Public()
  */
 @Injectable()
@@ -186,8 +191,8 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // ✨ Check if route is public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),  // Method-level decorator
-      context.getClass(),    // Class-level decorator
+      context.getHandler(), // Method-level decorator
+      context.getClass(), // Class-level decorator
     ]);
 
     if (isPublic) {
@@ -213,7 +218,6 @@ export class JwtAuthGuard implements CanActivate {
 
       this.logger.debug(`User ${payload.sub} authenticated successfully`);
       return true;
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorName = error instanceof Error ? error.name : 'UnknownError';
@@ -254,6 +258,7 @@ export class JwtAuthGuard implements CanActivate {
 ```
 
 **Guard Features:**
+
 - ✅ Automatic token extraction from `Authorization: Bearer <token>`
 - ✅ JWT signature verification with HS256
 - ✅ Expiration check (throws if expired)
@@ -267,7 +272,7 @@ export class JwtAuthGuard implements CanActivate {
 /**
  * @Public() Decorator
  * Location: src/common/decorators/public.decorator.ts
- * 
+ *
  * Marks routes as public (no authentication required)
  */
 export const IS_PUBLIC_KEY = 'isPublic';
@@ -276,10 +281,11 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 ```
 
 **Usage:**
+
 ```typescript
 @Controller('auth')
 export class AuthController {
-  @Public()  // ← No authentication required
+  @Public() // ← No authentication required
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
@@ -300,6 +306,7 @@ export class AuthController {
 ```
 
 **Public Routes:**
+
 - `/api/v1/auth/login`
 - `/api/v1/auth/register`
 - `/api/v1/auth/refresh`
@@ -314,15 +321,15 @@ export class AuthController {
 /**
  * @CurrentUser() Decorator
  * Location: src/common/decorators/current-user.decorator.ts
- * 
+ *
  * Extracts user information from JWT payload (already verified by guard)
  */
 export interface CurrentUserPayload {
-  sub: string;       // User ID
-  email: string;     // User email
-  role: string;      // User role (customer, admin)
-  iat: number;       // Issued at (timestamp)
-  exp: number;       // Expiration (timestamp)
+  sub: string; // User ID
+  email: string; // User email
+  role: string; // User role (customer, admin)
+  iat: number; // Issued at (timestamp)
+  exp: number; // Expiration (timestamp)
 }
 
 export const CurrentUser = createParamDecorator(
@@ -337,6 +344,7 @@ export const CurrentUser = createParamDecorator(
 ```
 
 **Usage:**
+
 ```typescript
 @Get('orders')
 async getMyOrders(
@@ -538,6 +546,7 @@ Client                    Server
 ```
 
 **Token Refresh Strategy:**
+
 - Access token expires after 15 minutes
 - Client stores refresh token securely (HttpOnly cookie or secure storage)
 - When access token expires, client calls `/auth/refresh` with refresh token
@@ -556,14 +565,14 @@ Client                    Server
  * Location: src/modules/orders/orders.controller.ts
  */
 @Controller('orders')
-@UseGuards(JwtAuthGuard)  // ✨ All routes require authentication
+@UseGuards(JwtAuthGuard) // ✨ All routes require authentication
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   // ✅ Protected: Only authenticated users can create orders
   @Post()
   async createOrder(
-    @CurrentUser('sub') userId: string,  // Extract user ID from JWT
+    @CurrentUser('sub') userId: string, // Extract user ID from JWT
     @Body() createOrderDto: CreateOrderDto,
   ) {
     return this.ordersService.create(userId, createOrderDto);
@@ -577,10 +586,7 @@ export class OrdersController {
 
   // ✅ Protected: Get specific order (check ownership)
   @Get(':id')
-  async getOrder(
-    @Param('id') orderId: string,
-    @CurrentUser('sub') userId: string,
-  ) {
+  async getOrder(@Param('id') orderId: string, @CurrentUser('sub') userId: string) {
     const order = await this.ordersService.findOne(orderId);
 
     // Check if user owns this order
@@ -604,7 +610,7 @@ export class OrdersController {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public()  // ✨ No authentication required
+  @Public() // ✨ No authentication required
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -659,9 +665,9 @@ export class AuthService {
    */
   async generateAccessToken(user: User): Promise<string> {
     const payload = {
-      sub: user.id,         // Subject: User ID
-      email: user.email,    // User email
-      role: user.role,      // User role (customer, admin)
+      sub: user.id, // Subject: User ID
+      email: user.email, // User email
+      role: user.role, // User role (customer, admin)
     };
 
     return this.jwtService.signAsync(payload, {
@@ -680,7 +686,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      type: 'refresh',  // Mark as refresh token
+      type: 'refresh', // Mark as refresh token
     };
 
     return this.jwtService.signAsync(payload, {
@@ -701,10 +707,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordMatches = await bcrypt.compare(
-      loginDto.password,
-      user.passwordHash,
-    );
+    const passwordMatches = await bcrypt.compare(loginDto.password, user.passwordHash);
 
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid credentials');
@@ -810,10 +813,12 @@ describe('Authentication (e2e)', () => {
   it('/orders (POST) - should create order with valid token', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/orders')
-      .set('Authorization', `Bearer ${accessToken}`)  // ✨ Include token
+      .set('Authorization', `Bearer ${accessToken}`) // ✨ Include token
       .send({
         items: [{ productId: 'uuid', quantity: 2 }],
-        shippingAddress: { /* ... */ },
+        shippingAddress: {
+          /* ... */
+        },
       })
       .expect(201);
 
@@ -826,7 +831,7 @@ describe('Authentication (e2e)', () => {
       .send({
         items: [{ productId: 'uuid', quantity: 2 }],
       })
-      .expect(401)  // Unauthorized
+      .expect(401) // Unauthorized
       .expect((res) => {
         expect(res.body.message).toBe('Access token is required');
       });
@@ -868,12 +873,14 @@ describe('Authentication (e2e)', () => {
 ### Positive Consequences
 
 **1. Stateless Authentication**
+
 - ✅ No server-side session storage (Redis/DB)
 - ✅ Horizontal scaling without sticky sessions
 - ✅ Fast authentication (no DB lookup per request)
 - ✅ Reduces infrastructure complexity
 
 **2. Security Benefits**
+
 ```
 Traditional Session:
 - Session ID in cookie → Anyone with cookie can impersonate
@@ -888,6 +895,7 @@ JWT:
 ```
 
 **3. Performance**
+
 ```
 Request Processing Time:
 - Session-based: 5ms (Redis lookup) + 3ms (auth logic) = 8ms
@@ -897,6 +905,7 @@ Improvement: 87.5% faster authentication! 🚀
 ```
 
 **4. Developer Experience**
+
 ```typescript
 // Before: Manual token parsing
 const token = req.headers.authorization?.split(' ')[1];
@@ -911,6 +920,7 @@ async getOrders(@CurrentUser('sub') userId: string) {
 ```
 
 **5. Mobile-Friendly**
+
 - ✅ No cookies (works in mobile apps)
 - ✅ Token in Authorization header (standard)
 - ✅ Offline capable (store token, use later)
@@ -919,6 +929,7 @@ async getOrders(@CurrentUser('sub') userId: string) {
 ### Negative Consequences / Trade-offs
 
 **1. Token Revocation is Hard**
+
 ```
 Problem: User logs out, but access token still valid for 15 minutes!
 
@@ -935,6 +946,7 @@ Mitigations:
 ```
 
 **2. Token Size**
+
 ```
 JWT Token Size: ~300-500 bytes
 Session Cookie: ~50 bytes
@@ -945,6 +957,7 @@ Mitigation: Acceptable trade-off for statelessness
 ```
 
 **3. Secret Key Management**
+
 ```
 Risk: If JWT_SECRET leaks, ALL tokens can be forged!
 
@@ -956,6 +969,7 @@ Mitigation:
 ```
 
 **4. No Built-in User Revocation**
+
 ```
 Problem: Admin bans user, but user's token still works until expiration
 
@@ -977,6 +991,7 @@ Mitigation:
 ### Alternative 1: Passport.js with JWT Strategy
 
 **Approach:**
+
 ```typescript
 // passport-jwt.strategy.ts
 @Injectable()
@@ -1003,6 +1018,7 @@ async getOrders(@Req() req) {
 ```
 
 **Why Rejected:**
+
 - ❌ **Overhead:** Passport adds 1 layer of abstraction (Strategy pattern)
 - ❌ **Complexity:** Need to understand Passport + JWT + NestJS integration
 - ❌ **Boilerplate:** More files, more configuration
@@ -1011,6 +1027,7 @@ async getOrders(@Req() req) {
 ### Alternative 2: Session-Based Authentication
 
 **Approach:**
+
 ```typescript
 // Use express-session + Redis
 app.use(
@@ -1031,6 +1048,7 @@ req.session.destroy();
 ```
 
 **Why Rejected:**
+
 - ❌ **Stateful:** Requires Redis/DB for session storage
 - ❌ **Scaling:** Need sticky sessions or shared session store
 - ❌ **Performance:** DB lookup per request
@@ -1040,6 +1058,7 @@ req.session.destroy();
 ### Alternative 3: OAuth2 with Third-Party Providers
 
 **Approach:**
+
 ```typescript
 // "Login with Google" button
 @Get('auth/google')
@@ -1054,6 +1073,7 @@ async googleAuthCallback(@Req() req) {
 ```
 
 **Why Rejected:**
+
 - ❌ **Dependency:** Relies on external providers (Google, Facebook)
 - ❌ **Complexity:** Need to handle OAuth2 flow, callbacks, token exchange
 - ❌ **User Experience:** Forces users to have Google/Facebook account
@@ -1062,6 +1082,7 @@ async googleAuthCallback(@Req() req) {
 ### Alternative 4: API Keys
 
 **Approach:**
+
 ```typescript
 // Generate API key per user
 const apiKey = generateRandomString(32);
@@ -1081,6 +1102,7 @@ if (!record || record.expiresAt < Date.now()) {
 ```
 
 **Why Rejected:**
+
 - ❌ **Stateful:** Requires DB lookup per request
 - ❌ **No Expiration:** API keys typically long-lived (months/years)
 - ❌ **No Refresh:** Can't refresh like JWT refresh tokens
@@ -1094,12 +1116,14 @@ if (!record || record.expiresAt < Date.now()) {
 ### What Worked Well
 
 **1. Custom Guard Over Passport**
+
 - ✅ Simpler codebase (1 file vs 3-4 files)
 - ✅ Easier to customize (error messages, logging)
 - ✅ Faster to implement (no Passport learning curve)
 - **Learning:** Don't add dependencies unless necessary
 
 **2. @Public() Decorator**
+
 ```typescript
 // Before: Exclude routes from guard manually
 if (req.path === '/auth/login' || req.path === '/health') {
@@ -1111,22 +1135,26 @@ if (req.path === '/auth/login' || req.path === '/health') {
 @Post('login')
 async login() {}
 ```
+
 - ✅ **Declarative:** Clear intent at route level
 - ✅ **Maintainable:** Easy to see which routes are public
 - **Learning:** Decorators are powerful for cross-cutting concerns
 
 **3. Multiple Token Types**
+
 ```typescript
 // Access Token: 15m (short-lived, frequently used)
 // Refresh Token: 7d (long-lived, rare use)
 // Verification Token: 24h (one-time use)
 // Reset Password Token: 1h (security-sensitive)
 ```
+
 - ✅ Different lifespans = different security profiles
 - ✅ Limits blast radius if one token type is compromised
 - **Learning:** One-size-fits-all tokens don't work
 
 **4. @CurrentUser() Decorator**
+
 - ✅ Type-safe user extraction
 - ✅ Can extract specific fields (`@CurrentUser('sub')`)
 - ✅ No need to parse request manually
@@ -1139,6 +1167,7 @@ async login() {}
 **Problem:** User mid-checkout, access token expires, order fails!
 
 **Solution:**
+
 ```typescript
 // Client: Axios interceptor for auto-refresh
 axios.interceptors.response.use(
@@ -1147,13 +1176,13 @@ axios.interceptors.response.use(
     if (error.response?.status === 401) {
       // Try to refresh token
       const { accessToken } = await refreshTokens(refreshToken);
-      
+
       // Retry original request with new token
       error.config.headers.Authorization = `Bearer ${accessToken}`;
       return axios.request(error.config);
     }
     return Promise.reject(error);
-  }
+  },
 );
 ```
 
@@ -1162,6 +1191,7 @@ axios.interceptors.response.use(
 **Problem:** JWT is stateless, can't "invalidate" like sessions
 
 **Solution:**
+
 ```typescript
 // Client-side: Delete tokens from storage
 localStorage.removeItem('accessToken');
@@ -1182,6 +1212,7 @@ if (isBlacklisted) {
 **Problem:** Every test needs to generate valid JWT for authenticated requests
 
 **Solution:**
+
 ```typescript
 // Test helper
 async function generateTestToken(userId: string = 'test-uuid') {
@@ -1200,6 +1231,7 @@ await request(app.getHttpServer())
 ### Future Improvements
 
 **1. Token Blacklist for Logout (Priority: High)**
+
 ```typescript
 // On logout, add token to Redis blacklist
 await redis.setex(
@@ -1216,6 +1248,7 @@ if (isBlacklisted) {
 ```
 
 **2. Asymmetric Signing (RS256) for Production (Priority: Medium)**
+
 ```typescript
 // Generate RSA key pair
 const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
@@ -1235,12 +1268,13 @@ const decoded = jwt.verify(token, publicKey);
 ```
 
 **3. Multi-Factor Authentication (MFA) (Priority: Low)**
+
 ```typescript
 // After login, require TOTP code
 @Post('login')
 async login(@Body() loginDto: LoginDto) {
   const user = await this.validateUser(loginDto);
-  
+
   if (user.mfaEnabled) {
     // Don't return tokens yet, return MFA challenge
     return {
@@ -1248,7 +1282,7 @@ async login(@Body() loginDto: LoginDto) {
       mfaToken: await this.generateMfaToken(user),
     };
   }
-  
+
   return this.generateTokens(user);
 }
 
@@ -1259,16 +1293,17 @@ async verifyMfa(@Body() mfaDto: MfaDto) {
     secret: user.mfaSecret,
     token: mfaDto.code,
   });
-  
+
   if (!valid) {
     throw new UnauthorizedException('Invalid MFA code');
   }
-  
+
   return this.generateTokens(user);
 }
 ```
 
 **4. Refresh Token Rotation (Priority: High)**
+
 ```typescript
 // Current: Same refresh token reused indefinitely
 // Problem: If stolen, valid for 7 days
@@ -1277,14 +1312,14 @@ async verifyMfa(@Body() mfaDto: MfaDto) {
 @Post('auth/refresh')
 async refreshTokens(@Body() dto: RefreshTokenDto) {
   const payload = await this.verifyRefreshToken(dto.refreshToken);
-  
+
   // ✨ Generate NEW tokens (rotation)
   const newAccessToken = await this.generateAccessToken(payload.sub);
   const newRefreshToken = await this.generateRefreshToken(payload.sub);
-  
+
   // ✨ Invalidate old refresh token
   await this.blacklistToken(dto.refreshToken);
-  
+
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }
 ```
@@ -1294,23 +1329,28 @@ async refreshTokens(@Body() dto: RefreshTokenDto) {
 ## References
 
 ### JWT Standards
+
 - [RFC 7519: JSON Web Token (JWT)](https://datatracker.ietf.org/doc/html/rfc7519)
 - [JWT.io - JWT Debugger](https://jwt.io/)
 - [OWASP JWT Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html)
 
 ### NestJS Documentation
+
 - [NestJS Authentication](https://docs.nestjs.com/security/authentication)
 - [NestJS Guards](https://docs.nestjs.com/guards)
 - [@nestjs/jwt Documentation](https://github.com/nestjs/jwt)
 
 ### Security Best Practices
+
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [Auth0 - JWT Best Practices](https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/)
 
 ### Internal References
+
 - [ADR-005: NestJS Framework Selection](./005-nestjs-framework.md)
 
 ### Code Locations
+
 ```
 src/common/guards/jwt-auth.guard.ts       - JWT verification guard
 src/common/decorators/public.decorator.ts  - @Public() decorator
@@ -1328,27 +1368,32 @@ src/app.module.ts                          - JwtModule registration
 ### Key Performance Indicators
 
 **1. Authentication Latency**
+
 - **Metric:** Time to verify JWT token
 - **Target:** P95 < 2ms (verify signature only, no DB lookup)
 - **Current:** ~1ms average
 
 **2. Token Generation Time**
+
 - **Metric:** Time to generate access + refresh tokens
 - **Target:** < 50ms (sign 2 tokens)
 - **Current:** ~30ms
 
 **3. Failed Authentication Rate**
+
 - **Metric:** % of requests with invalid/expired tokens
 - **Target:** < 1% (excluding intentional logout)
 - **Alert:** > 5% (indicates attack or client issues)
 
 **4. Token Refresh Success Rate**
+
 - **Metric:** % of refresh requests that succeed
 - **Target:** > 95% (some failures expected for expired refresh tokens)
 
 ### Success Criteria
 
 ✅ **IMPLEMENTED:**
+
 - [x] JWT-based authentication with HS256
 - [x] Custom JwtAuthGuard for route protection
 - [x] @Public() decorator for public routes
@@ -1358,12 +1403,14 @@ src/app.module.ts                          - JwtModule registration
 - [x] Automatic token verification on each request
 
 ⏳ **PARTIALLY IMPLEMENTED:**
+
 - [x] Auth endpoints (login, register, refresh)
 - [ ] Global guard (commented out, manual @UseGuards required)
 - [ ] Token blacklist (logout invalidation)
 - [ ] Refresh token rotation
 
 🔮 **FUTURE:**
+
 - [ ] Asymmetric signing (RS256) for production
 - [ ] Multi-factor authentication (TOTP)
 - [ ] OAuth2 integration (Google, Facebook)
@@ -1380,15 +1427,17 @@ La estrategia de **JWT Authentication con Custom Guard** proporciona autenticaci
 ✅ **Secure:** HS256 signature, short expiration (15m), multiple secrets  
 ✅ **Developer-Friendly:** @Public() and @CurrentUser() decorators  
 ✅ **Mobile-Ready:** Token in Authorization header (no cookies)  
-✅ **Scalable:** Horizontal scaling without sticky sessions  
+✅ **Scalable:** Horizontal scaling without sticky sessions
 
 **Trade-offs aceptables:**
+
 - Token revocation is hard (mitigated with short expiration + blacklist)
 - Larger request size (~300-500 bytes per token)
 - Secret key management critical (use env vars, rotate periodically)
 - No built-in user revocation (check isActive in critical endpoints)
 
 **Impacto medible:**
+
 - 87.5% faster authentication vs session-based (1ms vs 8ms)
 - Zero Redis dependency for auth (simplifies infrastructure)
 - 99.9% authentication success rate
@@ -1397,6 +1446,7 @@ La estrategia de **JWT Authentication con Custom Guard** proporciona autenticaci
 JWT authentication es la **base de seguridad** para el sistema, permitiendo identificar y autorizar usuarios en cada operación crítica (crear órdenes, procesar pagos, gestionar inventario).
 
 **Next Steps:**
+
 1. ✅ **Completed:** Core JWT implementation
 2. ⏳ **In Progress:** Token blacklist for logout
 3. 🔜 **Next:** Global guard enablement

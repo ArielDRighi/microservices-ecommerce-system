@@ -31,9 +31,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ['CMD-SHELL', 'pg_isready']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,7 +42,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -58,10 +58,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
     volumes:
-      - ./src:/app/src  # Hot reload
+      - ./src:/app/src # Hot reload
       - ./test:/app/test
     ports:
-      - "3000:3000"
+      - '3000:3000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,7 +98,7 @@ docker-compose up -d --build
 ✅ **One Command:** Start entire stack with `docker-compose up`  
 ✅ **Networking:** Services auto-discover via DNS  
 ✅ **Persistence:** Volumes for data  
-✅ **Health Checks:** Wait for DB before starting app  
+✅ **Health Checks:** Wait for DB before starting app
 
 ---
 

@@ -31,6 +31,7 @@ Este sistema implementa una arquitectura **asíncrona, resiliente y escalable** 
 ### Problema que Resuelve
 
 **Antes (Síncrono)** ❌:
+
 ```
 Cliente → [API procesa TODO síncronamente 3-5 segundos] → Respuesta
            ↓
@@ -38,6 +39,7 @@ Cliente → [API procesa TODO síncronamente 3-5 segundos] → Respuesta
 ```
 
 **Ahora (Asíncrono)** ✅:
+
 ```
 Cliente → [API acepta orden <100ms] → Respuesta inmediata
            ↓
@@ -162,17 +164,17 @@ graph TB
 
 ### Capas de la Arquitectura
 
-| Capa | Responsabilidad | Tecnología |
-|------|----------------|------------|
-| **Client Layer** | Aplicaciones cliente (Web, Mobile) | React, React Native |
-| **API Layer** | Endpoints HTTP, validación, autenticación | NestJS, Express |
-| **Application Layer** | Lógica de negocio, servicios | TypeScript, NestJS Modules |
-| **Event Layer** | Publicación de eventos, Outbox Pattern | TypeORM, PostgreSQL |
-| **Queue Layer** | Colas de mensajes, job management | Redis, Bull |
-| **Worker Layer** | Procesamiento asíncrono background | Bull Processors |
-| **Saga Layer** | Orquestación de procesos, compensación | Custom Saga Service |
-| **Data Layer** | Persistencia de datos | PostgreSQL, Redis |
-| **Monitoring Layer** | Observabilidad, métricas, logs | Winston, Prometheus |
+| Capa                  | Responsabilidad                           | Tecnología                 |
+| --------------------- | ----------------------------------------- | -------------------------- |
+| **Client Layer**      | Aplicaciones cliente (Web, Mobile)        | React, React Native        |
+| **API Layer**         | Endpoints HTTP, validación, autenticación | NestJS, Express            |
+| **Application Layer** | Lógica de negocio, servicios              | TypeScript, NestJS Modules |
+| **Event Layer**       | Publicación de eventos, Outbox Pattern    | TypeORM, PostgreSQL        |
+| **Queue Layer**       | Colas de mensajes, job management         | Redis, Bull                |
+| **Worker Layer**      | Procesamiento asíncrono background        | Bull Processors            |
+| **Saga Layer**        | Orquestación de procesos, compensación    | Custom Saga Service        |
+| **Data Layer**        | Persistencia de datos                     | PostgreSQL, Redis          |
+| **Monitoring Layer**  | Observabilidad, métricas, logs            | Winston, Prometheus        |
 
 ---
 
@@ -191,6 +193,7 @@ GET    /api/v1/orders/:id/status   // Estado de procesamiento
 ```
 
 **Características**:
+
 - ⚡ Respuestas <100ms (non-blocking)
 - 🔒 JWT Authentication
 - ✅ Request validation (class-validator)
@@ -212,6 +215,7 @@ GET    /api/v1/orders/:id/status   // Estado de procesamiento
 ```
 
 **Características**:
+
 - 🔑 Idempotencia key (evita duplicados)
 - 💾 Transacciones atómicas (TypeORM)
 - 📤 Event publishing transaccional
@@ -226,10 +230,10 @@ GET    /api/v1/orders/:id/status   // Estado de procesamiento
 await queryRunner.transaction(async (manager) => {
   // 1. Guardar orden
   const order = await manager.save(Order, orderData);
-  
+
   // 2. Guardar evento en outbox (MISMA transacción)
   await manager.save(OutboxEvent, event);
-  
+
   // 3. Commit atómico - O se guarda TODO o NADA
 });
 
@@ -243,6 +247,7 @@ async processOutbox() {
 ```
 
 **Características**:
+
 - ✅ Consistencia transaccional
 - 🔄 Retry automático de publicación
 - 📊 Auditoría completa de eventos
@@ -254,14 +259,15 @@ async processOutbox() {
 
 **4 Colas Especializadas**:
 
-| Cola | Propósito | Throughput | Workers |
-|------|-----------|------------|---------|
-| `order-processing` | Procesamiento de órdenes | 50 jobs/seg | 2-4 |
-| `payment-processing` | Transacciones de pago | 20 jobs/seg | 1-2 |
-| `inventory-management` | Gestión de stock | 30 jobs/seg | 2-3 |
-| `notification-sending` | Emails/SMS | 100 jobs/seg | 3-5 |
+| Cola                   | Propósito                | Throughput   | Workers |
+| ---------------------- | ------------------------ | ------------ | ------- |
+| `order-processing`     | Procesamiento de órdenes | 50 jobs/seg  | 2-4     |
+| `payment-processing`   | Transacciones de pago    | 20 jobs/seg  | 1-2     |
+| `inventory-management` | Gestión de stock         | 30 jobs/seg  | 2-3     |
+| `notification-sending` | Emails/SMS               | 100 jobs/seg | 3-5     |
 
 **Características**:
+
 - ⚡ Performance: 1000+ jobs/seg
 - 🔄 Retry con exponential backoff
 - 📊 Priority queues
@@ -284,6 +290,7 @@ Step 6: Complete Order       → Compensate: Mark as Cancelled
 ```
 
 **Características**:
+
 - 📝 Estado persistido en cada step
 - 🔙 Compensación automática en fallos
 - ♻️ Recovery después de crashes
@@ -295,13 +302,14 @@ Step 6: Complete Order       → Compensate: Mark as Cancelled
 
 ```typescript
 // Operaciones principales
-checkAvailability(productId, quantity)    // Verificar stock
-reserveStock(productId, quantity)         // Reservar temporalmente
-releaseReservation(productId, quantity)   // Liberar reserva
-confirmReservation(productId, quantity)   // Confirmar venta
+checkAvailability(productId, quantity); // Verificar stock
+reserveStock(productId, quantity); // Reservar temporalmente
+releaseReservation(productId, quantity); // Liberar reserva
+confirmReservation(productId, quantity); // Confirmar venta
 ```
 
 **Características**:
+
 - 🔒 Locks optimistas (evita race conditions)
 - ⏰ TTL en reservas (auto-release)
 - 📊 Tracking de movimientos
@@ -322,6 +330,7 @@ processPayment(order, amount) {
 ```
 
 **Características**:
+
 - 🎭 Simula comportamiento real de gateways
 - 🔄 Idempotencia (mismo request = mismo result)
 - 💰 Soporte de refunds
@@ -333,12 +342,13 @@ processPayment(order, amount) {
 
 ```typescript
 // Tipos de notificaciones
-sendOrderConfirmation(orderId, userId)
-sendPaymentFailure(orderId, userId, reason)
-sendOrderCancellation(orderId, userId)
+sendOrderConfirmation(orderId, userId);
+sendPaymentFailure(orderId, userId, reason);
+sendOrderCancellation(orderId, userId);
 ```
 
 **Características**:
+
 - 📧 Email (mock SendGrid)
 - 📱 SMS (mock Twilio)
 - 🎨 Templates HTML con variables
@@ -367,14 +377,14 @@ sequenceDiagram
 
     C->>API: POST /orders (items)
     API->>OS: createOrder(userId, items)
-    
+
     OS->>DB: START TRANSACTION
     OS->>DB: INSERT order (PENDING)
     OS->>DB: INSERT order_items
     OS->>EP: publish(OrderCreatedEvent)
     EP->>DB: INSERT outbox_event
     OS->>DB: COMMIT TRANSACTION
-    
+
     OS->>Q: enqueue(order-processing, {orderId, sagaId})
     OS-->>API: 202 Accepted {orderId, status: PENDING}
     API-->>C: 202 Accepted
@@ -383,28 +393,28 @@ sequenceDiagram
 
     Q->>W: Job {orderId, sagaId}
     W->>SAGA: executeSaga(sagaId)
-    
+
     SAGA->>INV: verifyStock()
     INV-->>SAGA: ✅ OK
     SAGA->>DB: UPDATE saga_state (STOCK_VERIFIED)
-    
+
     SAGA->>INV: reserveStock()
     INV-->>SAGA: ✅ Reserved
     SAGA->>DB: UPDATE saga_state (STOCK_RESERVED)
-    
+
     SAGA->>PAY: processPayment()
     PAY-->>SAGA: ✅ Payment Success {paymentId}
     SAGA->>DB: UPDATE saga_state (PAYMENT_COMPLETED)
-    
+
     SAGA->>INV: confirmReservation()
     INV-->>SAGA: ✅ Confirmed
-    
+
     SAGA->>NOTIF: sendConfirmation()
     NOTIF-->>SAGA: ✅ Email Sent
-    
+
     SAGA->>DB: UPDATE order (status=CONFIRMED)
     SAGA->>DB: UPDATE saga_state (COMPLETED)
-    
+
     Note over C: Cliente puede consultar estado
     C->>API: GET /orders/:id/status
     API->>DB: SELECT order
@@ -424,26 +434,26 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     W->>SAGA: executeSaga(sagaId)
-    
+
     SAGA->>INV: verifyStock()
     INV-->>SAGA: ✅ OK
-    
+
     SAGA->>INV: reserveStock()
     INV-->>SAGA: ✅ Reserved
     SAGA->>DB: UPDATE saga (STOCK_RESERVED)
-    
+
     SAGA->>PAY: processPayment()
     PAY-->>SAGA: ❌ Payment Declined
-    
+
     Note over SAGA: Inicia Compensación
-    
+
     SAGA->>SAGA: compensate(error)
     SAGA->>INV: releaseReservation()
     INV-->>SAGA: ✅ Released
-    
+
     SAGA->>DB: UPDATE order (status=CANCELLED, failureReason)
     SAGA->>DB: UPDATE saga (COMPENSATED)
-    
+
     Note over SAGA: Job falla - Bull reintentará
 ```
 
@@ -486,7 +496,7 @@ Saga Orchestrator
   → Step 1 → Compensate 1
   → Step 2 → Compensate 2
   → Step 3 → Compensate 3
-  
+
 Si fallo en Step 3:
   → Ejecuta Compensate 2
   → Ejecuta Compensate 1
@@ -626,11 +636,13 @@ Monitoring:
 ```
 
 **Componentes Stateless**:
+
 - ✅ API instances (NestJS)
 - ✅ Workers (Bull processors)
 - ✅ Event processors
 
 **Componentes Stateful** (con replicación):
+
 - 📊 PostgreSQL (master + replicas)
 - 🔴 Redis (sentinel o cluster)
 
@@ -663,14 +675,14 @@ Redis:
 
 ### Failure Modes y Recovery
 
-| Componente | Fallo | Impacto | Recovery |
-|------------|-------|---------|----------|
-| **API Instance** | Crash | 🟡 Parcial | Load balancer redirige |
-| **Worker** | Crash | 🟢 Mínimo | Bull reencola job automáticamente |
-| **PostgreSQL** | Crash | 🔴 Crítico | Failover a replica (30-60s) |
-| **Redis** | Crash | 🟠 Medio | Redis Sentinel failover (10-30s) |
-| **Payment Gateway** | Down | 🟡 Parcial | Circuit breaker, retry exponencial |
-| **Email Service** | Down | 🟢 Mínimo | Jobs se encolan, se reintentan |
+| Componente          | Fallo | Impacto    | Recovery                           |
+| ------------------- | ----- | ---------- | ---------------------------------- |
+| **API Instance**    | Crash | 🟡 Parcial | Load balancer redirige             |
+| **Worker**          | Crash | 🟢 Mínimo  | Bull reencola job automáticamente  |
+| **PostgreSQL**      | Crash | 🔴 Crítico | Failover a replica (30-60s)        |
+| **Redis**           | Crash | 🟠 Medio   | Redis Sentinel failover (10-30s)   |
+| **Payment Gateway** | Down  | 🟡 Parcial | Circuit breaker, retry exponencial |
+| **Email Service**   | Down  | 🟢 Mínimo  | Jobs se encolan, se reintentan     |
 
 ### Auto-Recovery Mechanisms
 
@@ -755,17 +767,20 @@ Health Check:
 ## 📚 Referencias
 
 ### ADRs (Architecture Decision Records)
+
 - [ADR-001: Async Non-Blocking Architecture](adr/001-async-non-blocking-architecture.md)
 - [ADR-002: Outbox Pattern](adr/002-event-driven-outbox-pattern.md)
 - [ADR-003: Saga Pattern](adr/003-saga-pattern-orchestration.md)
 - [ADR-008: Redis + Bull](adr/008-redis-bull-queue-system.md)
 
 ### Documentación Técnica
+
 - [Project Setup](PROJECT_SETUP.md)
 - [Database Design](DATABASE_DESIGN.md)
 - [API Documentation](API_DOCUMENTATION.md)
 
 ### Recursos Externos
+
 - [NestJS Documentation](https://docs.nestjs.com/)
 - [Bull Queue Documentation](https://docs.bullmq.io/)
 - [Microservices Patterns by Chris Richardson](https://microservices.io/patterns/)

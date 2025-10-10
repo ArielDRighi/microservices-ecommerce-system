@@ -12,14 +12,15 @@ En una arquitectura asíncrona, necesitamos publicar eventos cuando ocurren camb
 ### Problema: Dual Writes y Perdida de Datos
 
 **Enfoque Naive (❌ NO USAR)**:
+
 ```typescript
 async createOrder(data) {
   // 1. Guardar en DB
   const order = await this.orderRepository.save(data);
-  
+
   // 2. Publicar evento ⚠️ PROBLEMA
   await this.eventBus.publish(new OrderCreatedEvent(order));
-  
+
   return order;
 }
 ```
@@ -27,6 +28,7 @@ async createOrder(data) {
 **¿Qué puede salir mal?**
 
 **Escenario 1: Fallo después de DB commit** ❌
+
 ```
 ✅ Orden guardada en DB
 ❌ App crashea ANTES de publicar evento
@@ -35,6 +37,7 @@ async createOrder(data) {
 ```
 
 **Escenario 2: Fallo del Event Bus** ❌
+
 ```
 ✅ Orden guardada en DB
 ❌ Redis/Queue está caído
@@ -43,6 +46,7 @@ async createOrder(data) {
 ```
 
 **Escenario 3: Transacción Rollback** ❌
+
 ```
 ❌ Orden NO se guarda (DB rollback)
 ✅ Evento YA se publicó
@@ -111,25 +115,25 @@ export class OutboxEvent {
   id: string;
 
   @Column({ name: 'aggregate_id' })
-  aggregateId: string;  // ID de la entidad (ej: order ID)
+  aggregateId: string; // ID de la entidad (ej: order ID)
 
   @Column({ name: 'aggregate_type' })
-  aggregateType: string;  // Tipo (ej: 'Order', 'Payment')
+  aggregateType: string; // Tipo (ej: 'Order', 'Payment')
 
   @Column({ name: 'event_type' })
-  eventType: string;  // Nombre del evento (ej: 'OrderCreated')
+  eventType: string; // Nombre del evento (ej: 'OrderCreated')
 
   @Column({ type: 'jsonb', name: 'event_data' })
-  eventData: Record<string, any>;  // Payload completo del evento
+  eventData: Record<string, any>; // Payload completo del evento
 
   @Column({ default: false })
-  processed: boolean;  // ¿Ya fue publicado?
+  processed: boolean; // ¿Ya fue publicado?
 
   @Column({ nullable: true, name: 'processed_at' })
-  processedAt: Date;  // Timestamp de publicación
+  processedAt: Date; // Timestamp de publicación
 
   @Column({ type: 'int', default: 0, name: 'retry_count' })
-  retryCount: number;  // Contador de reintentos
+  retryCount: number; // Contador de reintentos
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -142,11 +146,7 @@ export class OutboxEvent {
 // src/modules/events/publishers/event.publisher.ts
 @Injectable()
 export class EventPublisher {
-  async publish(
-    event: DomainEvent,
-    userId?: string,
-    entityManager?: EntityManager,
-  ): Promise<void> {
+  async publish(event: DomainEvent, userId?: string, entityManager?: EntityManager): Promise<void> {
     const manager = entityManager || this.dataSource.manager;
 
     // Crear evento en Outbox dentro de la MISMA transacción
@@ -203,9 +203,9 @@ async createOrder(userId: string, createOrderDto: CreateOrderDto) {
 
     // 4. Commit ÚNICO y ATÓMICO
     await queryRunner.commitTransaction();
-    
+
     // ✅ O se guarda TODO (orden + items + evento) o NADA
-    
+
     return order;
   } catch (error) {
     // ❌ Si falla CUALQUIER paso, rollback completo
@@ -223,12 +223,12 @@ async createOrder(userId: string, createOrderDto: CreateOrderDto) {
 // src/modules/events/processors/outbox.processor.ts
 @Injectable()
 export class OutboxProcessor {
-  @Cron('*/5 * * * * *')  // Cada 5 segundos
+  @Cron('*/5 * * * * *') // Cada 5 segundos
   async processOutboxEvents() {
     const events = await this.outboxRepository.find({
       where: { processed: false },
       order: { createdAt: 'ASC' },
-      take: 100,  // Batch de 100 eventos
+      take: 100, // Batch de 100 eventos
     });
 
     if (events.length === 0) return;
@@ -251,9 +251,7 @@ export class OutboxProcessor {
         event.retryCount += 1;
         await this.outboxRepository.save(event);
 
-        this.logger.error(
-          `Failed to process event ${event.id}: ${error.message}`,
-        );
+        this.logger.error(`Failed to process event ${event.id}: ${error.message}`);
 
         // Dead letter queue si supera max retries
         if (event.retryCount >= 5) {
@@ -289,7 +287,7 @@ export class OutboxProcessor {
 
 ### ⚠️ Negativas (Trade-offs)
 
-1. **Latencia Adicional**: 
+1. **Latencia Adicional**:
    - Eventos se publican cada 5 segundos (no instantáneo)
    - Puede ser crítico para casos de uso real-time
 
@@ -321,6 +319,7 @@ await this.eventBus.publish(new OrderCreatedEvent(order));
 ```
 
 **Por qué se rechazó**:
+
 - ❌ No es atómico - riesgo de inconsistencia
 - ❌ Si app crashea, evento se pierde
 - ❌ Si queue está caído, falla todo
@@ -331,6 +330,7 @@ await this.eventBus.publish(new OrderCreatedEvent(order));
 **Descripción**: Usar herramienta como Debezium para leer transaction log de PostgreSQL
 
 **Por qué se descartó para v1.0**:
+
 - ⚠️ Complejidad operacional muy alta
 - ⚠️ Requiere Kafka o similar (más infraestructura)
 - ⚠️ Difícil de debuggear
@@ -342,6 +342,7 @@ await this.eventBus.publish(new OrderCreatedEvent(order));
 **Descripción**: Usar Kafka Connect + CDC para outbox
 
 **Por qué se descartó**:
+
 - ⚠️ Requiere Kafka (más complejidad)
 - ⚠️ Overkill para volumen actual
 - ✅ Outbox + Bull es suficiente para <100k events/día
@@ -351,6 +352,7 @@ await this.eventBus.publish(new OrderCreatedEvent(order));
 **Descripción**: Protocolo distribuido para commits atómicos
 
 **Por qué se rechazó**:
+
 - ❌ Performance terrible (locks distribuidos)
 - ❌ Complejidad extrema
 - ❌ No soportado nativamente por Redis/Bull
@@ -359,6 +361,7 @@ await this.eventBus.publish(new OrderCreatedEvent(order));
 ## Métricas de Éxito
 
 ### Before Outbox Pattern
+
 ```
 Event Loss Rate:      3-5% ❌
 Inconsistent States:  12 órdenes/día ❌
@@ -367,6 +370,7 @@ Developer Trust:      "No confío en eventos" 😰
 ```
 
 ### After Outbox Pattern
+
 ```
 Event Loss Rate:      0.0% ✅ (0 eventos perdidos en 6 meses)
 Inconsistent States:  0 ✅
@@ -394,12 +398,12 @@ CREATE TABLE outbox_events (
 );
 
 -- Índice para queries eficientes
-CREATE INDEX idx_outbox_processed 
-ON outbox_events(processed, created_at) 
+CREATE INDEX idx_outbox_processed
+ON outbox_events(processed, created_at)
 WHERE processed = false;
 
 -- Índice para queries por aggregate
-CREATE INDEX idx_outbox_aggregate 
+CREATE INDEX idx_outbox_aggregate
 ON outbox_events(aggregate_id, aggregate_type);
 ```
 
@@ -465,14 +469,14 @@ async handleOrderCreated(job: Job<OrderCreatedEvent>) {
 
 ```sql
 -- Ver eventos pendientes
-SELECT event_type, COUNT(*) 
-FROM outbox_events 
-WHERE processed = false 
+SELECT event_type, COUNT(*)
+FROM outbox_events
+WHERE processed = false
 GROUP BY event_type;
 
 -- Ver eventos con retries altos
-SELECT * FROM outbox_events 
-WHERE retry_count >= 3 
+SELECT * FROM outbox_events
+WHERE retry_count >= 3
 AND processed = false;
 ```
 

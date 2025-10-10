@@ -21,15 +21,15 @@
 
 ### Software Requerido
 
-| Software | Versión Mínima | Versión Recomendada | Propósito |
-|----------|---------------|---------------------|-----------|
-| **Node.js** | 18.0.0 | 20.x LTS | Runtime de JavaScript |
-| **npm** | 8.0.0 | 10.x | Package manager |
-| **Docker** | 20.10+ | Latest | Contenedores (opcional pero recomendado) |
-| **Docker Compose** | 2.0+ | Latest | Orquestación de contenedores |
-| **Git** | 2.30+ | Latest | Control de versiones |
-| **PostgreSQL** | 15+ | 15.x | Base de datos (si no usas Docker) |
-| **Redis** | 7.0+ | 7.x | Cache y colas (si no usas Docker) |
+| Software           | Versión Mínima | Versión Recomendada | Propósito                                |
+| ------------------ | -------------- | ------------------- | ---------------------------------------- |
+| **Node.js**        | 18.0.0         | 20.x LTS            | Runtime de JavaScript                    |
+| **npm**            | 8.0.0          | 10.x                | Package manager                          |
+| **Docker**         | 20.10+         | Latest              | Contenedores (opcional pero recomendado) |
+| **Docker Compose** | 2.0+           | Latest              | Orquestación de contenedores             |
+| **Git**            | 2.30+          | Latest              | Control de versiones                     |
+| **PostgreSQL**     | 15+            | 15.x                | Base de datos (si no usas Docker)        |
+| **Redis**          | 7.0+           | 7.x                 | Cache y colas (si no usas Docker)        |
 
 ### Herramientas Opcionales
 
@@ -204,10 +204,10 @@ npm list --depth=0
 
 ```yaml
 services:
-  postgres:    # PostgreSQL 15-alpine
-  redis:       # Redis 7-alpine
-  app:         # NestJS app (development)
-  pgadmin:     # DB management GUI (opcional)
+  postgres: # PostgreSQL 15-alpine
+  redis: # Redis 7-alpine
+  app: # NestJS app (development)
+  pgadmin: # DB management GUI (opcional)
   redis-commander: # Redis GUI (opcional)
 ```
 
@@ -361,16 +361,16 @@ HEALTH_CHECK_DISK_THRESHOLD=0.9
 
 ### Variables Críticas por Ambiente
 
-| Variable | Development | Staging | Production |
-|----------|-------------|---------|------------|
-| `NODE_ENV` | `development` | `staging` | `production` |
-| `TYPEORM_SYNCHRONIZE` | `false` | `false` | `false` ⚠️ |
-| `TYPEORM_LOGGING` | `true` | `false` | `false` |
-| `JWT_SECRET` | Mock OK | Strong random | Strong random |
-| `DATABASE_PASSWORD` | Simple OK | Strong | Strong |
-| `HELMET_ENABLED` | `false` | `true` | `true` |
-| `LOG_LEVEL` | `debug` | `info` | `warn` |
-| `ENABLE_SWAGGER` | `true` | `true` | `false` 🔒 |
+| Variable              | Development   | Staging       | Production    |
+| --------------------- | ------------- | ------------- | ------------- |
+| `NODE_ENV`            | `development` | `staging`     | `production`  |
+| `TYPEORM_SYNCHRONIZE` | `false`       | `false`       | `false` ⚠️    |
+| `TYPEORM_LOGGING`     | `true`        | `false`       | `false`       |
+| `JWT_SECRET`          | Mock OK       | Strong random | Strong random |
+| `DATABASE_PASSWORD`   | Simple OK     | Strong        | Strong        |
+| `HELMET_ENABLED`      | `false`       | `true`        | `true`        |
+| `LOG_LEVEL`           | `debug`       | `info`        | `warn`        |
+| `ENABLE_SWAGGER`      | `true`        | `true`        | `false` 🔒    |
 
 ### Generar Secrets Seguros
 
@@ -739,6 +739,7 @@ Crear `.vscode/launch.json`:
 ```
 
 Luego:
+
 1. `npm run start:debug`
 2. F5 en VS Code para attach debugger
 3. Colocar breakpoints en código

@@ -8,6 +8,7 @@
 ## Contexto
 
 Necesitamos un sistema robusto de colas para:
+
 - Procesar órdenes de forma asíncrona
 - Manejar reintentos automáticos
 - Rate limiting y priority queues
@@ -16,16 +17,16 @@ Necesitamos un sistema robusto de colas para:
 
 ### Requisitos del Sistema de Colas
 
-| Requisito | Importancia | Descripción |
-|-----------|-------------|-------------|
-| **Performance** | Crítica | >1000 jobs/seg throughput |
-| **Reliability** | Crítica | At-least-once delivery |
-| **Retry Logic** | Crítica | Exponential backoff automático |
-| **Monitoring** | Alta | Dashboard en tiempo real |
-| **Priority Queues** | Media | Jobs críticos primero |
-| **Scheduled Jobs** | Media | Delays y cron jobs |
-| **Rate Limiting** | Media | Control de throughput |
-| **Idempotencia** | Crítica | Evitar procesamiento duplicado |
+| Requisito           | Importancia | Descripción                    |
+| ------------------- | ----------- | ------------------------------ |
+| **Performance**     | Crítica     | >1000 jobs/seg throughput      |
+| **Reliability**     | Crítica     | At-least-once delivery         |
+| **Retry Logic**     | Crítica     | Exponential backoff automático |
+| **Monitoring**      | Alta        | Dashboard en tiempo real       |
+| **Priority Queues** | Media       | Jobs críticos primero          |
+| **Scheduled Jobs**  | Media       | Delays y cron jobs             |
+| **Rate Limiting**   | Media       | Control de throughput          |
+| **Idempotencia**    | Crítica     | Evitar procesamiento duplicado |
 
 ## Decisión
 
@@ -85,10 +86,10 @@ Necesitamos un sistema robusto de colas para:
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 2000,  // 2s, 4s, 8s
+          delay: 2000, // 2s, 4s, 8s
         },
-        removeOnComplete: 100,  // Keep last 100 completed
-        removeOnFail: false,    // Keep failed jobs for debugging
+        removeOnComplete: 100, // Keep last 100 completed
+        removeOnFail: false, // Keep failed jobs for debugging
       },
     }),
 
@@ -119,14 +120,10 @@ export class QueueService {
   /**
    * Agregar job a la cola de órdenes
    */
-  async addOrderJob(
-    jobName: string,
-    data: OrderProcessingJobData,
-    options?: JobOptions,
-  ) {
+  async addOrderJob(jobName: string, data: OrderProcessingJobData, options?: JobOptions) {
     return this.orderQueue.add(jobName, data, {
       ...options,
-      jobId: data.orderId,  // ✅ Idempotencia: mismo ID = mismo job
+      jobId: data.orderId, // ✅ Idempotencia: mismo ID = mismo job
     });
   }
 
@@ -135,7 +132,7 @@ export class QueueService {
    */
   async addPriorityJob(data: any, priority: number = 1) {
     return this.orderQueue.add('priority-order', data, {
-      priority,  // Menor número = mayor prioridad
+      priority, // Menor número = mayor prioridad
     });
   }
 
@@ -173,28 +170,22 @@ export class QueueService {
     const queues = this.getAllQueues();
 
     // Pausar todas las colas
-    await Promise.all(
-      queues.map(({ queue }) => queue.pause()),
-    );
+    await Promise.all(queues.map(({ queue }) => queue.pause()));
 
     // Esperar jobs activos
     const startTime = Date.now();
     while (Date.now() - startTime < timeout) {
-      const activeJobs = await Promise.all(
-        queues.map(({ queue }) => queue.getActiveCount()),
-      );
-      
-      if (activeJobs.every(count => count === 0)) {
+      const activeJobs = await Promise.all(queues.map(({ queue }) => queue.getActiveCount()));
+
+      if (activeJobs.every((count) => count === 0)) {
         break;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     // Cerrar colas
-    await Promise.all(
-      queues.map(({ queue }) => queue.close()),
-    );
+    await Promise.all(queues.map(({ queue }) => queue.close()));
   }
 }
 ```
@@ -210,25 +201,25 @@ export class OrderProcessingProcessor {
     const { orderId, sagaId } = job.data;
 
     // Update job progress
-    await job.progress(10);  // 10% - Iniciando
+    await job.progress(10); // 10% - Iniciando
 
     try {
       // Ejecutar saga
-      await job.progress(30);  // 30% - Verificando stock
+      await job.progress(30); // 30% - Verificando stock
       await this.sagaService.verifyStock(sagaId);
 
-      await job.progress(50);  // 50% - Procesando pago
+      await job.progress(50); // 50% - Procesando pago
       await this.sagaService.processPayment(sagaId);
 
-      await job.progress(80);  // 80% - Confirmando orden
+      await job.progress(80); // 80% - Confirmando orden
       await this.sagaService.confirmOrder(sagaId);
 
-      await job.progress(100);  // 100% - Completado
+      await job.progress(100); // 100% - Completado
 
       return { success: true, orderId };
     } catch (error) {
       this.logger.error(`Failed to process order ${orderId}: ${error.message}`);
-      throw error;  // Bull reintentará automáticamente
+      throw error; // Bull reintentará automáticamente
     }
   }
 
@@ -246,7 +237,7 @@ export class OrderProcessingProcessor {
   @OnQueueFailed()
   onFailed(job: Job, error: Error) {
     this.logger.error(`Job ${job.id} failed: ${error.message}`);
-    
+
     // Si ya se agotaron los reintentos, enviar a dead letter queue
     if (job.attemptsMade >= job.opts.attempts) {
       this.moveToDeadLetterQueue(job, error);
@@ -284,7 +275,7 @@ export class BullBoardController {
   }
 
   @Get('*')
-  @UseGuards(AdminGuard)  // Solo admins
+  @UseGuards(AdminGuard) // Solo admins
   getDashboard(@Req() req, @Res() res) {
     this.serverAdapter.getRouter()(req, res);
   }
@@ -354,49 +345,55 @@ export class BullBoardController {
 ### 1. **RabbitMQ** ⚠️ CONSIDERADA
 
 **Pros**:
+
 - ✅ Message broker completo (exchanges, routing)
 - ✅ Muy robusto y confiable
 - ✅ Soporta múltiples protocolos (AMQP, MQTT)
 
 **Contras**:
+
 - ❌ Performance menor que Redis (10k vs 100k ops/seg)
 - ❌ Más complejo de operar
 - ❌ Overhead de Erlang VM
 - ❌ Overkill para nuestro caso de uso
 
-**Por qué se descartó**: 
+**Por qué se descartó**:
 Complejidad no justificada para escala actual. Redis+Bull es más simple y suficientemente robusto.
 
 ### 2. **Apache Kafka** ❌ RECHAZADA
 
 **Pros**:
+
 - ✅ Throughput masivo (millones de msgs/seg)
 - ✅ Event streaming y replay
 - ✅ Durabilidad excelente
 
 **Contras**:
+
 - ❌ **Overkill** para escala actual (<100k eventos/día)
 - ❌ Complejidad operacional extrema (ZooKeeper, brokers)
 - ❌ Latencia más alta (batch processing)
 - ❌ No es job queue nativo (necesita Kafka Streams)
 
-**Por qué se rechazó**: 
+**Por qué se rechazó**:
 Kafka es para event streaming a escala masiva. Nuestro caso es job processing, no streaming.
 
 ### 3. **AWS SQS** ⚠️ CONSIDERADA
 
 **Pros**:
+
 - ✅ Fully managed (sin operaciones)
 - ✅ Scaling automático infinito
 - ✅ Alta disponibilidad built-in
 
 **Contras**:
+
 - ❌ Vendor lock-in (solo AWS)
 - ❌ Latencia más alta (HTTP polling)
 - ❌ Costos incrementales con volumen
 - ❌ No tiene dashboard como Bull Board
 
-**Por qué se descartó**: 
+**Por qué se descartó**:
 Queremos mantener flexibilidad de deployment (on-premise, cualquier cloud). Redis+Bull funciona en cualquier lado.
 
 ### 4. **BullMQ** ⚠️ EVALUADA (Next Generation)
@@ -404,6 +401,7 @@ Queremos mantener flexibilidad de deployment (on-premise, cualquier cloud). Redi
 **Descripción**: Reescritura moderna de Bull con mejor performance
 
 **Por qué NO se usó (todavía)**:
+
 - ⚠️ Menos maduro que Bull (menos adoptión)
 - ⚠️ Breaking changes vs Bull clásico
 - ✅ Bull clásico es suficientemente rápido
@@ -412,6 +410,7 @@ Queremos mantener flexibilidad de deployment (on-premise, cualquier cloud). Redi
 ## Métricas de Éxito
 
 ### Capacidad y Performance
+
 ```
 Throughput por cola:
 - order-processing:      50 jobs/seg
@@ -431,6 +430,7 @@ Reliability:
 ```
 
 ### Operacionalidad
+
 ```
 Uptime Redis:        99.9% ✅
 Dashboard Available: 24/7  ✅
@@ -453,13 +453,13 @@ Alert Response Time: <5min ✅
 # docker-compose.yml
 redis:
   image: redis:7-alpine
-  command: redis-server --appendonly yes  # AOF persistence
+  command: redis-server --appendonly yes # AOF persistence
   ports:
-    - "6379:6379"
+    - '6379:6379'
   volumes:
     - redis_data:/data
   healthcheck:
-    test: ["CMD", "redis-cli", "ping"]
+    test: ['CMD', 'redis-cli', 'ping']
     interval: 5s
     timeout: 3s
     retries: 5
@@ -487,10 +487,10 @@ async cleanupOldJobs() {
   for (const { name, queue } of queues) {
     // Limpiar completados >24h
     await queue.clean(24 * 60 * 60 * 1000, 'completed');
-    
+
     // Limpiar fallidos >7 días
     await queue.clean(7 * 24 * 60 * 60 * 1000, 'failed');
-    
+
     this.logger.log(`Cleaned up ${name} queue`);
   }
 }

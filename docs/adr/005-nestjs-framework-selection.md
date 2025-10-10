@@ -93,23 +93,21 @@ NestJS provee la **estructura, herramientas, y abstracciones** perfectas para im
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, databaseConfig, bullConfig, jwtConfig],
-      validate,  // Zod validation
+      validate, // Zod validation
     }),
-    
-    LoggerModule,  // Winston structured logging (global)
-    
+
+    LoggerModule, // Winston structured logging (global)
+
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => 
-        configService.get('database')!,
+      useFactory: (configService: ConfigService) => configService.get('database')!,
     }),
-    
+
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => 
-        configService.get('bull')!,
+      useFactory: (configService: ConfigService) => configService.get('bull')!,
     }),
-    
+
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -129,7 +127,7 @@ NestJS provee la **estructura, herramientas, y abstracciones** perfectas para im
     OrdersModule,
     EventsModule,
     NotificationsModule,
-    QueueModule,  // Bull queues processing
+    QueueModule, // Bull queues processing
   ],
   providers: [
     // Global exception filter
@@ -153,6 +151,7 @@ export class AppModule {}
 ```
 
 **Beneficios Observados**:
+
 - ✅ **Módulos independientes**: Cada feature es un módulo aislado
 - ✅ **Configuración centralizada**: ConfigModule global
 - ✅ **Providers globales**: Interceptors, Filters, Guards aplicados automáticamente
@@ -168,19 +167,19 @@ export class AppModule {}
 // src/modules/orders/orders.module.ts
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem]),  // Repository injection
+    TypeOrmModule.forFeature([Order, OrderItem]), // Repository injection
     BullModule.registerQueue({
-      name: 'order-processing',  // Queue injection
+      name: 'order-processing', // Queue injection
     }),
-    ProductsModule,  // Cross-module dependency
+    ProductsModule, // Cross-module dependency
     EventsModule,
   ],
   controllers: [OrdersController],
   providers: [
     OrdersService,
-    OrderProcessingSagaService,  // Saga orchestration
+    OrderProcessingSagaService, // Saga orchestration
   ],
-  exports: [OrdersService],  // Export for other modules
+  exports: [OrdersService], // Export for other modules
 })
 export class OrdersModule {}
 ```
@@ -193,24 +192,24 @@ export class OrdersModule {}
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,  // TypeORM repository
-    
+    private readonly orderRepository: Repository<Order>, // TypeORM repository
+
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
-    
+
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-    
-    private readonly dataSource: DataSource,  // For transactions
-    
-    private readonly eventPublisher: EventPublisher,  // Event module
-    
-    private readonly sagaService: OrderProcessingSagaService,  // Saga
-    
+
+    private readonly dataSource: DataSource, // For transactions
+
+    private readonly eventPublisher: EventPublisher, // Event module
+
+    private readonly sagaService: OrderProcessingSagaService, // Saga
+
     @InjectQueue('order-processing')
-    private readonly orderProcessingQueue: Queue,  // Bull queue
+    private readonly orderProcessingQueue: Queue, // Bull queue
   ) {}
-  
+
   async createOrder(userId: string, dto: CreateOrderDto) {
     // All dependencies injected automatically!
   }
@@ -218,6 +217,7 @@ export class OrdersService {
 ```
 
 **Beneficios Observados**:
+
 - ✅ **Type-safe injection**: TypeScript verifica tipos en compile time
 - ✅ **Constructor injection**: Explícito y testeable
 - ✅ **Decorators especializados**: `@InjectRepository`, `@InjectQueue`
@@ -231,14 +231,13 @@ export class OrdersService {
 
 ```typescript
 // src/modules/orders/orders.controller.ts
-@ApiTags('orders')  // Swagger grouping
+@ApiTags('orders') // Swagger grouping
 @Controller('orders')
-@UseGuards(JwtAuthGuard)  // Apply JWT guard to all methods
-@ApiBearerAuth()  // Swagger auth
+@UseGuards(JwtAuthGuard) // Apply JWT guard to all methods
+@ApiBearerAuth() // Swagger auth
 export class OrdersController {
-  
   @Post()
-  @HttpCode(HttpStatus.ACCEPTED)  // 202 Accepted
+  @HttpCode(HttpStatus.ACCEPTED) // 202 Accepted
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({
     status: HttpStatus.ACCEPTED,
@@ -250,22 +249,20 @@ export class OrdersController {
     description: 'Invalid order data',
   })
   async createOrder(
-    @CurrentUser() user: { id: string },  // Custom decorator
-    @Body() createOrderDto: CreateOrderDto,  // Auto-validation
+    @CurrentUser() user: { id: string }, // Custom decorator
+    @Body() createOrderDto: CreateOrderDto, // Auto-validation
   ): Promise<OrderResponseDto> {
     return this.ordersService.createOrder(user.id, createOrderDto);
   }
 
   @Get()
-  async getUserOrders(
-    @CurrentUser() user: { id: string },
-  ): Promise<OrderResponseDto[]> {
+  async getUserOrders(@CurrentUser() user: { id: string }): Promise<OrderResponseDto[]> {
     return this.ordersService.findUserOrders(user.id);
   }
 
   @Get(':id')
   async getOrderById(
-    @Param('id', ParseUUIDPipe) orderId: string,  // Built-in validation pipe
+    @Param('id', ParseUUIDPipe) orderId: string, // Built-in validation pipe
     @CurrentUser() user: { id: string },
   ): Promise<OrderResponseDto> {
     return this.ordersService.findOrderById(orderId, user.id);
@@ -306,12 +303,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     if (isPublic) {
-      return true;  // Skip authentication
+      return true; // Skip authentication
     }
-    
-    return super.canActivate(context);  // Validate JWT
+
+    return super.canActivate(context); // Validate JWT
   }
 }
 ```
@@ -329,14 +326,13 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 ```typescript
 @Controller('products')
 export class ProductsController {
-  
-  @Public()  // No authentication required
+  @Public() // No authentication required
   @Get()
   async findAll() {
     return this.productsService.findAll();
   }
-  
-  @Post()  // JWT required (default)
+
+  @Post() // JWT required (default)
   @UseGuards(JwtAuthGuard)
   async create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
@@ -355,9 +351,9 @@ export class ProductsController {
 export class CustomValidationPipe extends ValidationPipe {
   constructor(options?: ValidationPipeOptions) {
     super({
-      whitelist: true,  // Strip non-decorated properties
-      transform: true,  // Transform to DTO instances
-      forbidNonWhitelisted: true,  // Throw error for unknown props
+      whitelist: true, // Strip non-decorated properties
+      transform: true, // Transform to DTO instances
+      forbidNonWhitelisted: true, // Throw error for unknown props
       disableErrorMessages: process.env.NODE_ENV === 'production',
       validateCustomDecorators: true,
       ...options,
@@ -372,7 +368,7 @@ export class CustomValidationPipe extends ValidationPipe {
 // src/main.ts
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   app.useGlobalPipes(
     new CustomValidationPipe({
       whitelist: true,
@@ -380,7 +376,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  
+
   await app.listen(3000);
 }
 ```
@@ -417,7 +413,7 @@ export class CreateOrderDto {
 export class ResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      map(data => ({
+      map((data) => ({
         success: true,
         data,
         timestamp: new Date().toISOString(),
@@ -474,6 +470,7 @@ export class LoggingInterceptor implements NestInterceptor {
 ```
 
 **Aplicado globalmente en AppModule**:
+
 ```typescript
 providers: [
   {
@@ -484,7 +481,7 @@ providers: [
     provide: APP_INTERCEPTOR,
     useClass: LoggingInterceptor,
   },
-]
+];
 ```
 
 ---
@@ -497,10 +494,11 @@ providers: [
 // src/main.ts
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   const config = new DocumentBuilder()
     .setTitle('E-Commerce Async Resilient System')
-    .setDescription(`
+    .setDescription(
+      `
       Sistema de procesamiento de órdenes asíncrono y resiliente.
       
       Patrones implementados:
@@ -509,7 +507,8 @@ async function bootstrap() {
       - Outbox Pattern
       - Saga Pattern
       - Circuit Breaker
-    `)
+    `,
+    )
     .setVersion('1.0.0')
     .addBearerAuth({
       type: 'http',
@@ -624,7 +623,7 @@ describe('Orders (e2e)', () => {
     "@nestjs/schedule": "^6.0.1",
     "class-validator": "^0.14.2",
     "class-transformer": "^0.5.1",
-    "reflect-metadata": "^0.1.13",
+    "reflect-metadata": "^0.1.13"
   }
 }
 ```
@@ -649,16 +648,16 @@ src/
 
 ### Statistics
 
-| Métrica | Valor | Observación |
-|---------|-------|-------------|
-| **Total Modules** | 11 | Feature modules + infra |
-| **Controllers** | 14 | REST endpoints |
-| **Services** | 25+ | Business logic |
-| **Guards** | 3 | JWT, Roles, Public |
-| **Interceptors** | 3 | Response, Logging, Transform |
-| **Pipes** | 2 | Validation, Transformation |
-| **Filters** | 1 | Global exception handling |
-| **Decorators** | 15+ | Custom + built-in |
+| Métrica           | Valor | Observación                  |
+| ----------------- | ----- | ---------------------------- |
+| **Total Modules** | 11    | Feature modules + infra      |
+| **Controllers**   | 14    | REST endpoints               |
+| **Services**      | 25+   | Business logic               |
+| **Guards**        | 3     | JWT, Roles, Public           |
+| **Interceptors**  | 3     | Response, Logging, Transform |
+| **Pipes**         | 2     | Validation, Transformation   |
+| **Filters**       | 1     | Global exception handling    |
+| **Decorators**    | 15+   | Custom + built-in            |
 
 ---
 
@@ -681,6 +680,7 @@ app.post('/orders', authenticate, validate, async (req, res) => {
 ```
 
 **Razones de Rechazo**:
+
 - ❌ **No structure**: Todo es middleware, sin arquitectura clara
 - ❌ **Manual wiring**: Dependency injection manual
 - ❌ **No TypeScript first-class**: Tipos como afterthought
@@ -688,6 +688,7 @@ app.post('/orders', authenticate, validate, async (req, res) => {
 - ❌ **No module system**: Difícil modularizar grande aplicaciones
 
 **Cuándo Usar Express**:
+
 - Prototipos simples
 - APIs pequeñas (<10 endpoints)
 - Equipos que rechazan frameworks "opinionated"
@@ -700,16 +701,21 @@ app.post('/orders', authenticate, validate, async (req, res) => {
 
 ```typescript
 // Fastify example
-fastify.post('/orders', {
-  schema: orderSchema,
-  preHandler: authenticate,
-}, async (request, reply) => {
-  const order = await createOrder(request.body);
-  reply.code(202).send(order);
-});
+fastify.post(
+  '/orders',
+  {
+    schema: orderSchema,
+    preHandler: authenticate,
+  },
+  async (request, reply) => {
+    const order = await createOrder(request.body);
+    reply.code(202).send(order);
+  },
+);
 ```
 
 **Razones de Rechazo**:
+
 - ❌ **Performance**: Más rápido que Express pero similar a NestJS
 - ❌ **Ecosystem**: Menos plugins enterprise-ready
 - ❌ **Architecture**: Requiere estructurar manualmente
@@ -717,6 +723,7 @@ fastify.post('/orders', {
 - ⚠️ **Learning curve**: API diferente a Express
 
 **Cuándo Considerar Fastify**:
+
 - Performance crítico (>100k req/s)
 - Microservicios ultra-lightweight
 - Team con experiencia en Fastify
@@ -741,6 +748,7 @@ router.post('/orders', authenticate, validate, async (ctx) => {
 ```
 
 **Razones de Rechazo**:
+
 - ❌ **Más minimalista que Express**: Aún menos estructura
 - ❌ **Ecosystem pequeño**: Menos middlewares
 - ❌ **Context-based**: API diferente, curva de aprendizaje
@@ -753,6 +761,7 @@ router.post('/orders', authenticate, validate, async (ctx) => {
 **Descripción**: Framework full-stack inspirado en Laravel
 
 **Razones de Rechazo**:
+
 - ⚠️ **Ecosystem pequeño**: Menos adoption que NestJS
 - ⚠️ **All-in-one**: Incluye ORM, template engine (no necesitamos)
 - ⚠️ **TypeScript secondary**: No tan first-class como NestJS
@@ -789,17 +798,17 @@ const orderService = new OrderService(
   new OrderRepository(connection),
   new ProductService(new ProductRepository(connection)),
   new EventPublisher(redisClient),
-  new SagaService(connection, redisClient)
+  new SagaService(connection, redisClient),
 );
 
 // After (NestJS)
 @Injectable()
 class OrdersService {
   constructor(
-    private orderRepository: Repository<Order>,  // Injected
-    private productService: ProductsService,      // Injected
-    private eventPublisher: EventPublisher,       // Injected
-    private sagaService: SagaService,             // Injected
+    private orderRepository: Repository<Order>, // Injected
+    private productService: ProductsService, // Injected
+    private eventPublisher: EventPublisher, // Injected
+    private sagaService: SagaService, // Injected
   ) {}
 }
 ```
@@ -814,7 +823,7 @@ class OrdersService {
   imports: [TypeOrmModule.forFeature([Order])],
   controllers: [OrdersController],
   providers: [OrdersService],
-  exports: [OrdersService],  // Exportar para otros módulos
+  exports: [OrdersService], // Exportar para otros módulos
 })
 export class OrdersModule {}
 
@@ -826,15 +835,15 @@ export class OrdersModule {}
 
 ### 4. **Ecosystem Maduro**
 
-| Librería | Propósito | Integración |
-|----------|-----------|-------------|
-| `@nestjs/typeorm` | Database ORM | First-class |
-| `@nestjs/bull` | Queue processing | First-class |
-| `@nestjs/jwt` | JWT auth | First-class |
-| `@nestjs/swagger` | API docs | Auto-generated |
-| `@nestjs/terminus` | Health checks | Built-in indicators |
-| `@nestjs/config` | Configuration | Type-safe |
-| `@nestjs/schedule` | Cron jobs | Decorators |
+| Librería           | Propósito        | Integración         |
+| ------------------ | ---------------- | ------------------- |
+| `@nestjs/typeorm`  | Database ORM     | First-class         |
+| `@nestjs/bull`     | Queue processing | First-class         |
+| `@nestjs/jwt`      | JWT auth         | First-class         |
+| `@nestjs/swagger`  | API docs         | Auto-generated      |
+| `@nestjs/terminus` | Health checks    | Built-in indicators |
+| `@nestjs/config`   | Configuration    | Type-safe           |
+| `@nestjs/schedule` | Cron jobs        | Decorators          |
 
 ### 5. **Developer Experience**
 
@@ -849,6 +858,7 @@ nest generate controller orders
 ```
 
 **VSCode Integration**:
+
 - IntelliSense para decorators
 - Auto-complete para dependency injection
 - Refactoring tools
@@ -859,13 +869,14 @@ nest generate controller orders
 
 ### Request Handling (1000 concurrent requests)
 
-| Framework | Avg Latency | Requests/sec | Memory |
-|-----------|-------------|--------------|--------|
-| **NestJS** | 12ms | 8,500 | 85 MB |
-| Express | 10ms | 9,200 | 75 MB |
-| Fastify | 8ms | 11,000 | 70 MB |
+| Framework  | Avg Latency | Requests/sec | Memory |
+| ---------- | ----------- | ------------ | ------ |
+| **NestJS** | 12ms        | 8,500        | 85 MB  |
+| Express    | 10ms        | 9,200        | 75 MB  |
+| Fastify    | 8ms         | 11,000       | 70 MB  |
 
 **Análisis**:
+
 - NestJS: **Slight overhead** por DI container y decorators
 - **Trade-off aceptable**: ~2ms más lento pero **10x más productivo**
 - Performance NO es bottleneck (database queries son el límite)
@@ -912,12 +923,12 @@ Express App (equivalent features):
 
 ```typescript
 // ✅ GOOD: Cada feature es un módulo
-OrdersModule
-ProductsModule
-InventoryModule
+OrdersModule;
+ProductsModule;
+InventoryModule;
 
 // ❌ BAD: Un módulo gigante con todo
-AppModule // with 50 controllers/services
+AppModule; // with 50 controllers/services
 ```
 
 ### 3. Custom Decorators para Reusabilidad
@@ -998,6 +1009,7 @@ Communication: gRPC / Message Bus
 ```
 
 **NestJS soporta**:
+
 - Microservices
 - gRPC
 - GraphQL
@@ -1013,6 +1025,7 @@ Communication: gRPC / Message Bus
 **Decisión Final**: ✅ Aceptado
 
 **Justificación**:
+
 1. ✅ **TypeScript first-class**: Type safety end-to-end
 2. ✅ **Modular architecture**: Fácil escalar y mantener
 3. ✅ **DI automático**: Testing y reusabilidad
@@ -1022,11 +1035,13 @@ Communication: gRPC / Message Bus
 7. ✅ **Future-proof**: Microservices, GraphQL, gRPC support
 
 **Trade-offs Aceptados**:
+
 - ⚠️ Slight performance overhead (~2ms) → Compensado por productivity
 - ⚠️ Learning curve → Mitigado con buena documentación
 - ⚠️ Bundle size (+7MB) → Aceptable para beneficios
 
 **Firmantes**:
+
 - Arquitectura: ✅ Aprobado
 - Backend Team: ✅ Implementado
 - DevOps: ✅ Deployable

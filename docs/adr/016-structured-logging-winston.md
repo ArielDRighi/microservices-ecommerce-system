@@ -32,7 +32,7 @@ export class WinstonLoggerService implements LoggerService {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json(),  // ✅ Structured JSON
+        winston.format.json(), // ✅ Structured JSON
       ),
       defaultMeta: {
         service: configService.get('app.name'),
@@ -41,8 +41,10 @@ export class WinstonLoggerService implements LoggerService {
       },
       transports: [
         // Console (dev: pretty, prod: JSON)
-        new winston.transports.Console({ /* ... */ }),
-        
+        new winston.transports.Console({
+          /* ... */
+        }),
+
         // File rotation (production)
         new DailyRotateFile({
           filename: 'logs/error-%DATE%.log',
@@ -113,6 +115,7 @@ logging: {
 ## Log Formats
 
 **Development (Pretty):**
+
 ```
 [App] Info    2024-01-17 10:30:45  [HTTP] Incoming request +2ms
   method: GET
@@ -121,6 +124,7 @@ logging: {
 ```
 
 **Production (JSON):**
+
 ```json
 {
   "level": "info",
@@ -144,7 +148,7 @@ logging: {
 ✅ **Searchable:** Correlation IDs trace requests across services  
 ✅ **Rotation:** Auto-rotate logs daily, compress old logs  
 ✅ **Performance:** Async writes, non-blocking  
-✅ **Integration:** Works with ELK Stack, Datadog, CloudWatch  
+✅ **Integration:** Works with ELK Stack, Datadog, CloudWatch
 
 ---
 

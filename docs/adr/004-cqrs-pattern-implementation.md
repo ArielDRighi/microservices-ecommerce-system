@@ -121,6 +121,7 @@ export class CreateOrderDto {
 ```
 
 **Características**:
+
 - ✅ Validaciones estrictas (`class-validator`)
 - ✅ Transformaciones automáticas (`class-transformer`)
 - ✅ Solo datos necesarios para **crear** la orden
@@ -131,12 +132,12 @@ export class CreateOrderDto {
 ```typescript
 // src/modules/orders/orders.service.ts
 async createOrder(
-  userId: string, 
+  userId: string,
   createOrderDto: CreateOrderDto
 ): Promise<OrderResponseDto> {
   // 1. Generar idempotency key
   const idempotencyKey = this.generateIdempotencyKey(userId, createOrderDto);
-  
+
   // 2. Verificar duplicados
   const existingOrder = await this.orderRepository.findOne({
     where: { idempotencyKey }
@@ -203,6 +204,7 @@ async createOrder(
 ```
 
 **Características del Command**:
+
 - ✅ **Transaccional**: QueryRunner con rollback automático
 - ✅ **Event Sourcing**: Publica OrderCreatedEvent a Outbox
 - ✅ **Saga Pattern**: Inicia orquestación multi-paso
@@ -274,6 +276,7 @@ export class ProductQueryDto {
 ```
 
 **Características**:
+
 - ✅ **Filtros múltiples**: search, brand, price range, tags
 - ✅ **Paginación**: page, limit con defaults
 - ✅ **Sorting**: sortBy, sortOrder configurables
@@ -381,6 +384,7 @@ private applyFilters(
 ```
 
 **Características del Query**:
+
 - ✅ **QueryBuilder**: TypeORM para queries complejas
 - ✅ **Filtros dinámicos**: Solo aplica los que vienen en request
 - ✅ **Full-text search**: LIKE en name, description, SKU
@@ -446,6 +450,7 @@ export class ProductResponseDto {
 ```
 
 **Características**:
+
 - ✅ **@Expose()**: Solo campos permitidos en response
 - ✅ **@Transform()**: Formateo de dates a ISO string
 - ✅ **Exclusión implícita**: Campos no expuestos se omiten
@@ -462,12 +467,12 @@ export class OrderResponseDto {
   totalAmount: number;
   currency: string;
   idempotencyKey: string;
-  
+
   items: OrderItemResponseDto[];
-  
+
   shippingAddress?: Address;
   billingAddress?: Address;
-  
+
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -484,6 +489,7 @@ export class OrderItemResponseDto {
 ```
 
 **Características**:
+
 - ✅ **Desnormalización**: `productName` guardado para histórico
 - ✅ **Relaciones cargadas**: Items incluidos en response
 - ✅ **Timestamps**: Múltiples para tracking (createdAt, completedAt)
@@ -500,9 +506,8 @@ export class OrderItemResponseDto {
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {
-  
   // ============ COMMAND SIDE ============
-  
+
   @Post()
   @HttpCode(HttpStatus.ACCEPTED) // 202 Accepted
   @ApiOperation({ summary: 'Create a new order' })
@@ -514,12 +519,10 @@ export class OrdersController {
   }
 
   // ============ QUERY SIDE ============
-  
+
   @Get()
   @ApiOperation({ summary: 'Get all orders for authenticated user' })
-  async getUserOrders(
-    @CurrentUser() user: { id: string }
-  ): Promise<OrderResponseDto[]> {
+  async getUserOrders(@CurrentUser() user: { id: string }): Promise<OrderResponseDto[]> {
     return this.ordersService.findUserOrders(user.id);
   }
 
@@ -544,6 +547,7 @@ export class OrdersController {
 ```
 
 **Patrones Observados**:
+
 - ✅ **POST** para Commands (createOrder)
 - ✅ **GET** para Queries (getUserOrders, getOrderById)
 - ✅ **Métodos segregados**: Nombres claros (create vs find)
@@ -565,23 +569,23 @@ async reserveStock(dto: ReserveStockDto): Promise<ReservationResponseDto> {
       where: { productId, location },
       lock: { mode: 'pessimistic_write' }
     });
-    
+
     // Validación
     if (inventory.availableStock < quantity) {
       throw new BadRequestException('Insufficient stock');
     }
-    
+
     // Modificación
     inventory.reserveStock(quantity, reason);
     await manager.save(inventory);
-    
+
     // Registro de movimiento
     await this.createMovement(manager, {
       type: InventoryMovementType.RESERVATION,
       quantity,
       referenceId
     });
-    
+
     return { reservationId, expiresAt, status: 'RESERVED' };
   });
 }
@@ -589,11 +593,11 @@ async reserveStock(dto: ReserveStockDto): Promise<ReservationResponseDto> {
 // QUERIES (Read Operations)
 async getInventoryList(queryDto: InventoryQueryDto): Promise<PaginatedResponseDto> {
   const { page, limit, productId, location, status, minStock, maxStock } = queryDto;
-  
+
   const queryBuilder = this.inventoryRepository
     .createQueryBuilder('inv')
     .leftJoinAndSelect('inv.product', 'product');
-  
+
   // Filtros dinámicos
   if (productId) {
     queryBuilder.andWhere('inv.productId = :productId', { productId });
@@ -607,12 +611,12 @@ async getInventoryList(queryDto: InventoryQueryDto): Promise<PaginatedResponseDt
   if (status === 'OUT_OF_STOCK') {
     queryBuilder.andWhere('inv.availableStock = 0');
   }
-  
+
   const [items, total] = await queryBuilder
     .skip((page - 1) * limit)
     .take(limit)
     .getManyAndCount();
-  
+
   return { data: items, meta: { total, page, limit } };
 }
 ```
@@ -656,6 +660,7 @@ src/modules/orders/
   - Response DTO mapping
 
 **Separación Medida**:
+
 - Command code: ~60% del servicio
 - Query code: ~25% del servicio
 - Shared utilities: ~15% del servicio
@@ -714,15 +719,16 @@ src/modules/orders/
 ```typescript
 // ❌ NO: God DTO que sirve para todo
 class OrderDto {
-  id?: string;           // Solo para queries
-  userId?: string;       // Solo para commands
-  items?: OrderItem[];   // Para ambos
-  status?: OrderStatus;  // Solo para queries
+  id?: string; // Solo para queries
+  userId?: string; // Solo para commands
+  items?: OrderItem[]; // Para ambos
+  status?: OrderStatus; // Solo para queries
   // ... 30 campos más
 }
 ```
 
 **Razón de Rechazo**:
+
 - DTOs confusos con campos opcionales everywhere
 - Validaciones complejas (`@ValidateIf` en todos lados)
 - Performance: Se cargan relaciones innecesarias
@@ -743,12 +749,14 @@ Queries ← MongoDB (Read DB)
 ```
 
 **Razón de Rechazo**:
+
 - **Complejidad**: Requiere mantener 2 bases, sincronización, projections
 - **Overhead**: Event Store, projection handlers, consistency eventual
 - **Over-engineering**: Para el volumen actual (10k-100k orders/día)
 - **Costo**: Infraestructura adicional, más moving parts
 
 **Cuándo Reconsidera**:
+
 - Tráfico > 100k orders/día
 - Necesidad de auditoría completa de eventos
 - Queries muy complejas con agregaciones pesadas
@@ -774,12 +782,14 @@ class GetOrderHandler implements IQueryHandler<GetOrderQuery> {
 ```
 
 **Razón de Rechazo**:
+
 - **Boilerplate**: Requiere CommandBus, QueryBus, múltiples handlers
 - **Indirección**: `commandBus.execute(new CreateOrderCommand())` vs `service.createOrder()`
 - **Testing complejo**: Mockear buses, handlers, sagas
 - **Learning curve**: Framework específico que el equipo debe aprender
 
 **Nuestra Implementación es Mejor para**:
+
 - Equipos pequeños que prefieren simplicidad
 - Código directo sin abstracciones pesadas
 - Testing straightforward con servicios inyectados
@@ -790,21 +800,21 @@ class GetOrderHandler implements IQueryHandler<GetOrderQuery> {
 
 ### Performance Antes vs Después
 
-| Operación | Antes (Unified) | Después (CQRS) | Mejora |
-|-----------|----------------|----------------|--------|
-| **Create Order** | 150ms | 30ms (sync) + 2s async | ✅ 80% mejor UX |
-| **List Orders** | 250ms (N+1 queries) | 60ms (1 query optimizada) | ✅ 76% faster |
-| **Search Products** | 400ms (full scan) | 45ms (índices + filters) | ✅ 89% faster |
-| **Get Order Status** | 80ms (joins innecesarios) | 15ms (single field query) | ✅ 81% faster |
+| Operación            | Antes (Unified)           | Después (CQRS)            | Mejora          |
+| -------------------- | ------------------------- | ------------------------- | --------------- |
+| **Create Order**     | 150ms                     | 30ms (sync) + 2s async    | ✅ 80% mejor UX |
+| **List Orders**      | 250ms (N+1 queries)       | 60ms (1 query optimizada) | ✅ 76% faster   |
+| **Search Products**  | 400ms (full scan)         | 45ms (índices + filters)  | ✅ 89% faster   |
+| **Get Order Status** | 80ms (joins innecesarios) | 15ms (single field query) | ✅ 81% faster   |
 
 ### Mantenibilidad
 
-| Métrica | Valor | Observación |
-|---------|-------|-------------|
-| **Lines per DTO** | ~20-30 | DTOs enfocados, no god classes |
-| **Service methods** | 8-12 por módulo | Separación clara command/query |
-| **Test complexity** | Simple | Mock services directamente |
-| **Time to add feature** | -40% | Cambios aislados a un lado |
+| Métrica                 | Valor           | Observación                    |
+| ----------------------- | --------------- | ------------------------------ |
+| **Lines per DTO**       | ~20-30          | DTOs enfocados, no god classes |
+| **Service methods**     | 8-12 por módulo | Separación clara command/query |
+| **Test complexity**     | Simple          | Mock services directamente     |
+| **Time to add feature** | -40%            | Cambios aislados a un lado     |
 
 ### Escalabilidad
 
@@ -831,6 +841,7 @@ Futuro (100x traffic):
 **Aprendizaje**: Puedes obtener 80% de los beneficios con 20% de la complejidad.
 
 **Evidencia**:
+
 ```typescript
 // Suficiente para la mayoría de casos
 async createOrder(dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -847,6 +858,7 @@ async findOrders(query: OrderQueryDto): Promise<PaginatedResponse> {
 **Aprendizaje**: 3 DTOs específicos > 1 DTO genérico con 50 opcionales.
 
 **Antes**:
+
 ```typescript
 class OrderDto {
   id?: string;
@@ -858,15 +870,16 @@ class OrderDto {
 ```
 
 **Después**:
+
 ```typescript
 class CreateOrderDto {
-  items: OrderItem[];       // Required
+  items: OrderItem[]; // Required
   shippingAddress?: Address; // Optional
 }
 
 class OrderResponseDto {
-  id: string;               // Always present
-  status: OrderStatus;      // Always present
+  id: string; // Always present
+  status: OrderStatus; // Always present
   items: OrderItemResponseDto[];
 }
 ```
@@ -876,21 +889,23 @@ class OrderResponseDto {
 **Aprendizaje**: No necesitas CommandBus/QueryBus para segregar responsibilities.
 
 **Nuestra Implementación**:
+
 ```typescript
 class OrdersService {
   // COMMAND METHODS (nombres con verbos activos)
-  async createOrder() { }
-  async updateOrder() { }
-  async cancelOrder() { }
-  
+  async createOrder() {}
+  async updateOrder() {}
+  async cancelOrder() {}
+
   // QUERY METHODS (nombres con find/get)
-  async findUserOrders() { }
-  async findOrderById() { }
-  async getOrderStatus() { }
+  async findUserOrders() {}
+  async findOrderById() {}
+  async getOrderStatus() {}
 }
 ```
 
 **Convención de Naming**:
+
 - Commands: `create*`, `update*`, `delete*`, `process*`
 - Queries: `find*`, `get*`, `search*`, `list*`
 
@@ -992,6 +1007,7 @@ Implementamos **Lightweight CQRS** de forma pragmática y efectiva, obteniendo l
 **Decisión Final**: ✅ Aceptado
 
 **Justificación**:
+
 1. ✅ Mejora performance de queries (76-89% faster)
 2. ✅ Mejora UX de commands (80% reducción tiempo de respuesta percibido)
 3. ✅ Código más mantenible (cambios aislados)
@@ -999,6 +1015,7 @@ Implementamos **Lightweight CQRS** de forma pragmática y efectiva, obteniendo l
 5. ✅ Complejidad manejable para el equipo
 
 **Firmantes**:
+
 - Arquitectura: ✅ Aprobado
 - Backend Team: ✅ Implementado
 - DevOps: ✅ Infraestructura compatible

@@ -23,14 +23,15 @@ El procesamiento de una orden en e-commerce involucra múltiples pasos que deben
 ```typescript
 // ❌ IMPOSIBLE: No se puede hacer en una sola transacción
 await db.transaction(async () => {
-  await inventoryService.reserveStock();      // ✅ DB local
-  await paymentService.processPayment();      // ❌ API externa (Stripe)
-  await emailService.sendConfirmation();      // ❌ API externa (SendGrid)
-  await orderService.confirm();               // ✅ DB local
+  await inventoryService.reserveStock(); // ✅ DB local
+  await paymentService.processPayment(); // ❌ API externa (Stripe)
+  await emailService.sendConfirmation(); // ❌ API externa (SendGrid)
+  await orderService.confirm(); // ✅ DB local
 });
 ```
 
 **Problemas**:
+
 - ❌ Payment Gateway y Email son **servicios externos** (no transaccionales)
 - ❌ Llamadas HTTP pueden tomar **1-10 segundos**
 - ❌ DB transaction no puede esperar tanto (lock contention)
@@ -39,6 +40,7 @@ await db.transaction(async () => {
 ### ¿Qué pasa cuando un paso falla?
 
 **Escenario 1**: Pago Falla después de Reservar Inventario
+
 ```
 ✅ Step 1: Stock verificado
 ✅ Step 2: Inventario reservado (products apartados)
@@ -50,6 +52,7 @@ await db.transaction(async () => {
 ```
 
 **Escenario 2**: App Crashea en Medio del Proceso
+
 ```
 ✅ Step 1: Stock verificado
 ✅ Step 2: Inventario reservado
@@ -114,22 +117,22 @@ export class SagaState {
   id: string;
 
   @Column({ name: 'saga_type' })
-  sagaType: string;  // 'OrderProcessing', 'RefundProcessing', etc.
+  sagaType: string; // 'OrderProcessing', 'RefundProcessing', etc.
 
   @Column({ name: 'aggregate_id' })
-  aggregateId: string;  // Order ID
+  aggregateId: string; // Order ID
 
   @Column({ name: 'current_step' })
-  currentStep: string;  // 'VERIFY_STOCK', 'PROCESS_PAYMENT', etc.
+  currentStep: string; // 'VERIFY_STOCK', 'PROCESS_PAYMENT', etc.
 
   @Column({ type: 'jsonb', name: 'state_data' })
-  stateData: Record<string, any>;  // Datos para recovery
+  stateData: Record<string, any>; // Datos para recovery
 
   @Column({ default: false })
   completed: boolean;
 
   @Column({ default: false })
-  compensated: boolean;  // ¿Rollback ejecutado?
+  compensated: boolean; // ¿Rollback ejecutado?
 
   @Column({ nullable: true, name: 'error_message' })
   errorMessage: string;
@@ -179,8 +182,8 @@ export class OrderProcessingSagaService {
    * Ejecutar Saga completo
    */
   async executeSaga(sagaId: string): Promise<void> {
-    const saga = await this.sagaStateRepository.findOne({ 
-      where: { id: sagaId } 
+    const saga = await this.sagaStateRepository.findOne({
+      where: { id: sagaId },
     });
 
     if (!saga) {
@@ -216,7 +219,6 @@ export class OrderProcessingSagaService {
       await this.sagaStateRepository.save(saga);
 
       this.logger.log(`Saga ${sagaId} completed successfully`);
-
     } catch (error) {
       // ❌ Algo falló - Ejecutar compensación
       await this.compensate(saga, error);
@@ -228,9 +230,7 @@ export class OrderProcessingSagaService {
    * Compensación (Rollback) - Deshace pasos completados
    */
   private async compensate(saga: SagaState, error: Error): Promise<void> {
-    this.logger.error(
-      `Saga ${saga.id} failed at step ${saga.currentStep}: ${error.message}`,
-    );
+    this.logger.error(`Saga ${saga.id} failed at step ${saga.currentStep}: ${error.message}`);
 
     saga.errorMessage = error.message;
 
@@ -239,15 +239,15 @@ export class OrderProcessingSagaService {
       switch (saga.currentStep) {
         case 'NOTIFICATION_SENT':
           await this.sendCancellationEmail(saga);
-          // Fall through
-        
+        // Fall through
+
         case 'RESERVATION_CONFIRMED':
           await this.restoreInventory(saga);
-          // Fall through
+        // Fall through
 
         case 'PAYMENT_COMPLETED':
           await this.refundPayment(saga);
-          // Fall through
+        // Fall through
 
         case 'STOCK_RESERVED':
           await this.releaseReservation(saga);
@@ -260,7 +260,7 @@ export class OrderProcessingSagaService {
 
       saga.compensated = true;
       saga.currentStep = 'COMPENSATED';
-      
+
       // Marcar orden como CANCELLED
       await this.orderRepository.update(saga.stateData.orderId, {
         status: OrderStatus.CANCELLED,
@@ -293,9 +293,7 @@ export class OrderProcessingSagaService {
       );
 
       if (!available) {
-        throw new Error(
-          `Insufficient stock for product ${item.productId}`,
-        );
+        throw new Error(`Insufficient stock for product ${item.productId}`);
       }
     }
   }
@@ -339,10 +337,7 @@ export class OrderProcessingSagaService {
     const items = await order.items;
 
     for (const item of items) {
-      await this.inventoryService.confirmReservation(
-        item.productId,
-        item.quantity,
-      );
+      await this.inventoryService.confirmReservation(item.productId, item.quantity);
     }
   }
 
@@ -365,15 +360,12 @@ export class OrderProcessingSagaService {
 
   private async releaseReservation(saga: SagaState): Promise<void> {
     this.logger.log(`Releasing inventory reservation for saga ${saga.id}`);
-    
+
     const order = await this.getOrder(saga.stateData.orderId);
     const items = await order.items;
 
     for (const item of items) {
-      await this.inventoryService.releaseReservation(
-        item.productId,
-        item.quantity,
-      );
+      await this.inventoryService.releaseReservation(item.productId, item.quantity);
     }
   }
 
@@ -391,21 +383,18 @@ export class OrderProcessingSagaService {
 
   private async restoreInventory(saga: SagaState): Promise<void> {
     this.logger.log(`Restoring inventory for saga ${saga.id}`);
-    
+
     const order = await this.getOrder(saga.stateData.orderId);
     const items = await order.items;
 
     for (const item of items) {
-      await this.inventoryService.restoreInventory(
-        item.productId,
-        item.quantity,
-      );
+      await this.inventoryService.restoreInventory(item.productId, item.quantity);
     }
   }
 
   private async sendCancellationEmail(saga: SagaState): Promise<void> {
     this.logger.log(`Sending cancellation email for saga ${saga.id}`);
-    
+
     await this.notificationService.sendOrderCancellation(
       saga.stateData.orderId,
       saga.stateData.userId,
@@ -413,10 +402,7 @@ export class OrderProcessingSagaService {
     );
   }
 
-  private async updateSagaStep(
-    saga: SagaState,
-    step: string,
-  ): Promise<void> {
+  private async updateSagaStep(saga: SagaState, step: string): Promise<void> {
     saga.currentStep = step;
     await this.sagaStateRepository.save(saga);
   }
@@ -455,7 +441,7 @@ export class OrderProcessingProcessor {
       this.logger.log(`Order ${orderId} processed successfully`);
     } catch (error) {
       this.logger.error(`Failed to process order ${orderId}: ${error.message}`);
-      
+
       // Bull reintentará el job automáticamente
       throw error;
     }
@@ -513,7 +499,7 @@ try {
   await service1.prepare();
   await service2.prepare();
   await service3.prepare();
-  
+
   await distributedTransaction.commit();
 } catch {
   await distributedTransaction.rollback();
@@ -521,6 +507,7 @@ try {
 ```
 
 **Por qué se rechazó**:
+
 - ❌ Performance terrible (locks distribuidos)
 - ❌ Disponibilidad baja (cualquier servicio caído bloquea todo)
 - ❌ No soportado por servicios externos (Stripe, SendGrid)
@@ -536,6 +523,7 @@ OrderCreated → InventoryService → InventoryReserved
 ```
 
 **Por qué se descartó**:
+
 - ⚠️ Lógica de negocio distribuida (difícil de entender)
 - ⚠️ No hay vista centralizada del proceso
 - ⚠️ Compensación más difícil de coordinar
@@ -546,6 +534,7 @@ OrderCreated → InventoryService → InventoryReserved
 **Descripción**: Similar a Saga pero con énfasis en gestión de estado
 
 **Por qué lo elegimos**:
+
 - ✅ Es esencialmente Saga Orchestration
 - ✅ Vista centralizada del proceso
 - ✅ Fácil de entender y debuggear
@@ -554,6 +543,7 @@ OrderCreated → InventoryService → InventoryReserved
 ## Métricas de Éxito
 
 ### Antes del Saga Pattern
+
 ```
 Failed Orders:         15% ❌ (inventory reservado sin pago)
 Manual Interventions:  50+ por semana ❌
@@ -563,6 +553,7 @@ Recovery Time:         4-8 horas ❌
 ```
 
 ### Con Saga Pattern
+
 ```
 Failed Orders:         0.5% ✅ (fallos legítimos)
 Manual Interventions:  <5 por mes ✅
@@ -601,7 +592,7 @@ async recoverStalledSagas() {
 
   for (const saga of stalledSagas) {
     this.logger.warn(`Recovering stalled saga ${saga.id}`);
-    
+
     try {
       // Reintentar desde el último step conocido
       await this.executeSaga(saga.id);
@@ -617,7 +608,7 @@ async recoverStalledSagas() {
 
 ```sql
 -- Ver sagas activas
-SELECT 
+SELECT
   saga_type,
   current_step,
   COUNT(*) as count,
@@ -627,7 +618,7 @@ WHERE completed = false AND compensated = false
 GROUP BY saga_type, current_step;
 
 -- Ver tasa de compensación
-SELECT 
+SELECT
   DATE_TRUNC('day', created_at) as date,
   COUNT(*) as total_sagas,
   SUM(CASE WHEN compensated THEN 1 ELSE 0 END) as compensated,

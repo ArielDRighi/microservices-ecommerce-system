@@ -17,6 +17,7 @@ Need **automated quality checks** before commits: linting, formatting, tests.
 Use **Husky + lint-staged** for Git hooks:
 
 **Husky Setup:**
+
 ```json
 // package.json
 {
@@ -24,16 +25,13 @@ Use **Husky + lint-staged** for Git hooks:
     "prepare": "husky install"
   },
   "lint-staged": {
-    "*.ts": [
-      "eslint --fix",
-      "prettier --write",
-      "jest --bail --findRelatedTests"
-    ]
+    "*.ts": ["eslint --fix", "prettier --write", "jest --bail --findRelatedTests"]
   }
 }
 ```
 
 **Git Hooks:**
+
 ```bash
 # .husky/pre-commit
 npm run lint-staged
@@ -74,7 +72,7 @@ npm run test:e2e
 ✅ **Quality Gate:** No bad code reaches repo  
 ✅ **Fast:** Only test changed files  
 ✅ **Automatic:** Zero manual intervention  
-✅ **Consistent:** Same checks for all developers  
+✅ **Consistent:** Same checks for all developers
 
 ---
 

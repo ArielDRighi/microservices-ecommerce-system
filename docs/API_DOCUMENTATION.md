@@ -28,19 +28,19 @@
 
 ### API Characteristics
 
-| Feature | Implementation | Status |
-|---------|---------------|--------|
-| **Architecture** | RESTful API | ✅ |
-| **Protocol** | HTTP/HTTPS | ✅ |
-| **Format** | JSON | ✅ |
-| **Authentication** | JWT Bearer Token | ✅ |
-| **Documentation** | OpenAPI 3.0 (Swagger) | ✅ |
-| **Async Processing** | 202 Accepted pattern | ✅ |
-| **Idempotency** | Idempotency keys | ✅ |
-| **CORS** | Configurable | ✅ |
-| **Versioning** | URI-based (v1) | ✅ |
-| **Compression** | gzip enabled | ✅ |
-| **Security** | Helmet.js | ✅ |
+| Feature              | Implementation        | Status |
+| -------------------- | --------------------- | ------ |
+| **Architecture**     | RESTful API           | ✅     |
+| **Protocol**         | HTTP/HTTPS            | ✅     |
+| **Format**           | JSON                  | ✅     |
+| **Authentication**   | JWT Bearer Token      | ✅     |
+| **Documentation**    | OpenAPI 3.0 (Swagger) | ✅     |
+| **Async Processing** | 202 Accepted pattern  | ✅     |
+| **Idempotency**      | Idempotency keys      | ✅     |
+| **CORS**             | Configurable          | ✅     |
+| **Versioning**       | URI-based (v1)        | ✅     |
+| **Compression**      | gzip enabled          | ✅     |
+| **Security**         | Helmet.js             | ✅     |
 
 ### Base Configuration
 
@@ -56,16 +56,20 @@ Accept: application/json
 ### Response Format
 
 **Success Response**:
+
 ```json
 {
   "id": "uuid",
-  "data": { /* resource data */ },
+  "data": {
+    /* resource data */
+  },
   "createdAt": "2025-10-09T10:30:00.000Z",
   "updatedAt": "2025-10-09T10:30:00.000Z"
 }
 ```
 
 **Error Response**:
+
 ```json
 {
   "statusCode": 400,
@@ -95,19 +99,19 @@ sequenceDiagram
     participant Client
     participant Auth API
     participant Database
-    
+
     Client->>Auth API: POST /auth/register or /auth/login
     Auth API->>Database: Verify credentials
     Database-->>Auth API: User verified
     Auth API-->>Client: Access Token + Refresh Token
-    
+
     Note over Client: Token expires after 1h
-    
+
     Client->>Auth API: POST /auth/refresh
     Auth API-->>Client: New Access Token
-    
+
     Note over Client: Use token for protected endpoints
-    
+
     Client->>Auth API: GET /protected-endpoint
     Note over Client: Authorization: Bearer <token>
 ```
@@ -115,12 +119,14 @@ sequenceDiagram
 ### Token Structure
 
 **Access Token**:
+
 - **Type**: JWT
 - **Expiration**: 1 hour
 - **Payload**: `{ sub: userId, email, iat, exp }`
 - **Usage**: All API requests
 
 **Refresh Token**:
+
 - **Type**: JWT
 - **Expiration**: 7 days
 - **Payload**: `{ sub: userId, tokenId, iat, exp }`
@@ -137,6 +143,7 @@ GET /api/v1/products?page=1&limit=20
 ```
 
 **Response**:
+
 ```json
 {
   "data": [...],
@@ -170,6 +177,7 @@ POST /api/v1/orders
 ```
 
 **Response**: `202 Accepted`
+
 ```json
 {
   "id": "order-uuid",
@@ -181,6 +189,7 @@ POST /api/v1/orders
 ### 5. Idempotency
 
 Orders use SHA-256 hash of request body as idempotency key:
+
 - Same request → Same order
 - Prevents duplicate orders
 - Returns existing order if duplicate
@@ -190,6 +199,7 @@ Orders use SHA-256 hash of request body as idempotency key:
 ## 📦 API Modules
 
 <a name="module-authentication"></a>
+
 ## 🔒 Module: Authentication
 
 **Base Path**: `/api/v1/auth`  
@@ -197,14 +207,14 @@ Orders use SHA-256 hash of request body as idempotency key:
 
 ### Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/auth/register` | ❌ Public | Register new user |
-| POST | `/auth/login` | ❌ Public | User login |
-| POST | `/auth/refresh` | ❌ Public | Refresh access token |
-| GET | `/auth/profile` | ✅ JWT | Get current user profile |
-| GET | `/auth/me` | ✅ JWT | Get minimal user info |
-| POST | `/auth/logout` | ✅ JWT | User logout |
+| Method | Endpoint         | Auth      | Description              |
+| ------ | ---------------- | --------- | ------------------------ |
+| POST   | `/auth/register` | ❌ Public | Register new user        |
+| POST   | `/auth/login`    | ❌ Public | User login               |
+| POST   | `/auth/refresh`  | ❌ Public | Refresh access token     |
+| GET    | `/auth/profile`  | ✅ JWT    | Get current user profile |
+| GET    | `/auth/me`       | ✅ JWT    | Get minimal user info    |
+| POST   | `/auth/logout`   | ✅ JWT    | User logout              |
 
 ---
 
@@ -215,6 +225,7 @@ Create a new user account.
 **Authentication**: None (Public)
 
 **Request Body**:
+
 ```json
 {
   "email": "john.doe@example.com",
@@ -227,6 +238,7 @@ Create a new user account.
 ```
 
 **Validation Rules**:
+
 - `email`: Valid email format, unique
 - `password`: Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
 - `firstName`: 2-50 chars
@@ -235,6 +247,7 @@ Create a new user account.
 - `dateOfBirth`: Optional, ISO date, must be 18+
 
 **Success Response**: `201 Created`
+
 ```json
 {
   "user": {
@@ -255,6 +268,7 @@ Create a new user account.
 **Error Responses**:
 
 `409 Conflict`:
+
 ```json
 {
   "statusCode": 409,
@@ -264,18 +278,17 @@ Create a new user account.
 ```
 
 `400 Bad Request`:
+
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "password must be at least 8 characters long",
-    "email must be a valid email"
-  ],
+  "message": ["password must be at least 8 characters long", "email must be a valid email"],
   "error": "Bad Request"
 }
 ```
 
 **cURL Example**:
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -296,6 +309,7 @@ Authenticate user and receive tokens.
 **Authentication**: None (Public)
 
 **Request Body**:
+
 ```json
 {
   "email": "john.doe@example.com",
@@ -304,6 +318,7 @@ Authenticate user and receive tokens.
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "user": {
@@ -324,6 +339,7 @@ Authenticate user and receive tokens.
 **Error Responses**:
 
 `401 Unauthorized`:
+
 ```json
 {
   "statusCode": 401,
@@ -333,6 +349,7 @@ Authenticate user and receive tokens.
 ```
 
 **cURL Example**:
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -351,6 +368,7 @@ Generate new access token using refresh token.
 **Authentication**: None (Public, requires refresh token)
 
 **Request Body**:
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -358,6 +376,7 @@ Generate new access token using refresh token.
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -367,6 +386,7 @@ Generate new access token using refresh token.
 ```
 
 **Error Response**: `401 Unauthorized`
+
 ```json
 {
   "statusCode": 401,
@@ -384,11 +404,13 @@ Get detailed profile of authenticated user.
 **Authentication**: JWT Bearer Token
 
 **Headers**:
+
 ```http
 Authorization: Bearer <access-token>
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -409,6 +431,7 @@ Authorization: Bearer <access-token>
 ```
 
 **Error Response**: `401 Unauthorized`
+
 ```json
 {
   "statusCode": 401,
@@ -420,6 +443,7 @@ Authorization: Bearer <access-token>
 ---
 
 <a name="module-users"></a>
+
 ## 👥 Module: Users
 
 **Base Path**: `/api/v1/users`  
@@ -428,15 +452,15 @@ Authorization: Bearer <access-token>
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/users` | Get paginated user list |
-| GET | `/users/profile` | Get current user profile |
-| GET | `/users/:id` | Get user by ID |
-| POST | `/users` | Create user (admin) |
-| PATCH | `/users/:id` | Update user |
-| DELETE | `/users/:id` | Soft delete user |
-| PATCH | `/users/:id/activate` | Activate user |
+| Method | Endpoint              | Description              |
+| ------ | --------------------- | ------------------------ |
+| GET    | `/users`              | Get paginated user list  |
+| GET    | `/users/profile`      | Get current user profile |
+| GET    | `/users/:id`          | Get user by ID           |
+| POST   | `/users`              | Create user (admin)      |
+| PATCH  | `/users/:id`          | Update user              |
+| DELETE | `/users/:id`          | Soft delete user         |
+| PATCH  | `/users/:id/activate` | Activate user            |
 
 ---
 
@@ -448,22 +472,24 @@ Get paginated list of users with filtering and sorting.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `page` | number | No | 1 | Page number (1-based) |
-| `limit` | number | No | 20 | Items per page (max 100) |
-| `search` | string | No | - | Search in name/email |
-| `status` | enum | No | all | `active`, `inactive`, `all` |
-| `sortBy` | enum | No | createdAt | Field to sort by |
-| `sortOrder` | enum | No | DESC | `ASC` or `DESC` |
+| Parameter   | Type   | Required | Default   | Description                 |
+| ----------- | ------ | -------- | --------- | --------------------------- |
+| `page`      | number | No       | 1         | Page number (1-based)       |
+| `limit`     | number | No       | 20        | Items per page (max 100)    |
+| `search`    | string | No       | -         | Search in name/email        |
+| `status`    | enum   | No       | all       | `active`, `inactive`, `all` |
+| `sortBy`    | enum   | No       | createdAt | Field to sort by            |
+| `sortOrder` | enum   | No       | DESC      | `ASC` or `DESC`             |
 
 **Example Request**:
+
 ```http
 GET /api/v1/users?page=1&limit=20&status=active&sortBy=firstName&sortOrder=ASC
 Authorization: Bearer <token>
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "data": [
@@ -498,9 +524,11 @@ Get specific user by UUID.
 **Authentication**: JWT Bearer Token
 
 **Path Parameters**:
+
 - `id` (UUID): User ID
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -516,6 +544,7 @@ Get specific user by UUID.
 ```
 
 **Error Response**: `404 Not Found`
+
 ```json
 {
   "statusCode": 404,
@@ -527,6 +556,7 @@ Get specific user by UUID.
 ---
 
 <a name="module-products"></a>
+
 ## 🛍️ Module: Products
 
 **Base Path**: `/api/v1/products`  
@@ -534,16 +564,16 @@ Get specific user by UUID.
 
 ### Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/products` | ❌ | Get paginated products |
-| GET | `/products/search` | ❌ | Full-text search |
-| GET | `/products/:id` | ❌ | Get product by ID |
-| POST | `/products` | ✅ JWT | Create product (admin) |
-| PATCH | `/products/:id` | ✅ JWT | Update product |
-| DELETE | `/products/:id` | ✅ JWT | Soft delete product |
-| PATCH | `/products/:id/activate` | ✅ JWT | Activate product |
-| PATCH | `/products/:id/deactivate` | ✅ JWT | Deactivate product |
+| Method | Endpoint                   | Auth   | Description            |
+| ------ | -------------------------- | ------ | ---------------------- |
+| GET    | `/products`                | ❌     | Get paginated products |
+| GET    | `/products/search`         | ❌     | Full-text search       |
+| GET    | `/products/:id`            | ❌     | Get product by ID      |
+| POST   | `/products`                | ✅ JWT | Create product (admin) |
+| PATCH  | `/products/:id`            | ✅ JWT | Update product         |
+| DELETE | `/products/:id`            | ✅ JWT | Soft delete product    |
+| PATCH  | `/products/:id/activate`   | ✅ JWT | Activate product       |
+| PATCH  | `/products/:id/deactivate` | ✅ JWT | Deactivate product     |
 
 ---
 
@@ -555,26 +585,28 @@ Get paginated list of products with advanced filtering.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `page` | number | No | 1 | Page number |
-| `limit` | number | No | 20 | Items per page |
-| `search` | string | No | - | Search term |
-| `brand` | string | No | - | Filter by brand |
-| `status` | enum | No | active | `active`, `inactive`, `all` |
-| `minPrice` | number | No | - | Min price filter |
-| `maxPrice` | number | No | - | Max price filter |
-| `onSale` | boolean | No | - | Products on sale only |
-| `tags` | string | No | - | Comma-separated tags |
-| `sortBy` | enum | No | createdAt | Sort field |
-| `sortOrder` | enum | No | DESC | `ASC` or `DESC` |
+| Parameter   | Type    | Required | Default   | Description                 |
+| ----------- | ------- | -------- | --------- | --------------------------- |
+| `page`      | number  | No       | 1         | Page number                 |
+| `limit`     | number  | No       | 20        | Items per page              |
+| `search`    | string  | No       | -         | Search term                 |
+| `brand`     | string  | No       | -         | Filter by brand             |
+| `status`    | enum    | No       | active    | `active`, `inactive`, `all` |
+| `minPrice`  | number  | No       | -         | Min price filter            |
+| `maxPrice`  | number  | No       | -         | Max price filter            |
+| `onSale`    | boolean | No       | -         | Products on sale only       |
+| `tags`      | string  | No       | -         | Comma-separated tags        |
+| `sortBy`    | enum    | No       | createdAt | Sort field                  |
+| `sortOrder` | enum    | No       | DESC      | `ASC` or `DESC`             |
 
 **Example Request**:
+
 ```http
 GET /api/v1/products?page=1&limit=20&brand=Apple&minPrice=500&maxPrice=2000&sortBy=price&sortOrder=ASC
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "data": [
@@ -592,10 +624,7 @@ GET /api/v1/products?page=1&limit=20&brand=Apple&minPrice=500&maxPrice=2000&sort
         "ram": "16GB",
         "storage": "512GB SSD"
       },
-      "images": [
-        "https://cdn.example.com/mbp-1.jpg",
-        "https://cdn.example.com/mbp-2.jpg"
-      ],
+      "images": ["https://cdn.example.com/mbp-1.jpg", "https://cdn.example.com/mbp-2.jpg"],
       "tags": ["laptop", "professional", "apple"],
       "weight": 2.15,
       "inventory": {
@@ -628,17 +657,19 @@ Full-text search across product name, description, and tags.
 
 **Query Parameters**:
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `q` | string | ✅ Yes | - | Search term |
-| `limit` | number | No | 10 | Max results |
+| Parameter | Type   | Required | Default | Description |
+| --------- | ------ | -------- | ------- | ----------- |
+| `q`       | string | ✅ Yes   | -       | Search term |
+| `limit`   | number | No       | 10      | Max results |
 
 **Example Request**:
+
 ```http
 GET /api/v1/products/search?q=laptop gaming&limit=10
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 [
   {
@@ -662,6 +693,7 @@ Create a new product (Admin only).
 **Authentication**: JWT Bearer Token
 
 **Request Body**:
+
 ```json
 {
   "name": "Dell XPS 15",
@@ -677,18 +709,16 @@ Create a new product (Admin only).
     "storage": "1TB SSD",
     "display": "15.6\" 4K OLED"
   },
-  "images": [
-    "https://cdn.example.com/dell-xps-1.jpg",
-    "https://cdn.example.com/dell-xps-2.jpg"
-  ],
+  "images": ["https://cdn.example.com/dell-xps-1.jpg", "https://cdn.example.com/dell-xps-2.jpg"],
   "tags": ["laptop", "creative", "professional"],
-  "costPrice": 1400.00,
+  "costPrice": 1400.0,
   "trackInventory": true,
   "minimumStock": 10
 }
 ```
 
 **Success Response**: `201 Created`
+
 ```json
 {
   "id": "770e8400-e29b-41d4-a716-446655440000",
@@ -705,6 +735,7 @@ Create a new product (Admin only).
 **Error Responses**:
 
 `409 Conflict`:
+
 ```json
 {
   "statusCode": 409,
@@ -716,6 +747,7 @@ Create a new product (Admin only).
 ---
 
 <a name="module-categories"></a>
+
 ## 📂 Module: Categories
 
 **Base Path**: `/api/v1/categories`  
@@ -723,19 +755,19 @@ Create a new product (Admin only).
 
 ### Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/categories` | ❌ | Get paginated categories |
-| GET | `/categories/tree` | ❌ | Get category tree |
-| GET | `/categories/slug/:slug` | ❌ | Get by slug |
-| GET | `/categories/:id` | ❌ | Get by ID |
-| GET | `/categories/:id/descendants` | ❌ | Get descendants |
-| GET | `/categories/:id/path` | ❌ | Get category path |
-| POST | `/categories` | ✅ JWT | Create category |
-| PUT | `/categories/:id` | ✅ JWT | Update category |
-| PATCH | `/categories/:id/activate` | ✅ JWT | Activate |
-| PATCH | `/categories/:id/deactivate` | ✅ JWT | Deactivate |
-| DELETE | `/categories/:id` | ✅ JWT | Delete category |
+| Method | Endpoint                      | Auth   | Description              |
+| ------ | ----------------------------- | ------ | ------------------------ |
+| GET    | `/categories`                 | ❌     | Get paginated categories |
+| GET    | `/categories/tree`            | ❌     | Get category tree        |
+| GET    | `/categories/slug/:slug`      | ❌     | Get by slug              |
+| GET    | `/categories/:id`             | ❌     | Get by ID                |
+| GET    | `/categories/:id/descendants` | ❌     | Get descendants          |
+| GET    | `/categories/:id/path`        | ❌     | Get category path        |
+| POST   | `/categories`                 | ✅ JWT | Create category          |
+| PUT    | `/categories/:id`             | ✅ JWT | Update category          |
+| PATCH  | `/categories/:id/activate`    | ✅ JWT | Activate                 |
+| PATCH  | `/categories/:id/deactivate`  | ✅ JWT | Deactivate               |
+| DELETE | `/categories/:id`             | ✅ JWT | Delete category          |
 
 ---
 
@@ -746,14 +778,17 @@ Get complete category hierarchy as tree structure.
 **Authentication**: None (Public)
 
 **Query Parameters**:
+
 - `includeInactive` (boolean): Include inactive categories (default: false)
 
 **Example Request**:
+
 ```http
 GET /api/v1/categories/tree?includeInactive=false
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 [
   {
@@ -797,6 +832,7 @@ Create a new category (Admin only).
 **Authentication**: JWT Bearer Token
 
 **Request Body**:
+
 ```json
 {
   "name": "Gaming Accessories",
@@ -813,6 +849,7 @@ Create a new category (Admin only).
 ```
 
 **Success Response**: `201 Created`
+
 ```json
 {
   "id": "990e8400-e29b-41d4-a716-446655440000",
@@ -830,6 +867,7 @@ Create a new category (Admin only).
 ---
 
 <a name="module-orders"></a>
+
 ## 🛒 Module: Orders
 
 **Base Path**: `/api/v1/orders`  
@@ -838,12 +876,12 @@ Create a new category (Admin only).
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/orders` | Create new order (202 Accepted) |
-| GET | `/orders` | Get user's orders |
-| GET | `/orders/:id` | Get order by ID |
-| GET | `/orders/:id/status` | Get order status only |
+| Method | Endpoint             | Description                     |
+| ------ | -------------------- | ------------------------------- |
+| POST   | `/orders`            | Create new order (202 Accepted) |
+| GET    | `/orders`            | Get user's orders               |
+| GET    | `/orders/:id`        | Get order by ID                 |
+| GET    | `/orders/:id/status` | Get order status only           |
 
 ---
 
@@ -854,12 +892,14 @@ Create a new order (Async processing with 202 Accepted pattern).
 **Authentication**: JWT Bearer Token
 
 **Key Features**:
+
 - ✅ **Async Processing**: Returns immediately with 202 Accepted
 - ✅ **Idempotent**: Same request won't create duplicate orders
 - ✅ **Saga Orchestration**: Multi-step processing with compensation
 - ✅ **Event Sourcing**: Publishes OrderCreatedEvent to queue
 
 **Request Body**:
+
 ```json
 {
   "items": [
@@ -891,6 +931,7 @@ Create a new order (Async processing with 202 Accepted pattern).
 ```
 
 **Success Response**: `202 Accepted`
+
 ```json
 {
   "id": "aa0e8400-e29b-41d4-a716-446655440000",
@@ -899,7 +940,7 @@ Create a new order (Async processing with 202 Accepted pattern).
   "totalAmount": 4799.97,
   "subtotalAmount": 4499.97,
   "taxAmount": 359.98,
-  "shippingAmount": 0.00,
+  "shippingAmount": 0.0,
   "discountAmount": 59.99,
   "currency": "USD",
   "idempotencyKey": "d5e8a7f4b2c1a9e6d3f4b5c6a7e8f9d0",
@@ -936,6 +977,7 @@ Create a new order (Async processing with 202 Accepted pattern).
 ```
 
 **Processing Flow**:
+
 ```
 1. Order created with PENDING status
 2. OrderCreatedEvent published to outbox
@@ -950,6 +992,7 @@ Create a new order (Async processing with 202 Accepted pattern).
 ```
 
 **Order Status Lifecycle**:
+
 ```
 PENDING → PROCESSING → PAYMENT_PENDING → CONFIRMED → SHIPPED → DELIVERED
                     ↓
@@ -959,18 +1002,17 @@ PENDING → PROCESSING → PAYMENT_PENDING → CONFIRMED → SHIPPED → DELIVER
 **Error Responses**:
 
 `400 Bad Request`:
+
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "items must contain at least 1 item",
-    "productId must be a valid UUID"
-  ],
+  "message": ["items must contain at least 1 item", "productId must be a valid UUID"],
   "error": "Bad Request"
 }
 ```
 
 `404 Not Found`:
+
 ```json
 {
   "statusCode": 404,
@@ -988,6 +1030,7 @@ Get all orders for authenticated user.
 **Authentication**: JWT Bearer Token
 
 **Success Response**: `200 OK`
+
 ```json
 [
   {
@@ -1017,9 +1060,11 @@ Get order status only (lightweight polling endpoint).
 **Authentication**: JWT Bearer Token
 
 **Path Parameters**:
+
 - `id` (UUID): Order ID
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "orderId": "aa0e8400-e29b-41d4-a716-446655440000",
@@ -1033,6 +1078,7 @@ Get order status only (lightweight polling endpoint).
 ---
 
 <a name="module-inventory"></a>
+
 ## 📦 Module: Inventory
 
 **Base Path**: `/api/v1/inventory`  
@@ -1040,19 +1086,19 @@ Get order status only (lightweight polling endpoint).
 
 ### Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/inventory/check-availability` | ❌ | Check stock availability |
-| POST | `/inventory/reserve` | ✅ JWT | Reserve stock |
-| PUT | `/inventory/release-reservation` | ✅ JWT | Release reservation |
-| PUT | `/inventory/fulfill-reservation` | ✅ JWT | Fulfill reservation |
-| POST | `/inventory/add-stock` | ✅ JWT | Add stock (restock) |
-| POST | `/inventory/remove-stock` | ✅ JWT | Remove stock |
-| GET | `/inventory/product/:productId` | ❌ | Get inventory by product |
-| GET | `/inventory` | ❌ | Get inventory list |
-| GET | `/inventory/low-stock` | ❌ | Get low stock items |
-| GET | `/inventory/out-of-stock` | ❌ | Get out of stock |
-| GET | `/inventory/stats` | ❌ | Get inventory statistics |
+| Method | Endpoint                         | Auth   | Description              |
+| ------ | -------------------------------- | ------ | ------------------------ |
+| POST   | `/inventory/check-availability`  | ❌     | Check stock availability |
+| POST   | `/inventory/reserve`             | ✅ JWT | Reserve stock            |
+| PUT    | `/inventory/release-reservation` | ✅ JWT | Release reservation      |
+| PUT    | `/inventory/fulfill-reservation` | ✅ JWT | Fulfill reservation      |
+| POST   | `/inventory/add-stock`           | ✅ JWT | Add stock (restock)      |
+| POST   | `/inventory/remove-stock`        | ✅ JWT | Remove stock             |
+| GET    | `/inventory/product/:productId`  | ❌     | Get inventory by product |
+| GET    | `/inventory`                     | ❌     | Get inventory list       |
+| GET    | `/inventory/low-stock`           | ❌     | Get low stock items      |
+| GET    | `/inventory/out-of-stock`        | ❌     | Get out of stock         |
+| GET    | `/inventory/stats`               | ❌     | Get inventory statistics |
 
 ---
 
@@ -1063,6 +1109,7 @@ Check if sufficient stock is available.
 **Authentication**: None (Public)
 
 **Request Body**:
+
 ```json
 {
   "productId": "660e8400-e29b-41d4-a716-446655440000",
@@ -1072,6 +1119,7 @@ Check if sufficient stock is available.
 ```
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "productId": "660e8400-e29b-41d4-a716-446655440000",
@@ -1096,6 +1144,7 @@ Reserve stock for a specific time period (with TTL auto-release).
 **Authentication**: JWT Bearer Token
 
 **Request Body**:
+
 ```json
 {
   "productId": "660e8400-e29b-41d4-a716-446655440000",
@@ -1107,6 +1156,7 @@ Reserve stock for a specific time period (with TTL auto-release).
 ```
 
 **Success Response**: `201 Created`
+
 ```json
 {
   "reservationId": "bb0e8400-e29b-41d4-a716-446655440000",
@@ -1120,6 +1170,7 @@ Reserve stock for a specific time period (with TTL auto-release).
 ```
 
 **Error Response**: `400 Bad Request`
+
 ```json
 {
   "statusCode": 400,
@@ -1137,11 +1188,13 @@ Get items below reorder point or minimum stock levels.
 **Authentication**: None (Public)
 
 **Query Parameters**:
+
 - `page` (number): Page number (default: 1)
 - `limit` (number): Items per page (default: 20)
 - `location` (string): Filter by location
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "data": [
@@ -1175,13 +1228,15 @@ Get overview statistics about inventory.
 **Authentication**: None (Public)
 
 **Query Parameters**:
+
 - `location` (string): Filter by location (optional)
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "totalItems": 450,
-  "totalValue": 1250000.00,
+  "totalValue": 1250000.0,
   "lowStockCount": 12,
   "outOfStockCount": 5,
   "statusBreakdown": {
@@ -1195,6 +1250,7 @@ Get overview statistics about inventory.
 ---
 
 <a name="module-health"></a>
+
 ## 🏥 Module: Health
 
 **Base Path**: `/api/v1/health`  
@@ -1203,12 +1259,12 @@ Get overview statistics about inventory.
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Overall health status |
-| GET | `/health/ready` | Readiness check |
-| GET | `/health/live` | Liveness check |
-| GET | `/health/detailed` | Detailed component health |
+| Method | Endpoint           | Description               |
+| ------ | ------------------ | ------------------------- |
+| GET    | `/health`          | Overall health status     |
+| GET    | `/health/ready`    | Readiness check           |
+| GET    | `/health/live`     | Liveness check            |
+| GET    | `/health/detailed` | Detailed component health |
 
 ---
 
@@ -1219,6 +1275,7 @@ Get overall application health status.
 **Authentication**: None (Public)
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "status": "ok",
@@ -1248,6 +1305,7 @@ Get overall application health status.
 ```
 
 **Error Response**: `503 Service Unavailable`
+
 ```json
 {
   "status": "error",
@@ -1276,6 +1334,7 @@ Get comprehensive health status including all components.
 **Authentication**: None (Public)
 
 **Success Response**: `200 OK`
+
 ```json
 {
   "status": "ok",
@@ -1343,37 +1402,36 @@ All errors follow this structure:
 
 ### HTTP Status Codes
 
-| Code | Name | Description |
-|------|------|-------------|
-| **200** | OK | Request successful |
-| **201** | Created | Resource created |
-| **202** | Accepted | Async processing started |
-| **204** | No Content | Deletion successful |
-| **400** | Bad Request | Invalid input |
-| **401** | Unauthorized | Authentication required |
-| **403** | Forbidden | Insufficient permissions |
-| **404** | Not Found | Resource not found |
-| **409** | Conflict | Duplicate resource |
-| **422** | Unprocessable Entity | Business logic error |
-| **429** | Too Many Requests | Rate limit exceeded |
-| **500** | Internal Server Error | Server error |
-| **503** | Service Unavailable | Service down |
+| Code    | Name                  | Description              |
+| ------- | --------------------- | ------------------------ |
+| **200** | OK                    | Request successful       |
+| **201** | Created               | Resource created         |
+| **202** | Accepted              | Async processing started |
+| **204** | No Content            | Deletion successful      |
+| **400** | Bad Request           | Invalid input            |
+| **401** | Unauthorized          | Authentication required  |
+| **403** | Forbidden             | Insufficient permissions |
+| **404** | Not Found             | Resource not found       |
+| **409** | Conflict              | Duplicate resource       |
+| **422** | Unprocessable Entity  | Business logic error     |
+| **429** | Too Many Requests     | Rate limit exceeded      |
+| **500** | Internal Server Error | Server error             |
+| **503** | Service Unavailable   | Service down             |
 
 ### Error Types
 
 **Validation Error**:
+
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "email must be a valid email",
-    "password must be at least 8 characters"
-  ],
+  "message": ["email must be a valid email", "password must be at least 8 characters"],
   "error": "Bad Request"
 }
 ```
 
 **Authentication Error**:
+
 ```json
 {
   "statusCode": 401,
@@ -1383,6 +1441,7 @@ All errors follow this structure:
 ```
 
 **Business Logic Error**:
+
 ```json
 {
   "statusCode": 422,
@@ -1408,6 +1467,7 @@ Headers:
 ```
 
 **Response when limit exceeded**: `429 Too Many Requests`
+
 ```json
 {
   "statusCode": 429,
@@ -1496,14 +1556,14 @@ GET /api/v1/orders/{orderId}/status
 
 ## 🔗 Useful Links
 
-| Resource | URL |
-|----------|-----|
-| **Swagger UI** | `http://localhost:3000/api/docs` |
-| **Health Check** | `http://localhost:3000/health` |
-| **Bull Board** | `http://localhost:3000/api/v1/admin/queues` |
-| **Metrics** | `http://localhost:3000/metrics` |
-| **PgAdmin** | `http://localhost:8080` |
-| **Redis Commander** | `http://localhost:8081` |
+| Resource            | URL                                         |
+| ------------------- | ------------------------------------------- |
+| **Swagger UI**      | `http://localhost:3000/api/docs`            |
+| **Health Check**    | `http://localhost:3000/health`              |
+| **Bull Board**      | `http://localhost:3000/api/v1/admin/queues` |
+| **Metrics**         | `http://localhost:3000/metrics`             |
+| **PgAdmin**         | `http://localhost:8080`                     |
+| **Redis Commander** | `http://localhost:8081`                     |
 
 ---
 

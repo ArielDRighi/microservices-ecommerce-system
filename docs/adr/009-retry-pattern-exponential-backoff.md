@@ -9,9 +9,7 @@
 
 ## 📋 Contexto y Problema
 
-En un sistema asín
-
-crono resiliente, las operaciones pueden fallar temporalmente por:
+En un sistema asíncrono resiliente, las operaciones pueden fallar temporalmente por:
 
 1. **Network Issues**: Timeout, connection reset, host unreachable
 2. **Service Unavailability**: External APIs temporally down (payment gateways, notification services)
@@ -99,7 +97,7 @@ export const bullConfig = registerAs(
       host: process.env['REDIS_HOST'] || 'localhost',
       port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
       db: parseInt(process.env['BULL_REDIS_DB'] || '1', 10), // Separate DB
-      
+
       // Connection resilience
       maxRetriesPerRequest: null, // Bull manages retries
       enableOfflineQueue: true,
@@ -118,7 +116,7 @@ export const bullConfig = registerAs(
       // ✅ Retry configuration with exponential backoff
       attempts: parseInt(process.env['BULL_DEFAULT_ATTEMPTS'] || '3', 10),
       backoff: {
-        type: 'exponential',  // 2^n * delay
+        type: 'exponential', // 2^n * delay
         delay: 2000, // Start with 2s → 4s → 8s → 16s
       },
 
@@ -140,6 +138,7 @@ export const bullConfig = registerAs(
 ```
 
 **Key Decisions**:
+
 - ✅ **Exponential Backoff**: Avoids thundering herd problem
 - ✅ **Global Defaults**: Consistent behavior across queues
 - ✅ **enableOfflineQueue**: Queue jobs even if Redis down
@@ -230,12 +229,12 @@ export const queueConfigs: Record<string, QueueConfig> = {
 
 **Retry Strategy by Queue**:
 
-| Queue | Attempts | Backoff Type | Initial Delay | Max Delay | Rationale |
-|-------|----------|--------------|---------------|-----------|-----------|
-| **Orders** | 5 | Exponential | 3s | 48s | Critical flow, more attempts |
-| **Payments** | 3 | Exponential | 5s | 20s | External API limits |
-| **Inventory** | 3 | Exponential | 2s | 8s | Internal service, fast recovery |
-| **Notifications** | 3 | Fixed | 5s | 5s | Email/SMS, consistent delays |
+| Queue             | Attempts | Backoff Type | Initial Delay | Max Delay | Rationale                       |
+| ----------------- | -------- | ------------ | ------------- | --------- | ------------------------------- |
+| **Orders**        | 5        | Exponential  | 3s            | 48s       | Critical flow, more attempts    |
+| **Payments**      | 3        | Exponential  | 5s            | 20s       | External API limits             |
+| **Inventory**     | 3        | Exponential  | 2s            | 8s        | Internal service, fast recovery |
+| **Notifications** | 3        | Fixed        | 5s            | 5s        | Email/SMS, consistent delays    |
 
 ---
 
@@ -251,7 +250,7 @@ async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto
 
   try {
     // ... (create order logic)
-    
+
     await queryRunner.commitTransaction();
 
     // ✅ Enqueue async processing with custom retry options
@@ -285,16 +284,17 @@ async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto
 ```
 
 **Options Available**:
+
 ```typescript
 interface JobOptions {
-  attempts?: number;        // Max retries
+  attempts?: number; // Max retries
   backoff?: {
     type: 'fixed' | 'exponential';
-    delay: number;          // Initial delay (ms)
+    delay: number; // Initial delay (ms)
   };
-  priority?: number;        // 1-10 (higher = more priority)
-  delay?: number;           // Initial delay before first attempt
-  timeout?: number;         // Job timeout (ms)
+  priority?: number; // 1-10 (higher = more priority)
+  delay?: number; // Initial delay before first attempt
+  timeout?: number; // Job timeout (ms)
   removeOnComplete?: boolean | number;
   removeOnFail?: boolean | number;
   stackTraceLimit?: number;
@@ -379,12 +379,12 @@ export abstract class BaseProcessor<T extends BaseJobData = BaseJobData> {
     if (error instanceof Error) {
       // Network errors, timeouts (retryable)
       const retryableErrors = [
-        'ECONNRESET',       // Connection reset by peer
-        'ETIMEDOUT',        // Operation timed out
-        'ECONNREFUSED',     // Connection refused
-        'EHOSTUNREACH',     // Host unreachable
-        'NetworkError',     // Generic network error
-        'TimeoutError',     // Timeout error
+        'ECONNRESET', // Connection reset by peer
+        'ETIMEDOUT', // Operation timed out
+        'ECONNREFUSED', // Connection refused
+        'EHOSTUNREACH', // Host unreachable
+        'NetworkError', // Generic network error
+        'TimeoutError', // Timeout error
       ];
 
       return retryableErrors.some(
@@ -421,13 +421,13 @@ export abstract class BaseProcessor<T extends BaseJobData = BaseJobData> {
 
 **Error Classification**:
 
-| Category | Errors | Retryable? | Strategy |
-|----------|--------|------------|----------|
-| **Network** | ECONNRESET, ETIMEDOUT, ECONNREFUSED | ✅ Yes | Exponential backoff |
-| **Validation** | ValidationError, BadRequestException | ❌ No | Immediate DLQ |
-| **Authentication** | UnauthorizedException, Forbidden | ❌ No | Immediate DLQ |
-| **Rate Limiting** | TooManyRequests (429) | ✅ Yes | Exponential backoff |
-| **Server Errors** | InternalServerError (500) | ✅ Yes | Exponential backoff |
+| Category           | Errors                               | Retryable? | Strategy            |
+| ------------------ | ------------------------------------ | ---------- | ------------------- |
+| **Network**        | ECONNRESET, ETIMEDOUT, ECONNREFUSED  | ✅ Yes     | Exponential backoff |
+| **Validation**     | ValidationError, BadRequestException | ❌ No      | Immediate DLQ       |
+| **Authentication** | UnauthorizedException, Forbidden     | ❌ No      | Immediate DLQ       |
+| **Rate Limiting**  | TooManyRequests (429)                | ✅ Yes     | Exponential backoff |
+| **Server Errors**  | InternalServerError (500)            | ✅ Yes     | Exponential backoff |
 
 ---
 
@@ -567,17 +567,17 @@ Queue-Specific Overrides:
     attempts: 5
     delay: 3000ms
     max_delay: 48s
-  
+
   payment-processing:
     attempts: 3
     delay: 5000ms
     max_delay: 20s
-  
+
   inventory-management:
     attempts: 3
     delay: 2000ms
     max_delay: 8s
-  
+
   notification-sending:
     attempts: 3
     backoff: fixed
@@ -606,15 +606,15 @@ Non-Retryable Errors:
 
 ### Metrics
 
-| Métrica | Valor | Observación |
-|---------|-------|-------------|
-| **Queues with Retry** | 4 | Orders, Payments, Inventory, Notifications |
-| **Default Attempts** | 3 | Global default |
-| **Max Attempts** | 5 | Order processing (critical) |
-| **Retryable Error Types** | 7 | Network, timeout, rate-limit |
-| **Backoff Types** | 2 | Exponential, Fixed |
-| **Initial Delays** | 2-5s | Per queue type |
-| **Max Delay** | 48s | Order processing queue |
+| Métrica                   | Valor | Observación                                |
+| ------------------------- | ----- | ------------------------------------------ |
+| **Queues with Retry**     | 4     | Orders, Payments, Inventory, Notifications |
+| **Default Attempts**      | 3     | Global default                             |
+| **Max Attempts**          | 5     | Order processing (critical)                |
+| **Retryable Error Types** | 7     | Network, timeout, rate-limit               |
+| **Backoff Types**         | 2     | Exponential, Fixed                         |
+| **Initial Delays**        | 2-5s  | Per queue type                             |
+| **Max Delay**             | 48s   | Order processing queue                     |
 
 ---
 
@@ -629,7 +629,7 @@ Non-Retryable Errors:
 async processJob(data: JobData) {
   let attempts = 0;
   const maxAttempts = 3;
-  
+
   while (attempts < maxAttempts) {
     try {
       return await this.execute(data);
@@ -643,6 +643,7 @@ async processJob(data: JobData) {
 ```
 
 **Razones de Rechazo**:
+
 - ❌ **Boilerplate**: Repetir en cada processor
 - ❌ **Error-Prone**: Fácil olvidar edge cases
 - ❌ **No Observability**: Sin métricas built-in
@@ -664,6 +665,7 @@ axiosRetry(axios, {
 ```
 
 **Razones de Rechazo**:
+
 - ⚠️ **Limited Scope**: Solo HTTP calls, no queue jobs
 - ⚠️ **Mixing Patterns**: Two retry systems (Bull + axios-retry)
 - ⚠️ **Complexity**: Harder to debug
@@ -676,6 +678,7 @@ axiosRetry(axios, {
 **Descripción**: Let API Gateway handle retries
 
 **Razones de Rechazo**:
+
 - ❌ **No Queue Support**: API Gateway can't retry async jobs
 - ❌ **Limited Control**: Less granular configuration
 - ❌ **Stateless**: Can't track job attempts
@@ -841,7 +844,7 @@ protected async processJob(data: JobData) {
   if (this.circuitBreaker.isOpen()) {
     throw new ServiceUnavailableException('Circuit open');
   }
-  
+
   return await this.execute(data);
 }
 ```
@@ -856,7 +859,7 @@ await this.orderQueue.add('process-order', data, {
   headers: {
     'trace-id': traceId,
     'parent-span-id': spanId,
-  }
+  },
 });
 ```
 
@@ -869,6 +872,7 @@ await this.orderQueue.add('process-order', data, {
 **Decisión Final**: ✅ Aceptado
 
 **Justificación**:
+
 1. ✅ **Built-in Support**: Bull provee retry out-of-the-box
 2. ✅ **Exponential Backoff**: Prevents thundering herd
 3. ✅ **Per-Queue Customization**: 5 attempts (orders), 3 attempts (payments)
@@ -878,11 +882,13 @@ await this.orderQueue.add('process-order', data, {
 7. ✅ **Configuration-Based**: No code, just config
 
 **Trade-offs Aceptados**:
+
 - ⚠️ Fixed strategies (exponential, fixed) → No adaptive backoff (yet)
 - ⚠️ No jitter → Possible synchronized retries (rare)
 - ⚠️ Bull-specific → Coupling to Bull (OK, unlikely to change)
 
 **Firmantes**:
+
 - Arquitectura: ✅ Aprobado
 - Backend Team: ✅ Implementado
 - DevOps: ✅ Monitored

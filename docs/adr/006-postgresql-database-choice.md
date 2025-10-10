@@ -94,7 +94,7 @@ PostgreSQL provee la **combinación perfecta** de features ACID + NoSQL flexibil
 export const databaseConfig = registerAs(
   'database',
   (): TypeOrmModuleOptions => ({
-    type: 'postgres',  // ✅ PostgreSQL chosen
+    type: 'postgres', // ✅ PostgreSQL chosen
     host: process.env['DATABASE_HOST'] || 'localhost',
     port: parseInt(process.env['DATABASE_PORT'] || '5433', 10),
     username: process.env['DATABASE_USERNAME'] || 'postgres',
@@ -106,14 +106,14 @@ export const databaseConfig = registerAs(
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
 
     // Migration Configuration
-    synchronize: false,  // ✅ Use migrations for safety
+    synchronize: false, // ✅ Use migrations for safety
     migrationsRun: process.env['RUN_MIGRATIONS'] === 'true',
     migrationsTableName: 'migrations_history',
 
     // Logging Configuration
     logging: process.env['NODE_ENV'] === 'development' ? 'all' : ['error', 'warn'],
     logger: 'advanced-console',
-    maxQueryExecutionTime: 10000,  // Log slow queries (>10s)
+    maxQueryExecutionTime: 10000, // Log slow queries (>10s)
 
     // Connection Pool Configuration
     extra: {
@@ -121,19 +121,20 @@ export const databaseConfig = registerAs(
       min: parseInt(process.env['DATABASE_MIN_CONNECTIONS'] || '5', 10),
       acquireTimeoutMillis: 30000,
       idleTimeoutMillis: 30000,
-      
+
       // Connection validation
       testOnBorrow: true,
-      validationQuery: 'SELECT 1',  // PostgreSQL health check
+      validationQuery: 'SELECT 1', // PostgreSQL health check
     },
 
     // SSL Configuration (production)
-    ssl: process.env['DATABASE_SSL'] === 'true'
-      ? {
-          rejectUnauthorized: false,
-          ca: process.env['DATABASE_SSL_CA'],
-        }
-      : false,
+    ssl:
+      process.env['DATABASE_SSL'] === 'true'
+        ? {
+            rejectUnauthorized: false,
+            ca: process.env['DATABASE_SSL_CA'],
+          }
+        : false,
 
     // Retry and Error Handling
     retryAttempts: parseInt(process.env['DATABASE_RETRY_ATTEMPTS'] || '3', 10),
@@ -143,6 +144,7 @@ export const databaseConfig = registerAs(
 ```
 
 **Features Configuradas**:
+
 - ✅ **Connection Pooling**: 5-20 connections
 - ✅ **Health Checks**: `SELECT 1` validation
 - ✅ **Slow Query Logging**: >10s queries logged
@@ -160,7 +162,7 @@ export const databaseConfig = registerAs(
 public async up(queryRunner: QueryRunner): Promise<void> {
   // Enable UUID extension
   await queryRunner.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
-  
+
   // Now we can use uuid_generate_v4()
 }
 ```
@@ -171,15 +173,16 @@ public async up(queryRunner: QueryRunner): Promise<void> {
 // All entities use UUID primary keys
 @Entity('orders')
 export class Order {
-  @PrimaryGeneratedColumn('uuid')  // ✅ UUID v4
+  @PrimaryGeneratedColumn('uuid') // ✅ UUID v4
   id!: string;
-  
+
   @Column({ type: 'uuid', name: 'user_id' })
   userId!: string;
 }
 ```
 
 **Benefits**:
+
 - ✅ **Distributed IDs**: No need for central sequence generator
 - ✅ **Collision-free**: Virtually impossible UUID collision
 - ✅ **Scalability**: Ready for distributed systems
@@ -197,7 +200,7 @@ public async up(queryRunner: QueryRunner): Promise<void> {
   // Create order status enum
   await queryRunner.query(`
     CREATE TYPE "order_status_enum" AS ENUM (
-      'PENDING', 'PROCESSING', 'PAYMENT_PENDING', 'PAYMENT_FAILED', 
+      'PENDING', 'PROCESSING', 'PAYMENT_PENDING', 'PAYMENT_FAILED',
       'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'
     )
   `);
@@ -205,8 +208,8 @@ public async up(queryRunner: QueryRunner): Promise<void> {
   // Create saga status enum
   await queryRunner.query(`
     CREATE TYPE "saga_status_enum" AS ENUM (
-      'STARTED', 'RUNNING', 'COMPLETED', 'FAILED', 'RETRYING', 
-      'COMPENSATING', 'COMPENSATED', 'COMPENSATION_FAILED', 
+      'STARTED', 'RUNNING', 'COMPLETED', 'FAILED', 'RETRYING',
+      'COMPENSATING', 'COMPENSATED', 'COMPENSATION_FAILED',
       'CANCELLED', 'TIMEOUT'
     )
   `);
@@ -214,9 +217,9 @@ public async up(queryRunner: QueryRunner): Promise<void> {
   // Create inventory movement type enum
   await queryRunner.query(`
     CREATE TYPE "inventory_movement_type_enum" AS ENUM (
-      'RESTOCK', 'SALE', 'RETURN', 'ADJUSTMENT', 'RESERVATION', 
-      'RELEASE_RESERVATION', 'DAMAGE', 'THEFT', 'TRANSFER_IN', 
-      'TRANSFER_OUT', 'EXPIRED', 'QUALITY_CONTROL', 
+      'RESTOCK', 'SALE', 'RETURN', 'ADJUSTMENT', 'RESERVATION',
+      'RELEASE_RESERVATION', 'DAMAGE', 'THEFT', 'TRANSFER_IN',
+      'TRANSFER_OUT', 'EXPIRED', 'QUALITY_CONTROL',
       'MANUAL_CORRECTION', 'SYSTEM_CORRECTION'
     )
   `);
@@ -247,6 +250,7 @@ export class Order {
 ```
 
 **Benefits**:
+
 - ✅ **Type Safety**: Database-level validation
 - ✅ **Storage Efficient**: Stored as integers internally
 - ✅ **Auto-Complete**: IDE knows valid values
@@ -281,15 +285,14 @@ export class OutboxEvent {
 ```
 
 **Example Data**:
+
 ```json
 {
   "eventData": {
     "orderId": "uuid-123",
     "userId": "uuid-456",
     "totalAmount": 199.99,
-    "items": [
-      { "productId": "uuid-789", "quantity": 2, "price": 99.99 }
-    ]
+    "items": [{ "productId": "uuid-789", "quantity": 2, "price": 99.99 }]
   },
   "eventMetadata": {
     "source": "orders-service",
@@ -315,6 +318,7 @@ export class SagaStateEntity {
 ```
 
 **Example Data**:
+
 ```json
 {
   "orderId": "uuid-123",
@@ -383,6 +387,7 @@ export class Product {
 ```
 
 **Example Data**:
+
 ```json
 {
   "color": "Blue",
@@ -394,6 +399,7 @@ export class Product {
 ```
 
 **JSONB Benefits**:
+
 - ✅ **Schema Flexibility**: Add fields without migrations
 - ✅ **Indexable**: GIN indexes for fast queries
 - ✅ **Type Safety**: Validate with JSON Schema
@@ -498,13 +504,13 @@ await queryRunner.query(`
 
 **Index Types Used**:
 
-| Type | Purpose | Example |
-|------|---------|---------|
-| **B-tree** (default) | Equality, range queries | `idx_orders_user_id` |
-| **GIN** | Full-text search, JSONB | `idx_products_name_description` |
-| **Partial** | Index only rows matching condition | `WHERE idempotency_key IS NOT NULL` |
-| **Unique** | Enforce uniqueness | `idx_products_sku` |
-| **Composite** | Multi-column queries | `(current_stock, minimum_stock)` |
+| Type                 | Purpose                            | Example                             |
+| -------------------- | ---------------------------------- | ----------------------------------- |
+| **B-tree** (default) | Equality, range queries            | `idx_orders_user_id`                |
+| **GIN**              | Full-text search, JSONB            | `idx_products_name_description`     |
+| **Partial**          | Index only rows matching condition | `WHERE idempotency_key IS NOT NULL` |
+| **Unique**           | Enforce uniqueness                 | `idx_products_sku`                  |
+| **Composite**        | Multi-column queries               | `(current_stock, minimum_stock)`    |
 
 ---
 
@@ -523,13 +529,17 @@ await queryRunner.query(`
 // Usage in queries
 const products = await productRepository
   .createQueryBuilder('product')
-  .where(`to_tsvector('english', product.name || ' ' || COALESCE(product.description, '')) @@ plainto_tsquery('english', :query)`, {
-    query: 'wireless headphones',
-  })
+  .where(
+    `to_tsvector('english', product.name || ' ' || COALESCE(product.description, '')) @@ plainto_tsquery('english', :query)`,
+    {
+      query: 'wireless headphones',
+    },
+  )
   .getMany();
 ```
 
 **Benefits**:
+
 - ✅ **Language Support**: 'english', 'spanish', etc.
 - ✅ **Stemming**: 'run' matches 'running', 'runs', 'ran'
 - ✅ **Stop Words**: Ignores 'the', 'and', 'or'
@@ -567,6 +577,7 @@ async reserveStock(productId: string, quantity: number): Promise<void> {
 ```
 
 **How It Works**:
+
 1. **Transaction starts**
 2. **SELECT FOR UPDATE**: Row locked (other transactions wait)
 3. **Check stock**: Safe read (no concurrent modifications)
@@ -574,6 +585,7 @@ async reserveStock(productId: string, quantity: number): Promise<void> {
 5. **COMMIT**: Lock released
 
 **Benefits**:
+
 - ✅ **No Race Conditions**: Prevents double-reservations
 - ✅ **ACID**: Atomic with order creation
 - ✅ **Deadlock Detection**: PostgreSQL handles automatically
@@ -584,13 +596,13 @@ async reserveStock(productId: string, quantity: number): Promise<void> {
 @Entity('products')
 export class Product {
   @VersionColumn()
-  version: number;  // Auto-incremented on each update
+  version: number; // Auto-incremented on each update
 }
 
 // Update fails if version changed (optimistic lock)
 await productRepository.update(
   { id: productId, version: currentVersion },
-  { price: newPrice, version: () => 'version + 1' }
+  { price: newPrice, version: () => 'version + 1' },
 );
 ```
 
@@ -632,6 +644,7 @@ async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto
 ```
 
 **Why This Matters**:
+
 - ✅ **No Lost Events**: Event always persisted with entity
 - ✅ **No Orphan Events**: Entity creation fails → No event
 - ✅ **At-Least-Once Delivery**: Event published eventually (Outbox Processor)
@@ -665,6 +678,7 @@ export class Product {
 ```
 
 **Query Examples**:
+
 ```typescript
 // Find products with specific tag
 const products = await productRepository.find({
@@ -681,6 +695,7 @@ const products = await productRepository
 ```
 
 **Benefits**:
+
 - ✅ **No Join Table**: Simpler schema
 - ✅ **GIN Indexable**: Fast array queries
 - ✅ **Type Safe**: TypeScript arrays
@@ -718,16 +733,16 @@ Total Enums: 3
 
 ### Metrics
 
-| Métrica | Valor | Observación |
-|---------|-------|-------------|
-| **Total Entidades** | 11 | Modularizado por feature |
-| **JSONB Columns** | 7 | Events, Saga, Addresses, Attributes |
-| **UUID Columns** | 40+ | Primary + Foreign keys |
-| **Enum Columns** | 4 | Type-safe estados |
-| **Array Columns** | 6 | Images, Tags, Steps |
-| **Indexes** | 60+ | Optimized queries |
-| **Foreign Keys** | 8 | Referential integrity |
-| **Unique Constraints** | 10 | Business rules |
+| Métrica                | Valor | Observación                         |
+| ---------------------- | ----- | ----------------------------------- |
+| **Total Entidades**    | 11    | Modularizado por feature            |
+| **JSONB Columns**      | 7     | Events, Saga, Addresses, Attributes |
+| **UUID Columns**       | 40+   | Primary + Foreign keys              |
+| **Enum Columns**       | 4     | Type-safe estados                   |
+| **Array Columns**      | 6     | Images, Tags, Steps                 |
+| **Indexes**            | 60+   | Optimized queries                   |
+| **Foreign Keys**       | 8     | Referential integrity               |
+| **Unique Constraints** | 10    | Business rules                      |
 
 ---
 
@@ -738,6 +753,7 @@ Total Enums: 3
 **Descripción**: Database relacional popular
 
 **Razones de Rechazo**:
+
 - ❌ **JSONB**: MySQL JSON performance inferior (no indexes eficientes)
 - ❌ **Full-Text Search**: Menos potente que PostgreSQL
 - ❌ **Enums**: No enums nativos (VARCHAR con CHECK constraint)
@@ -746,6 +762,7 @@ Total Enums: 3
 - ⚠️ **Extensions**: Ecosystem más limitado
 
 **Cuándo Usar MySQL**:
+
 - Aplicaciones simples CRUD
 - Stack existente (legacy)
 - Replicación master-slave simple
@@ -757,6 +774,7 @@ Total Enums: 3
 **Descripción**: Document database (NoSQL)
 
 **Razones de Rechazo**:
+
 - ❌ **ACID Transactions**: Solo desde v4.0, menos maduro
 - ❌ **Outbox Pattern**: Difícil garantizar atomicity cross-collection
 - ❌ **Joins**: Lookups lentos, no optimized
@@ -765,6 +783,7 @@ Total Enums: 3
 - ⚠️ **Learning Curve**: Query language diferente
 
 **Cuándo Considerar MongoDB**:
+
 - Datos altamente denormalizados
 - Schema extremadamente flexible
 - Write-heavy workloads (logs, analytics)
@@ -777,6 +796,7 @@ Total Enums: 3
 **Descripción**: Fork de MySQL
 
 **Razones de Rechazo**:
+
 - ❌ **JSONB**: JSON storage menos eficiente que PostgreSQL
 - ❌ **Extensions**: Menos extensible
 - ⚠️ **Similar a MySQL**: Mismas limitaciones
@@ -788,14 +808,16 @@ Total Enums: 3
 **Descripción**: PostgreSQL-compatible distributed database
 
 **Razones de NO Adopción Inmediata**:
+
 - ⚠️ **Complexity**: Overkill para single-region MVP
 - ⚠️ **Cost**: Más caro que PostgreSQL managed
 - ⚠️ **Learning Curve**: Team sin experiencia
 - ⚠️ **Tooling**: Menos maduro ecosystem
 
 **Cuándo Migrar a CockroachDB**:
+
 - Multi-region deployment
-- >1M requests/day
+- > 1M requests/day
 - 99.99% uptime SLA
 - Geo-replication requirements
 
@@ -823,7 +845,7 @@ WHERE id = 'uuid-123';
 ```sql
 -- Full-text search
 SELECT * FROM products
-WHERE to_tsvector('english', name || ' ' || description) 
+WHERE to_tsvector('english', name || ' ' || description)
       @@ plainto_tsquery('english', 'wireless headphones');
 
 -- JSONB queries
@@ -835,7 +857,7 @@ SELECT * FROM products
 WHERE 'bluetooth' = ANY(tags);
 
 -- Window functions
-SELECT 
+SELECT
   product_id,
   quantity,
   SUM(quantity) OVER (PARTITION BY product_id ORDER BY created_at) as running_total
@@ -878,12 +900,12 @@ attributes?: Record<string, unknown>;
 
 ```sql
 -- ✅ GOOD: Index only non-null values
-CREATE UNIQUE INDEX idx_orders_idempotency_key 
-ON orders (idempotency_key) 
+CREATE UNIQUE INDEX idx_orders_idempotency_key
+ON orders (idempotency_key)
 WHERE idempotency_key IS NOT NULL;
 
 -- ❌ BAD: Index all rows (wasted space)
-CREATE UNIQUE INDEX idx_orders_idempotency_key 
+CREATE UNIQUE INDEX idx_orders_idempotency_key
 ON orders (idempotency_key);
 ```
 
@@ -899,7 +921,8 @@ CREATE TYPE order_status_enum AS ENUM ('PENDING', 'PROCESSING', ...);
 status VARCHAR(50) CHECK (status IN ('PENDING', 'PROCESSING', ...))
 ```
 
-**Benefits**: 
+**Benefits**:
+
 - Type safety en database
 - Storage efficiency (4 bytes vs string length)
 - Performance (integer comparisons)
@@ -939,12 +962,12 @@ Architecture:
     - Orders creation
     - Inventory updates
     - User authentication
-  
+
   Replica 1 (Read):
     - Product catalog queries
     - Order history
     - Search
-  
+
   Replica 2 (Read):
     - Analytics
     - Reporting
@@ -996,6 +1019,7 @@ Latency: <50ms local reads
 **Decisión Final**: ✅ Aceptado
 
 **Justificación**:
+
 1. ✅ **ACID Transactions**: Outbox Pattern requires atomicity
 2. ✅ **JSONB**: Event payloads, Saga state, flexible attributes
 3. ✅ **Enums**: Type-safe status management
@@ -1006,11 +1030,13 @@ Latency: <50ms local reads
 8. ✅ **Ecosystem**: TypeORM, NestJS, managed services
 
 **Trade-offs Aceptados**:
+
 - ⚠️ Vertical scaling primero (horizontal más complejo)
 - ⚠️ Learning curve (más features = más complejidad)
 - ⚠️ Managed service costs (AWS RDS más caro que self-hosted)
 
 **Firmantes**:
+
 - Arquitectura: ✅ Aprobado
 - Backend Team: ✅ Implementado
 - DBA: ✅ Optimizado

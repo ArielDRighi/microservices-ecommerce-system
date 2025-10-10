@@ -22,14 +22,14 @@ Use **Jest 29.x** (NestJS default) with custom configuration:
 module.exports = {
   preset: '@nestjs/testing',
   testEnvironment: 'node',
-  
+
   // Test organization
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: [
-    '**/*.spec.ts',    // Unit tests
+    '**/*.spec.ts', // Unit tests
     '**/*.e2e-spec.ts', // E2E tests
   ],
-  
+
   // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -47,12 +47,12 @@ module.exports = {
       statements: 80,
     },
   },
-  
+
   // Transform TypeScript
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
-  
+
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/test/config/setup-tests.ts'],
 };
@@ -83,10 +83,12 @@ test/                        # E2E tests (separate folder)
 
 ## Test Types
 
-**Unit Tests (*.spec.ts):**
+**Unit Tests (\*.spec.ts):**
+
 - Test single class/function in isolation
 - Mock all dependencies
 - Fast (< 1ms per test)
+
 ```typescript
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -115,15 +117,18 @@ describe('OrdersService', () => {
 });
 ```
 
-**Integration Tests (*.integration.spec.ts):**
+**Integration Tests (\*.integration.spec.ts):**
+
 - Test multiple components together
 - Real database (test DB)
 - Slower (100-500ms per test)
 
-**E2E Tests (*.e2e-spec.ts):**
+**E2E Tests (\*.e2e-spec.ts):**
+
 - Test full HTTP request flow
 - Real app, real DB, real queues
 - Slowest (500-2000ms per test)
+
 ```typescript
 describe('Orders (e2e)', () => {
   let app: INestApplication;
@@ -176,7 +181,7 @@ All files              |   82.45 |    78.32 |   85.67 |   82.91 |
 ✅ **Fast:** Jest runs tests in parallel  
 ✅ **Built-in:** Mocking, assertions, coverage included  
 ✅ **Watch Mode:** Auto-rerun on file changes  
-✅ **Snapshots:** UI testing with snapshot assertions  
+✅ **Snapshots:** UI testing with snapshot assertions
 
 ---
 

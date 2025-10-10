@@ -48,40 +48,40 @@ Este proyecto implementa una **arquitectura asíncrona de 8 capas** con patrones
 ```mermaid
 graph TB
     Client[🌐 Cliente HTTP] --> API[📡 API Layer - NestJS]
-    
+
     API --> OrderController[🛒 Orders Controller]
     API --> ProductController[📦 Products Controller]
     API --> InventoryController[📊 Inventory Controller]
-    
+
     OrderController --> OrderService[⚙️ Order Service]
     ProductController --> ProductService[⚙️ Product Service]
     InventoryController --> InventoryService[⚙️ Inventory Service]
-    
+
     OrderService --> EventPublisher[📤 Event Publisher]
     EventPublisher --> OutboxTable[(📝 Outbox Events Table)]
     EventPublisher --> Queue[🔄 Bull Queues - Redis]
-    
+
     Queue --> OrderProcessor[⚡ Order Processor Worker]
     Queue --> PaymentProcessor[💳 Payment Processor]
     Queue --> InventoryProcessor[📦 Inventory Processor]
     Queue --> NotificationProcessor[📧 Notification Processor]
-    
+
     OrderProcessor --> SagaOrchestrator[🎭 Saga Orchestrator]
     SagaOrchestrator --> SagaStateTable[(🗂️ Saga States Table)]
-    
+
     OrderService --> DB[(🗄️ PostgreSQL)]
     ProductService --> DB
     InventoryService --> DB
     PaymentProcessor --> PaymentGateway[💰 Payment Gateway API]
     NotificationProcessor --> EmailProvider[📮 Email Provider]
-    
+
     subgraph "🔍 Observability Layer"
         HealthCheck[❤️ Health Checks - Terminus]
         Metrics[📊 Prometheus Metrics]
         Logs[📜 Winston Structured Logs]
         BullBoard[📈 Bull Board Dashboard]
     end
-    
+
     style Client fill:#e1f5ff
     style API fill:#fff3e0
     style Queue fill:#f3e5f5
@@ -91,16 +91,16 @@ graph TB
 
 ### 📐 Capas Arquitectónicas
 
-| Capa | Responsabilidad | Tecnologías |
-|------|----------------|-------------|
-| **1. Client** | Aplicaciones frontend/mobile | HTTP/REST |
-| **2. API** | Controllers, Guards, Validation | NestJS, JWT, Swagger |
-| **3. Application** | Services, Business Logic | TypeScript, DTOs |
-| **4. Event** | Event Publishing, Outbox Pattern | Outbox Table, Events |
-| **5. Queue** | Async Job Management | Bull, Redis |
-| **6. Worker** | Background Processors | Bull Processors |
-| **7. Saga** | Long-running Workflows | Saga Pattern, Compensation |
-| **8. Data** | Persistence, Queries | PostgreSQL, TypeORM |
+| Capa               | Responsabilidad                  | Tecnologías                |
+| ------------------ | -------------------------------- | -------------------------- |
+| **1. Client**      | Aplicaciones frontend/mobile     | HTTP/REST                  |
+| **2. API**         | Controllers, Guards, Validation  | NestJS, JWT, Swagger       |
+| **3. Application** | Services, Business Logic         | TypeScript, DTOs           |
+| **4. Event**       | Event Publishing, Outbox Pattern | Outbox Table, Events       |
+| **5. Queue**       | Async Job Management             | Bull, Redis                |
+| **6. Worker**      | Background Processors            | Bull Processors            |
+| **7. Saga**        | Long-running Workflows           | Saga Pattern, Compensation |
+| **8. Data**        | Persistence, Queries             | PostgreSQL, TypeORM        |
 
 > 📖 **Documentación Detallada**: Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para diagramas completos, flujos de datos, y decisiones arquitectónicas.
 
@@ -303,22 +303,22 @@ HEALTH_CHECK_TIMEOUT=5000
 
 ### 📖 Documentos Técnicos Principales
 
-| Documento | Descripción | Link |
-|-----------|-------------|------|
-| **🏗️ Architecture** | Arquitectura completa del sistema con diagramas Mermaid | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| **🗄️ Database Design** | Diseño de base de datos, tablas, índices, relaciones | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) |
-| **🌐 API Documentation** | Documentación exhaustiva de endpoints, request/response | [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) |
-| **⚙️ Project Setup** | Guía de instalación, configuración, despliegue | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md) |
-| **📋 ADRs** | Architecture Decision Records (decisiones arquitectónicas) | [docs/adr/README.md](docs/adr/README.md) |
+| Documento                | Descripción                                                | Link                                                   |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------ |
+| **🏗️ Architecture**      | Arquitectura completa del sistema con diagramas Mermaid    | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)           |
+| **🗄️ Database Design**   | Diseño de base de datos, tablas, índices, relaciones       | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md)     |
+| **🌐 API Documentation** | Documentación exhaustiva de endpoints, request/response    | [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) |
+| **⚙️ Project Setup**     | Guía de instalación, configuración, despliegue             | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md)         |
+| **📋 ADRs**              | Architecture Decision Records (decisiones arquitectónicas) | [docs/adr/README.md](docs/adr/README.md)               |
 
 ### 🔍 ADRs Disponibles (Architecture Decision Records)
 
-| ADR | Título | Estado |
-|-----|--------|--------|
+| ADR                                                    | Título                               | Estado      |
+| ------------------------------------------------------ | ------------------------------------ | ----------- |
 | [001](docs/adr/001-async-non-blocking-architecture.md) | Arquitectura Asíncrona No-Bloqueante | ✅ Aceptado |
-| [002](docs/adr/002-event-driven-outbox-pattern.md) | Event-Driven con Outbox Pattern | ✅ Aceptado |
-| [003](docs/adr/003-saga-pattern-orchestration.md) | Saga Pattern para Orquestación | ✅ Aceptado |
-| [008](docs/adr/008-redis-bull-queue-system.md) | Redis + Bull para Sistema de Colas | ✅ Aceptado |
+| [002](docs/adr/002-event-driven-outbox-pattern.md)     | Event-Driven con Outbox Pattern      | ✅ Aceptado |
+| [003](docs/adr/003-saga-pattern-orchestration.md)      | Saga Pattern para Orquestación       | ✅ Aceptado |
+| [008](docs/adr/008-redis-bull-queue-system.md)         | Redis + Bull para Sistema de Colas   | ✅ Aceptado |
 
 > 📌 **Nota**: Los ADRs 004-007 y 009-025 están en progreso y serán añadidos próximamente.
 
@@ -331,29 +331,29 @@ Una vez ejecutada la aplicación, la documentación interactiva Swagger está di
 
 ### 📡 Endpoints Principales
 
-| Módulo | Método | Endpoint | Descripción | Auth |
-|--------|--------|----------|-------------|------|
-| **Auth** | `POST` | `/api/v1/auth/register` | Registro de usuario | ❌ |
-| **Auth** | `POST` | `/api/v1/auth/login` | Login | ❌ |
-| **Auth** | `GET` | `/api/v1/auth/profile` | Perfil usuario | ✅ JWT |
-| **Users** | `GET` | `/api/v1/users` | Listar usuarios | ✅ JWT |
-| **Users** | `GET` | `/api/v1/users/:id` | Obtener usuario | ✅ JWT |
-| **Products** | `GET` | `/api/v1/products` | Listar productos | ❌ |
-| **Products** | `GET` | `/api/v1/products/search` | Buscar productos | ❌ |
-| **Products** | `POST` | `/api/v1/products` | Crear producto | ✅ JWT |
-| **Categories** | `GET` | `/api/v1/categories` | Listar categorías | ❌ |
-| **Categories** | `GET` | `/api/v1/categories/tree` | Árbol de categorías | ❌ |
-| **Orders** | `POST` | `/api/v1/orders` | **Crear orden (202 Async)** | ✅ JWT |
-| **Orders** | `GET` | `/api/v1/orders` | Listar órdenes | ✅ JWT |
-| **Orders** | `GET` | `/api/v1/orders/:id/status` | Estado de orden | ✅ JWT |
-| **Inventory** | `POST` | `/api/v1/inventory/check-availability` | Verificar stock | ❌ |
-| **Inventory** | `POST` | `/api/v1/inventory/reserve` | Reservar stock | ✅ JWT |
-| **Inventory** | `GET` | `/api/v1/inventory/low-stock` | Items con bajo stock | ❌ |
-| **Health** | `GET` | `/api/v1/health` | Health check general | ❌ |
-| **Health** | `GET` | `/api/v1/health/ready` | Readiness probe (k8s) | ❌ |
-| **Health** | `GET` | `/api/v1/health/detailed` | Estado detallado | ❌ |
-| **Metrics** | `GET` | `/api/v1/metrics` | Prometheus metrics | ❌ |
-| **Queues** | `GET` | `/api/v1/admin/queues` | Bull Board Dashboard | ❌ |
+| Módulo         | Método | Endpoint                               | Descripción                 | Auth   |
+| -------------- | ------ | -------------------------------------- | --------------------------- | ------ |
+| **Auth**       | `POST` | `/api/v1/auth/register`                | Registro de usuario         | ❌     |
+| **Auth**       | `POST` | `/api/v1/auth/login`                   | Login                       | ❌     |
+| **Auth**       | `GET`  | `/api/v1/auth/profile`                 | Perfil usuario              | ✅ JWT |
+| **Users**      | `GET`  | `/api/v1/users`                        | Listar usuarios             | ✅ JWT |
+| **Users**      | `GET`  | `/api/v1/users/:id`                    | Obtener usuario             | ✅ JWT |
+| **Products**   | `GET`  | `/api/v1/products`                     | Listar productos            | ❌     |
+| **Products**   | `GET`  | `/api/v1/products/search`              | Buscar productos            | ❌     |
+| **Products**   | `POST` | `/api/v1/products`                     | Crear producto              | ✅ JWT |
+| **Categories** | `GET`  | `/api/v1/categories`                   | Listar categorías           | ❌     |
+| **Categories** | `GET`  | `/api/v1/categories/tree`              | Árbol de categorías         | ❌     |
+| **Orders**     | `POST` | `/api/v1/orders`                       | **Crear orden (202 Async)** | ✅ JWT |
+| **Orders**     | `GET`  | `/api/v1/orders`                       | Listar órdenes              | ✅ JWT |
+| **Orders**     | `GET`  | `/api/v1/orders/:id/status`            | Estado de orden             | ✅ JWT |
+| **Inventory**  | `POST` | `/api/v1/inventory/check-availability` | Verificar stock             | ❌     |
+| **Inventory**  | `POST` | `/api/v1/inventory/reserve`            | Reservar stock              | ✅ JWT |
+| **Inventory**  | `GET`  | `/api/v1/inventory/low-stock`          | Items con bajo stock        | ❌     |
+| **Health**     | `GET`  | `/api/v1/health`                       | Health check general        | ❌     |
+| **Health**     | `GET`  | `/api/v1/health/ready`                 | Readiness probe (k8s)       | ❌     |
+| **Health**     | `GET`  | `/api/v1/health/detailed`              | Estado detallado            | ❌     |
+| **Metrics**    | `GET`  | `/api/v1/metrics`                      | Prometheus metrics          | ❌     |
+| **Queues**     | `GET`  | `/api/v1/admin/queues`                 | Bull Board Dashboard        | ❌     |
 
 > 💡 **Tip**: Usa Swagger UI para testing interactivo con ejemplos de request/response para cada endpoint.
 

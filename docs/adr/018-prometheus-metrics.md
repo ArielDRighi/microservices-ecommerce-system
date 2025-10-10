@@ -74,6 +74,7 @@ export class PrometheusService {
 ```
 
 **Metrics Controller:**
+
 ```typescript
 @Controller('metrics')
 @Public()
@@ -92,22 +93,26 @@ export class MetricsController {
 ## Planned Metrics
 
 **HTTP Metrics:**
+
 - `http_request_duration_seconds` - Request latency histogram
 - `http_requests_total` - Total requests counter
 - `http_errors_total` - Error counter by status code
 
 **Queue Metrics:**
+
 - `queue_jobs_waiting` - Jobs in queue
 - `queue_jobs_active` - Jobs being processed
 - `queue_jobs_failed` - Failed jobs (DLQ size)
 - `queue_job_duration_seconds` - Job processing time
 
 **Circuit Breaker Metrics:**
+
 - `circuit_breaker_state` - State gauge (0/1/2)
 - `circuit_breaker_failures_total` - Failure counter
 - `circuit_breaker_successes_total` - Success counter
 
 **Database Metrics:**
+
 - `db_connections_active` - Active connections
 - `db_query_duration_seconds` - Query latency
 
@@ -140,7 +145,7 @@ export class MetricsController {
 ✅ **Real-Time:** Instant visibility into system health  
 ✅ **Alerting:** Trigger alerts on thresholds (error rate > 5%)  
 ✅ **Trending:** Historical data for capacity planning  
-✅ **Standard:** Prometheus = industry standard, works with Grafana  
+✅ **Standard:** Prometheus = industry standard, works with Grafana
 
 ---
 

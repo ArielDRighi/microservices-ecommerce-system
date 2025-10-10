@@ -22,14 +22,14 @@
 
 ### Objetivos del Diseño
 
-| Objetivo | Implementación | Estado |
-|----------|---------------|--------|
-| **Escalabilidad** | Índices estratégicos, partitioning ready | ✅ |
-| **Performance** | Queries <100ms para ops críticas | ✅ |
-| **Integridad** | Foreign keys, constraints, transactions | ✅ |
-| **Auditabilidad** | Timestamps, soft deletes, event sourcing | ✅ |
-| **Consistencia** | ACID compliance, Outbox Pattern | ✅ |
-| **Flexibilidad** | JSONB para datos variables | ✅ |
+| Objetivo          | Implementación                           | Estado |
+| ----------------- | ---------------------------------------- | ------ |
+| **Escalabilidad** | Índices estratégicos, partitioning ready | ✅     |
+| **Performance**   | Queries <100ms para ops críticas         | ✅     |
+| **Integridad**    | Foreign keys, constraints, transactions  | ✅     |
+| **Auditabilidad** | Timestamps, soft deletes, event sourcing | ✅     |
+| **Consistencia**  | ACID compliance, Outbox Pattern          | ✅     |
+| **Flexibilidad**  | JSONB para datos variables               | ✅     |
 
 ### Estadísticas del Schema
 
@@ -45,19 +45,19 @@
 
 ```typescript
 // Tablas: snake_case, plural
-users, orders, order_items, outbox_events
+(users, orders, order_items, outbox_events);
 
 // Columnas: snake_case
-user_id, created_at, is_active
+(user_id, created_at, is_active);
 
 // Índices: idx_tabla_columnas
-idx_orders_user_id, idx_products_name
+(idx_orders_user_id, idx_products_name);
 
 // Foreign Keys: fk_tabla_referencia
-fk_orders_user_id
+fk_orders_user_id;
 
 // Enums: tipo_nombre_enum
-order_status_enum, saga_status_enum
+(order_status_enum, saga_status_enum);
 ```
 
 ---
@@ -185,12 +185,14 @@ CREATE TABLE "users" (
 ```
 
 **Columnas Clave**:
+
 - `password_hash`: Bcrypt hash (nunca plain text)
 - `is_active`: Soft delete / account suspension
 - `email_verified_at`: Email verification tracking
 - `last_login_at`: Activity tracking
 
 **Índices**:
+
 ```sql
 CREATE UNIQUE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_active ON users(is_active);
@@ -229,6 +231,7 @@ CREATE TABLE "products" (
 ```
 
 **Columnas JSONB**:
+
 ```json
 // attributes example
 {
@@ -240,6 +243,7 @@ CREATE TABLE "products" (
 ```
 
 **Índices**:
+
 ```sql
 CREATE UNIQUE INDEX idx_products_sku ON products(sku);
 CREATE INDEX idx_products_name ON products(name);
@@ -247,7 +251,7 @@ CREATE INDEX idx_products_active ON products(is_active);
 CREATE INDEX idx_products_price ON products(price);
 
 -- Full-text search index
-CREATE INDEX idx_products_name_description 
+CREATE INDEX idx_products_name_description
 ON products USING GIN (
     to_tsvector('english', name || ' ' || COALESCE(description, ''))
 );
@@ -278,6 +282,7 @@ CREATE TABLE "categories" (
 ```
 
 **Product-Category Junction Table**:
+
 ```sql
 CREATE TABLE "product_categories" (
     "product_id" uuid REFERENCES products(id) ON DELETE CASCADE,
@@ -287,6 +292,7 @@ CREATE TABLE "product_categories" (
 ```
 
 **Índices**:
+
 ```sql
 CREATE UNIQUE INDEX idx_categories_slug ON categories(slug) WHERE deleted_at IS NULL;
 CREATE INDEX idx_categories_active_name ON categories(is_active, name);
@@ -328,6 +334,7 @@ CREATE TABLE "orders" (
 ```
 
 **Estados de Orden** (order_status_enum):
+
 ```
 PENDING → Orden creada, esperando procesamiento
 PROCESSING → Worker procesando (verificando stock, pago, etc.)
@@ -341,13 +348,14 @@ REFUNDED → Orden reembolsada
 ```
 
 **Índices**:
+
 ```sql
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_orders_status ON orders(status);
-CREATE UNIQUE INDEX idx_orders_idempotency_key 
+CREATE UNIQUE INDEX idx_orders_idempotency_key
     ON orders(idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_orders_payment_id 
+CREATE INDEX idx_orders_payment_id
     ON orders(payment_id) WHERE payment_id IS NOT NULL;
 ```
 
@@ -377,14 +385,16 @@ CREATE TABLE "order_items" (
 ```
 
 **¿Por qué desnormalizar `product_name` y `sku`?**
+
 - Preservar información histórica
 - Si producto se elimina/modifica, orden mantiene datos originales
 
 **Índices**:
+
 ```sql
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_order_items_product_id ON order_items(product_id);
-CREATE UNIQUE INDEX idx_order_items_order_product 
+CREATE UNIQUE INDEX idx_order_items_order_product
     ON order_items(order_id, product_id);
 ```
 
@@ -402,7 +412,7 @@ CREATE TABLE "inventory" (
     "location" varchar(100) DEFAULT 'main-warehouse',
     "current_stock" integer DEFAULT 0,
     "reserved_stock" integer DEFAULT 0,     -- ✨ For pending orders
-    "available_stock" integer GENERATED ALWAYS AS 
+    "available_stock" integer GENERATED ALWAYS AS
         (current_stock - reserved_stock) STORED,
     "minimum_stock" integer DEFAULT 0,      -- Reorder threshold
     "maximum_stock" integer,
@@ -417,9 +427,11 @@ CREATE TABLE "inventory" (
 ```
 
 **Columnas Calculadas**:
+
 - `available_stock = current_stock - reserved_stock` (GENERATED ALWAYS)
 
 **Lógica de Reservas**:
+
 ```
 1. Order created → reserve_stock += quantity
 2. Payment confirmed → current_stock -= quantity, reserve_stock -= quantity
@@ -427,11 +439,12 @@ CREATE TABLE "inventory" (
 ```
 
 **Índices**:
+
 ```sql
 CREATE INDEX idx_inventory_product_id ON inventory(product_id);
 CREATE INDEX idx_inventory_location ON inventory(location);
 CREATE INDEX idx_inventory_sku ON inventory(sku);
-CREATE INDEX idx_inventory_low_stock 
+CREATE INDEX idx_inventory_low_stock
     ON inventory(current_stock, minimum_stock);
 ```
 
@@ -459,6 +472,7 @@ CREATE TABLE "inventory_movements" (
 ```
 
 **Tipos de Movimiento** (inventory_movement_type_enum):
+
 ```
 RESTOCK          → Llegada de nuevo stock
 SALE             → Venta confirmada
@@ -477,6 +491,7 @@ SYSTEM_CORRECTION → Corrección automática del sistema
 ```
 
 **Índices**:
+
 ```sql
 CREATE INDEX idx_inventory_movements_inventory_id ON inventory_movements(inventory_id);
 CREATE INDEX idx_inventory_movements_type ON inventory_movements(movement_type);
@@ -521,6 +536,7 @@ CREATE TABLE "saga_states" (
 ```
 
 **Estados de Saga** (saga_status_enum):
+
 ```
 STARTED               → Saga iniciado
 RUNNING               → Ejecutando steps
@@ -535,6 +551,7 @@ TIMEOUT               → Timeout excedido
 ```
 
 **Saga Data Example**:
+
 ```json
 {
   "orderId": "uuid",
@@ -551,13 +568,14 @@ TIMEOUT               → Timeout excedido
 ```
 
 **Índices**:
+
 ```sql
 CREATE INDEX idx_saga_states_saga_type ON saga_states(saga_type);
 CREATE INDEX idx_saga_states_status ON saga_states(status);
 CREATE UNIQUE INDEX idx_saga_states_correlation_id ON saga_states(correlation_id);
-CREATE INDEX idx_saga_states_next_step_at 
+CREATE INDEX idx_saga_states_next_step_at
     ON saga_states(next_step_at) WHERE next_step_at IS NOT NULL;
-CREATE INDEX idx_saga_states_aggregate_id 
+CREATE INDEX idx_saga_states_aggregate_id
     ON saga_states(aggregate_id) WHERE aggregate_id IS NOT NULL;
 ```
 
@@ -594,6 +612,7 @@ CREATE TABLE "outbox_events" (
 ```
 
 **Event Data Example**:
+
 ```json
 {
   "eventType": "OrderCreated",
@@ -602,22 +621,21 @@ CREATE TABLE "outbox_events" (
   "version": 1,
   "orderId": "uuid",
   "userId": "uuid",
-  "items": [
-    { "productId": "uuid", "quantity": 2, "unitPrice": 49.99 }
-  ],
+  "items": [{ "productId": "uuid", "quantity": 2, "unitPrice": 49.99 }],
   "totalAmount": 99.98
 }
 ```
 
 **Índices**:
+
 ```sql
 CREATE INDEX idx_outbox_events_processed ON outbox_events(processed);
 CREATE INDEX idx_outbox_events_event_type ON outbox_events(event_type);
 CREATE INDEX idx_outbox_events_created_at ON outbox_events(created_at);
 CREATE INDEX idx_outbox_events_aggregate_id ON outbox_events(aggregate_id);
-CREATE UNIQUE INDEX idx_outbox_events_idempotency_key 
+CREATE UNIQUE INDEX idx_outbox_events_idempotency_key
     ON outbox_events(idempotency_key);
-CREATE INDEX idx_outbox_events_next_retry 
+CREATE INDEX idx_outbox_events_next_retry
     ON outbox_events(next_retry_at) WHERE next_retry_at IS NOT NULL;
 ```
 
@@ -628,6 +646,7 @@ CREATE INDEX idx_outbox_events_next_retry
 ### Estrategia de Indexing
 
 **Principios**:
+
 1. **Índices en Foreign Keys**: Todas las FKs tienen índice
 2. **Índices en Filtros Frecuentes**: WHERE clauses comunes
 3. **Índices Compuestos**: Queries con múltiples condiciones
@@ -636,32 +655,34 @@ CREATE INDEX idx_outbox_events_next_retry
 
 ### Performance Targets
 
-| Query Type | Target | Actual |
-|------------|--------|--------|
-| User login | <10ms | ~5ms ✅ |
-| Order creation | <50ms | ~30ms ✅ |
+| Query Type     | Target | Actual   |
+| -------------- | ------ | -------- |
+| User login     | <10ms  | ~5ms ✅  |
+| Order creation | <50ms  | ~30ms ✅ |
 | Product search | <100ms | ~45ms ✅ |
-| Order listing | <100ms | ~60ms ✅ |
-| Saga queries | <50ms | ~25ms ✅ |
+| Order listing  | <100ms | ~60ms ✅ |
+| Saga queries   | <50ms  | ~25ms ✅ |
 
 ### Query Optimization Examples
 
 **Ejemplo 1: Buscar órdenes de usuario**
+
 ```sql
 -- ✅ OPTIMIZADO (usa idx_orders_user_id)
-SELECT * FROM orders 
-WHERE user_id = 'uuid' 
-ORDER BY created_at DESC 
+SELECT * FROM orders
+WHERE user_id = 'uuid'
+ORDER BY created_at DESC
 LIMIT 10;
 
 -- Execution time: ~10ms
 ```
 
 **Ejemplo 2: Full-text search de productos**
+
 ```sql
 -- ✅ OPTIMIZADO (usa idx_products_name_description GIN)
-SELECT * FROM products 
-WHERE to_tsvector('english', name || ' ' || description) 
+SELECT * FROM products
+WHERE to_tsvector('english', name || ' ' || description)
       @@ to_tsquery('english', 'laptop & gaming')
 AND is_active = true;
 
@@ -669,9 +690,10 @@ AND is_active = true;
 ```
 
 **Ejemplo 3: Sagas pendientes para recovery**
+
 ```sql
 -- ✅ OPTIMIZADO (usa idx_saga_states_status, idx_saga_states_next_step_at)
-SELECT * FROM saga_states 
+SELECT * FROM saga_states
 WHERE status IN ('STARTED', 'RUNNING', 'RETRYING')
 AND next_step_at <= NOW()
 ORDER BY created_at ASC;
@@ -700,37 +722,37 @@ orders (1) ----< (*) outbox_events (via aggregate_id)
 
 ```sql
 -- Orders → Users (NO DELETE CASCADE - protect user history)
-ALTER TABLE orders 
-ADD CONSTRAINT fk_orders_user_id 
+ALTER TABLE orders
+ADD CONSTRAINT fk_orders_user_id
 FOREIGN KEY (user_id) REFERENCES users(id);
 
 -- Order Items → Orders (DELETE CASCADE - remove items with order)
-ALTER TABLE order_items 
-ADD CONSTRAINT fk_order_items_order_id 
+ALTER TABLE order_items
+ADD CONSTRAINT fk_order_items_order_id
 FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE;
 
 -- Order Items → Products (NO DELETE CASCADE - keep history)
-ALTER TABLE order_items 
-ADD CONSTRAINT fk_order_items_product_id 
+ALTER TABLE order_items
+ADD CONSTRAINT fk_order_items_product_id
 FOREIGN KEY (product_id) REFERENCES products(id);
 
 -- Inventory → Products
-ALTER TABLE inventory 
-ADD CONSTRAINT fk_inventory_product_id 
+ALTER TABLE inventory
+ADD CONSTRAINT fk_inventory_product_id
 FOREIGN KEY (product_id) REFERENCES products(id);
 
 -- Inventory Movements → Inventory
-ALTER TABLE inventory_movements 
-ADD CONSTRAINT fk_inventory_movements_inventory_id 
+ALTER TABLE inventory_movements
+ADD CONSTRAINT fk_inventory_movements_inventory_id
 FOREIGN KEY (inventory_id) REFERENCES inventory(id);
 
 -- Product Categories Junction
-ALTER TABLE product_categories 
-ADD CONSTRAINT fk_product_categories_product 
+ALTER TABLE product_categories
+ADD CONSTRAINT fk_product_categories_product
 FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
 
-ALTER TABLE product_categories 
-ADD CONSTRAINT fk_product_categories_category 
+ALTER TABLE product_categories
+ADD CONSTRAINT fk_product_categories_category
 FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE;
 ```
 
@@ -798,10 +820,10 @@ CREATE TYPE inventory_movement_type_enum AS ENUM (
 
 ### Migraciones Existentes
 
-| Timestamp | Nombre | Descripción |
-|-----------|--------|-------------|
-| `1727215000000` | CreateInitialSchema | Schema inicial completo |
-| `1727220000000` | CreateCategoriesTable | Tabla de categorías |
+| Timestamp       | Nombre                | Descripción                  |
+| --------------- | --------------------- | ---------------------------- |
+| `1727215000000` | CreateInitialSchema   | Schema inicial completo      |
+| `1727220000000` | CreateCategoriesTable | Tabla de categorías          |
 | `1727221000000` | AddCategoryToProducts | Relación products-categories |
 
 ### Comandos de Migraciones
@@ -830,13 +852,13 @@ export class CreateInitialSchema1727215000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Enable UUID extension
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
-    
+
     // Create enums
     await queryRunner.query(`CREATE TYPE "order_status_enum" AS ENUM (...)`);
-    
+
     // Create tables
     await queryRunner.query(`CREATE TABLE "users" (...)`);
-    
+
     // Create indexes
     await queryRunner.query(`CREATE INDEX "idx_users_email" ON "users" ("email")`);
   }
@@ -857,6 +879,7 @@ export class CreateInitialSchema1727215000000 implements MigrationInterface {
 ### 1. **Uso de UUIDs**
 
 ✅ **Ventajas**:
+
 - No enumerables (seguridad)
 - Distribuidos (sin colisiones en multi-server)
 - Globalmente únicos
@@ -874,6 +897,7 @@ updated_at timestamptz DEFAULT now()
 ```
 
 **Trigger para auto-update**:
+
 ```sql
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -883,7 +907,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_users_updated_at 
+CREATE TRIGGER update_users_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
@@ -904,11 +928,11 @@ WHERE deleted_at IS NULL
 attributes jsonb
 
 -- Queries en JSONB
-SELECT * FROM products 
+SELECT * FROM products
 WHERE attributes->>'color' = 'Blue';
 
 -- Índice en JSONB
-CREATE INDEX idx_products_attributes_color 
+CREATE INDEX idx_products_attributes_color
 ON products ((attributes->>'color'));
 ```
 
@@ -941,7 +965,7 @@ try {
 
 ```sql
 -- Enable slow query logging
-ALTER DATABASE ecommerce_async 
+ALTER DATABASE ecommerce_async
 SET log_min_duration_statement = 100;  -- Log queries >100ms
 
 -- Ver queries más lentas
@@ -983,15 +1007,15 @@ pg_restore -U postgres -d ecommerce_async backup_20251009.dump
 
 ```sql
 -- Tamaño de tablas
-SELECT 
+SELECT
   tablename,
   pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename))
-FROM pg_tables 
+FROM pg_tables
 WHERE schemaname = 'public'
 ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 
 -- Índices no utilizados
-SELECT 
+SELECT
   schemaname, tablename, indexname
 FROM pg_stat_user_indexes
 WHERE idx_scan = 0

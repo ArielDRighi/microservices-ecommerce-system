@@ -111,18 +111,16 @@ export default new DataSource({
     join(__dirname, '..', 'modules', '**', 'entities', '*.entity{.ts,.js}'),
     join(__dirname, '..', 'modules', '**', '*.entity{.ts,.js}'),
   ],
-  
+
   // Migrations path
   migrations: [join(__dirname, '..', 'database', 'migrations', '*{.ts,.js}')],
 
   // ✅ CRITICAL: Never synchronize in production
-  synchronize: false,  // Use migrations instead
+  synchronize: false, // Use migrations instead
   logging: configService.get('NODE_ENV') === 'development',
   migrationsTableName: 'migrations_history',
 
-  ssl: configService.get('DATABASE_SSL') === 'true'
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: configService.get('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
 });
 ```
 
@@ -135,19 +133,20 @@ export const databaseConfig = registerAs(
   (): TypeOrmModuleOptions => ({
     type: 'postgres',
     // ... same config
-    
+
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-    
+
     // Auto-load entities from modules
     autoLoadEntities: true,
     keepConnectionAlive: true,
-    dropSchema: process.env['NODE_ENV'] === 'test',  // Only in tests
+    dropSchema: process.env['NODE_ENV'] === 'test', // Only in tests
   }),
 );
 ```
 
 **Key Decisions**:
+
 - ✅ **synchronize: false**: Migrations only (prevents data loss)
 - ✅ **autoLoadEntities**: Discovers entities from modules
 - ✅ **keepConnectionAlive**: Reuse connections across hot reloads
@@ -176,18 +175,18 @@ import { User } from '../../users/entities/user.entity';
 import { OrderItem } from './order-item.entity';
 import { OrderStatus } from '../enums/order-status.enum';
 
-@Entity('orders')  // Table name
-@Index('idx_orders_user_id', ['userId'])  // Single-column index
+@Entity('orders') // Table name
+@Index('idx_orders_user_id', ['userId']) // Single-column index
 @Index('idx_orders_status', ['status'])
 @Index('idx_orders_idempotency_key', ['idempotencyKey'], { unique: true })
 @Index('idx_orders_created_at', ['createdAt'])
 export class Order {
-  @PrimaryGeneratedColumn('uuid')  // UUID primary key
+  @PrimaryGeneratedColumn('uuid') // UUID primary key
   id!: string;
 
   @Column({
     type: 'uuid',
-    name: 'user_id',  // Snake_case in DB
+    name: 'user_id', // Snake_case in DB
     nullable: false,
   })
   @Index('idx_orders_user_id_btree')
@@ -239,11 +238,11 @@ export class Order {
   // Relations
   @ManyToOne(() => User, (user) => user.orders, { lazy: true })
   @JoinColumn({ name: 'user_id' })
-  user!: Promise<User>;  // Lazy loading
+  user!: Promise<User>; // Lazy loading
 
-  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { 
-    lazy: true, 
-    cascade: true  // Save items when saving order
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
+    lazy: true,
+    cascade: true, // Save items when saving order
   })
   items!: Promise<OrderItem[]>;
 
@@ -262,18 +261,18 @@ export class Order {
 
 **Decorators Usados**:
 
-| Decorator | Propósito | Ejemplo |
-|-----------|-----------|---------|
-| `@Entity('table')` | Define entity & table name | `@Entity('orders')` |
-| `@PrimaryGeneratedColumn()` | Primary key | `'uuid'` / `'increment'` |
-| `@Column()` | Column definition | `{ type: 'jsonb' }` |
-| `@Index()` | Index definition | `@Index('idx', ['column'])` |
-| `@CreateDateColumn()` | Auto-managed created_at | `timestamptz` |
-| `@UpdateDateColumn()` | Auto-managed updated_at | `timestamptz` |
-| `@DeleteDateColumn()` | Soft delete | `deletedAt` |
-| `@ManyToOne()` | Many-to-one relation | User → Orders |
-| `@OneToMany()` | One-to-many relation | Order → Items |
-| `@JoinColumn()` | FK column name | `{ name: 'user_id' }` |
+| Decorator                   | Propósito                  | Ejemplo                     |
+| --------------------------- | -------------------------- | --------------------------- |
+| `@Entity('table')`          | Define entity & table name | `@Entity('orders')`         |
+| `@PrimaryGeneratedColumn()` | Primary key                | `'uuid'` / `'increment'`    |
+| `@Column()`                 | Column definition          | `{ type: 'jsonb' }`         |
+| `@Index()`                  | Index definition           | `@Index('idx', ['column'])` |
+| `@CreateDateColumn()`       | Auto-managed created_at    | `timestamptz`               |
+| `@UpdateDateColumn()`       | Auto-managed updated_at    | `timestamptz`               |
+| `@DeleteDateColumn()`       | Soft delete                | `deletedAt`                 |
+| `@ManyToOne()`              | Many-to-one relation       | User → Orders               |
+| `@OneToMany()`              | One-to-many relation       | Order → Items               |
+| `@JoinColumn()`             | FK column name             | `{ name: 'user_id' }`       |
 
 ---
 
@@ -298,10 +297,10 @@ export class ProductsService {
   async create(createProductDto: CreateProductDto): Promise<Product> {
     // Create entity instance
     const product = this.productRepository.create(createProductDto);
-    
+
     // Save to database
     const savedProduct = await this.productRepository.save(product);
-    
+
     return savedProduct;
   }
 
@@ -309,7 +308,7 @@ export class ProductsService {
     const product = await this.productRepository.findOne({
       where: { id },
     });
-    
+
     return product || null;
   }
 
@@ -323,12 +322,12 @@ export class ProductsService {
 
   async update(id: string, updateDto: UpdateProductDto): Promise<Product> {
     await this.productRepository.update(id, updateDto);
-    
+
     const updated = await this.findById(id);
     if (!updated) {
       throw new NotFoundException('Product not found');
     }
-    
+
     return updated;
   }
 
@@ -341,17 +340,17 @@ export class ProductsService {
 
 **Repository Methods Usados**:
 
-| Method | Propósito | Example |
-|--------|-----------|---------|
-| `create()` | Create entity instance | `repository.create(dto)` |
-| `save()` | Insert or update | `repository.save(entity)` |
-| `find()` | Find multiple | `find({ where: { status: 'ACTIVE' } })` |
-| `findOne()` | Find single | `findOne({ where: { id } })` |
-| `update()` | Update by criteria | `update(id, { price: 99.99 })` |
-| `delete()` | Hard delete | `delete(id)` |
-| `softDelete()` | Soft delete | `softDelete(id)` |
-| `count()` | Count records | `count({ where: { isActive: true } })` |
-| `createQueryBuilder()` | Advanced queries | Builder pattern |
+| Method                 | Propósito              | Example                                 |
+| ---------------------- | ---------------------- | --------------------------------------- |
+| `create()`             | Create entity instance | `repository.create(dto)`                |
+| `save()`               | Insert or update       | `repository.save(entity)`               |
+| `find()`               | Find multiple          | `find({ where: { status: 'ACTIVE' } })` |
+| `findOne()`            | Find single            | `findOne({ where: { id } })`            |
+| `update()`             | Update by criteria     | `update(id, { price: 99.99 })`          |
+| `delete()`             | Hard delete            | `delete(id)`                            |
+| `softDelete()`         | Soft delete            | `softDelete(id)`                        |
+| `count()`              | Count records          | `count({ where: { isActive: true } })`  |
+| `createQueryBuilder()` | Advanced queries       | Builder pattern                         |
 
 ---
 
@@ -389,7 +388,7 @@ async findAll(queryDto: ProductQueryDto): Promise<PaginatedProductsResponseDto> 
   // Full-text search
   if (search) {
     queryBuilder.andWhere(
-      `to_tsvector('english', product.name || ' ' || COALESCE(product.description, '')) 
+      `to_tsvector('english', product.name || ' ' || COALESCE(product.description, ''))
        @@ plainto_tsquery('english', :search)`,
       { search }
     );
@@ -465,18 +464,18 @@ async findAll(queryDto: ProductQueryDto): Promise<PaginatedProductsResponseDto> 
 
 **QueryBuilder Methods**:
 
-| Method | Propósito | Example |
-|--------|-----------|---------|
-| `createQueryBuilder('alias')` | Start builder | `'product'` |
-| `.where()` | Primary condition | `'product.id = :id'` |
-| `.andWhere()` | AND condition | `'product.price > :min'` |
-| `.orWhere()` | OR condition | `'product.brand = :b'` |
-| `.orderBy()` | Sorting | `'product.price', 'ASC'` |
-| `.skip()` | Offset pagination | `.skip(20)` |
-| `.take()` | Limit | `.take(10)` |
-| `.getCount()` | Count only | Returns number |
-| `.getMany()` | Execute (multiple) | Returns entities[] |
-| `.getOne()` | Execute (single) | Returns entity \| null |
+| Method                        | Propósito          | Example                  |
+| ----------------------------- | ------------------ | ------------------------ |
+| `createQueryBuilder('alias')` | Start builder      | `'product'`              |
+| `.where()`                    | Primary condition  | `'product.id = :id'`     |
+| `.andWhere()`                 | AND condition      | `'product.price > :min'` |
+| `.orWhere()`                  | OR condition       | `'product.brand = :b'`   |
+| `.orderBy()`                  | Sorting            | `'product.price', 'ASC'` |
+| `.skip()`                     | Offset pagination  | `.skip(20)`              |
+| `.take()`                     | Limit              | `.take(10)`              |
+| `.getCount()`                 | Count only         | Returns number           |
+| `.getMany()`                  | Execute (multiple) | Returns entities[]       |
+| `.getOne()`                   | Execute (single)   | Returns entity \| null   |
 
 ---
 
@@ -489,7 +488,7 @@ async findAll(queryDto: ProductQueryDto): Promise<PaginatedProductsResponseDto> 
 async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto> {
   // Create QueryRunner for manual transaction
   const queryRunner = this.dataSource.createQueryRunner();
-  
+
   await queryRunner.connect();
   await queryRunner.startTransaction();
 
@@ -513,7 +512,7 @@ async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto
     await queryRunner.manager.save(Order, order);
 
     // Step 3: Create order items
-    const orderItems = dto.items.map(item => 
+    const orderItems = dto.items.map(item =>
       queryRunner.manager.create(OrderItem, {
         orderId: order.id,
         productId: item.productId,
@@ -548,7 +547,7 @@ async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto
   } catch (error) {
     // ❌ ROLLBACK: Nothing persisted
     await queryRunner.rollbackTransaction();
-    
+
     this.logger.error(`Order creation failed: ${error.message}`);
     throw error;
   } finally {
@@ -561,6 +560,7 @@ async createOrder(userId: string, dto: CreateOrderDto): Promise<OrderResponseDto
 **Transaction Patterns**:
 
 1. **Manual Transaction (QueryRunner)**:
+
 ```typescript
 const queryRunner = dataSource.createQueryRunner();
 await queryRunner.startTransaction();
@@ -575,6 +575,7 @@ try {
 ```
 
 2. **Automatic Transaction (Decorator)**:
+
 ```typescript
 @Transaction()
 async createOrder(
@@ -586,6 +587,7 @@ async createOrder(
 ```
 
 3. **Functional Transaction**:
+
 ```typescript
 await this.dataSource.transaction(async (manager) => {
   await manager.save(Order, order);
@@ -671,6 +673,7 @@ npm run migration:show
 ```
 
 **Package.json Scripts**:
+
 ```json
 {
   "scripts": {
@@ -695,7 +698,7 @@ npm run migration:show
 export class Order {
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     lazy: true,
-    cascade: true,  // Save/remove items with order
+    cascade: true, // Save/remove items with order
   })
   items!: Promise<OrderItem[]>;
 }
@@ -705,7 +708,7 @@ export class Order {
 export class OrderItem {
   @ManyToOne(() => Order, (order) => order.items, {
     lazy: true,
-    onDelete: 'CASCADE',  // Delete items when order deleted
+    onDelete: 'CASCADE', // Delete items when order deleted
   })
   @JoinColumn({ name: 'order_id' })
   order!: Promise<Order>;
@@ -713,7 +716,7 @@ export class OrderItem {
 
 // Usage
 const order = await orderRepository.findOne({ where: { id } });
-const items = await order.items;  // Lazy load
+const items = await order.items; // Lazy load
 ```
 
 #### Many-to-One: Order → User
@@ -739,7 +742,7 @@ export class User {
 
 // Usage
 const order = await orderRepository.findOne({ where: { id } });
-const user = await order.user;  // Lazy load
+const user = await order.user; // Lazy load
 ```
 
 #### One-to-One: Product → Inventory
@@ -824,14 +827,14 @@ Total Indexes Created: 60+
 
 ### Metrics
 
-| Métrica | Valor | Observación |
-|---------|-------|-------------|
-| **Total Entities** | 11 | Modularizado por feature |
-| **Decorators per Entity** | 15-25 | @Column, @Index, @ManyToOne, etc. |
-| **Relations Defined** | 15+ | 1:1, 1:N, N:1 |
-| **Migrations** | 3 | Versionadas, rollback-able |
-| **QueryBuilder Usage** | 50+ | Complex queries, filters, pagination |
-| **Transactions** | 10+ | Orders, Inventory, Outbox |
+| Métrica                   | Valor | Observación                          |
+| ------------------------- | ----- | ------------------------------------ |
+| **Total Entities**        | 11    | Modularizado por feature             |
+| **Decorators per Entity** | 15-25 | @Column, @Index, @ManyToOne, etc.    |
+| **Relations Defined**     | 15+   | 1:1, 1:N, N:1                        |
+| **Migrations**            | 3     | Versionadas, rollback-able           |
+| **QueryBuilder Usage**    | 50+   | Complex queries, filters, pagination |
+| **Transactions**          | 10+   | Orders, Inventory, Outbox            |
 
 ---
 
@@ -842,6 +845,7 @@ Total Indexes Created: 60+
 **Descripción**: Next-generation ORM con schema-first approach
 
 **Razones de Rechazo**:
+
 - ❌ **NestJS Integration**: No first-class support (community packages)
 - ❌ **Decorators**: Schema en `.prisma` file, no decorators TypeScript
 - ❌ **Migrations**: Auto-generated, menos control
@@ -849,6 +853,7 @@ Total Indexes Created: 60+
 - ⚠️ **Maturity**: Más nuevo, menos battle-tested
 
 **Cuándo Considerar Prisma**:
+
 - Greenfield projects
 - Schema-first preferred
 - Team sin experiencia SQL
@@ -861,6 +866,7 @@ Total Indexes Created: 60+
 **Descripción**: ORM tradicional para Node.js
 
 **Razones de Rechazo**:
+
 - ❌ **TypeScript**: TypeScript support secondary (define models en JS)
 - ❌ **Decorators**: No decorators, class-based models verbose
 - ❌ **Migrations**: CLI menos integrado
@@ -868,6 +874,7 @@ Total Indexes Created: 60+
 - ⚠️ **Performance**: Más lento que TypeORM en benchmarks
 
 **Ejemplo Sequelize**:
+
 ```typescript
 // Verbose model definition
 const Order = sequelize.define('Order', {
@@ -886,6 +893,7 @@ const Order = sequelize.define('Order', {
 **Descripción**: Query builder sin ORM
 
 **Razones de Rechazo**:
+
 - ❌ **No ORM**: Solo query builder, sin entity mapping
 - ❌ **Manual Mapping**: Escribir mappers manualmente
 - ❌ **No Decorators**: Sin metadata
@@ -893,6 +901,7 @@ const Order = sequelize.define('Order', {
 - ⚠️ **Verbosity**: Mucho boilerplate
 
 **Cuándo Usar Knex**:
+
 - Queries extremadamente complejas
 - Performance crítico
 - Team prefiere raw SQL
@@ -905,6 +914,7 @@ const Order = sequelize.define('Order', {
 **Descripción**: TypeScript ORM similar a TypeORM
 
 **Razones de NO Adopción**:
+
 - ⚠️ **Smaller Ecosystem**: Menos adoption que TypeORM
 - ⚠️ **NestJS**: Integration posible pero menos documentación
 - ⚠️ **Learning Curve**: API diferente
@@ -912,6 +922,7 @@ const Order = sequelize.define('Order', {
 - ✅ **Unit of Work**: Patrón más sofisticado
 
 **Cuándo Considerar MikroORM**:
+
 - Performance crítico
 - Team con experiencia en Doctrine/Hibernate
 - Proyectos grandes (>50 entities)
@@ -925,9 +936,7 @@ const Order = sequelize.define('Order', {
 ```typescript
 // ✅ Perfect integration
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, Product]),
-  ],
+  imports: [TypeOrmModule.forFeature([Order, OrderItem, Product])],
   providers: [OrdersService],
 })
 export class OrdersModule {}
@@ -946,11 +955,11 @@ export class OrdersService {
 ```typescript
 // ✅ Type-safe queries
 const product: Product | null = await productRepository.findOne({
-  where: { id: productId },  // TypeScript autocomplete!
+  where: { id: productId }, // TypeScript autocomplete!
 });
 
 if (product) {
-  product.price = 99.99;  // Type-checked
+  product.price = 99.99; // Type-checked
   await productRepository.save(product);
 }
 ```
@@ -972,9 +981,12 @@ const products = await productRepository
   .getMany();
 
 // Raw SQL: When needed
-const result = await productRepository.query(`
+const result = await productRepository.query(
+  `
   SELECT * FROM products WHERE price > $1
-`, [100]);
+`,
+  [100],
+);
 ```
 
 ### 4. **Migration Control**
@@ -988,7 +1000,7 @@ export class AddCategoryToProducts1727221000000 implements MigrationInterface {
       ALTER TABLE "products" 
       ADD COLUMN "category_id" uuid
     `);
-    
+
     // Add FK
     await queryRunner.query(`
       ALTER TABLE "products" 
@@ -1085,7 +1097,7 @@ const products = await productRepository.find({
   where: { isActive: true },
   cache: {
     id: 'active_products',
-    milliseconds: 60000,  // 1 minute
+    milliseconds: 60000, // 1 minute
   },
 });
 
@@ -1095,7 +1107,7 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product, 'master')
     private masterRepo: Repository<Product>,
-    
+
     @InjectRepository(Product, 'slave')
     private slaveRepo: Repository<Product>,
   ) {}
@@ -1136,6 +1148,7 @@ const events = await eventRepository.find({
 **Decisión Final**: ✅ Aceptado
 
 **Justificación**:
+
 1. ✅ **NestJS First-Class**: @nestjs/typeorm perfect integration
 2. ✅ **TypeScript Native**: Type-safe queries, decorators
 3. ✅ **Migration Control**: Versionadas, rollback-able
@@ -1146,11 +1159,13 @@ const events = await eventRepository.find({
 8. ✅ **PostgreSQL Features**: JSONB, Enums, Arrays, FTS
 
 **Trade-offs Aceptados**:
+
 - ⚠️ Lazy loading requires Promise handling
 - ⚠️ Migrations require manual review
 - ⚠️ QueryBuilder verboso para queries simples (usar Repository methods)
 
 **Firmantes**:
+
 - Arquitectura: ✅ Aprobado
 - Backend Team: ✅ Implementado
 - DBA: ✅ Migrations validated

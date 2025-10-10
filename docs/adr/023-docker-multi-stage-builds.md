@@ -63,7 +63,7 @@ CMD ["node", "dist/main.js"]
 ✅ **Small Images:** Only production deps + compiled code  
 ✅ **Fast Builds:** Cached layers, parallel stages  
 ✅ **Secure:** No build tools in production image  
-✅ **Alpine Base:** Minimal attack surface  
+✅ **Alpine Base:** Minimal attack surface
 
 ---
 

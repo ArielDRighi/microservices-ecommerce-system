@@ -34,6 +34,7 @@ Transaction commit
 **Escenarios de Duplicación:**
 
 **1. User Double-Click/Double-Submit**
+
 ```
 User clicks "Place Order" button
     ↓
@@ -47,6 +48,7 @@ RESULT: 2 orders created, user charged twice! 💳💳
 ```
 
 **2. Client Retry on Timeout**
+
 ```
 Request 1: POST /orders → timeout after 30s (no response)
 Client assumes failure, retries
@@ -57,6 +59,7 @@ RESULT: Duplicate order created
 ```
 
 **3. API Gateway/Load Balancer Retry**
+
 ```
 Request → Load Balancer → API Server 1
     ↓
@@ -68,6 +71,7 @@ RESULT: Same order created twice on different servers
 ```
 
 **4. Bull Queue Retry After Failure**
+
 ```
 Order processing job starts
     ↓
@@ -81,6 +85,7 @@ RESULT: Payment charged twice, inventory double-reserved
 ```
 
 **5. Outbox Pattern Race Condition**
+
 ```
 Transaction commits, outbox event created
     ↓
@@ -96,6 +101,7 @@ RESULT: Event processed twice (duplicate notifications)
 ### Real-World Impact
 
 **Without Idempotency:**
+
 - **Financial Loss:** User charged multiple times (refund overhead)
 - **Inventory Issues:** Stock double-reserved, overselling risk
 - **Data Integrity:** Duplicate records pollute database
@@ -103,6 +109,7 @@ RESULT: Event processed twice (duplicate notifications)
 - **Legal Compliance:** PCI-DSS violations (duplicate charges)
 
 **Example Scenario:**
+
 ```
 Black Friday Sale: 10,000 orders/minute
 Network instability: 5% requests timeout
@@ -117,6 +124,7 @@ Impact: 400 angry customers, $50,000+ in duplicate charges
 ### Requirements
 
 **Must-Have:**
+
 1. **Deterministic Key Generation:** Same input → same idempotency key
 2. **Collision Resistance:** Different inputs → different keys (no false positives)
 3. **Database Enforcement:** Unique constraint at DB level (not just app logic)
@@ -124,10 +132,7 @@ Impact: 400 angry customers, $50,000+ in duplicate charges
 5. **Performance:** <1ms overhead for key generation
 6. **Auditability:** Track duplicate attempts in logs
 
-**Nice-to-Have:**
-7. Key expiration (TTL) for garbage collection
-8. Metrics on duplicate detection rate
-9. Support for client-provided keys
+**Nice-to-Have:** 7. Key expiration (TTL) for garbage collection 8. Metrics on duplicate detection rate 9. Support for client-provided keys
 
 ---
 
@@ -142,6 +147,7 @@ Implementamos una **estrategia de idempotencia basada en SHA-256 hashing** con l
 Soportamos **dos modos** de generación de idempotency keys:
 
 **Modo A: Auto-Generated (Server-Side)**
+
 ```typescript
 // Sistema genera key a partir del contenido del request
 const key = generateIdempotencyKey(userId, createOrderDto);
@@ -149,6 +155,7 @@ const key = generateIdempotencyKey(userId, createOrderDto);
 ```
 
 **Modo B: Client-Provided (Client-Side)**
+
 ```typescript
 // Cliente proporciona su propio key
 const dto = {
@@ -158,6 +165,7 @@ const dto = {
 ```
 
 **Reasoning:**
+
 - Auto-generated: Simplifica implementación client-side
 - Client-provided: Da control a clientes sofisticados (mobile apps)
 - Hybrid: Mejor de ambos mundos
@@ -167,13 +175,11 @@ const dto = {
 Utilizamos SHA-256 para hashear el contenido del request:
 
 ```typescript
-const hash = createHash('sha256')
-  .update(itemsHash)
-  .digest('hex')
-  .substring(0, 8); // Primeros 8 caracteres
+const hash = createHash('sha256').update(itemsHash).digest('hex').substring(0, 8); // Primeros 8 caracteres
 ```
 
 **Why SHA-256?**
+
 - ✅ **Collision Resistant:** Probabilidad de colisión negligible (1 in 2^256)
 - ✅ **Deterministic:** Mismo input → mismo hash (idempotente por naturaleza)
 - ✅ **Fast:** ~0.1ms para payloads típicos (<1KB)
@@ -181,6 +187,7 @@ const hash = createHash('sha256')
 - ✅ **Secure:** Cryptographically secure (no reversible)
 
 **Alternatives Rejected:**
+
 - ❌ MD5: Vulnerabilidades conocidas, colisiones posibles
 - ❌ UUID v4: Random, no deterministic (no sirve para idempotencia)
 - ❌ Simple concatenation: Vulnerable a collision (e.g., "12" + "34" = "1" + "234")
@@ -188,17 +195,19 @@ const hash = createHash('sha256')
 **3. Composite Key Format**
 
 ```typescript
-idempotencyKey = `order-${date}-${userIdPrefix}-${contentHash}`
+idempotencyKey = `order-${date}-${userIdPrefix}-${contentHash}`;
 // Example: "order-2024-01-16-a1b2c3d4-f7e8d9c2"
 ```
 
 **Components:**
+
 - **Prefix** (`order-`): Namespace para evitar colisiones con otros recursos
 - **Date** (`2024-01-16`): Permite partitioning/cleanup por fecha
 - **User ID Prefix** (`a1b2c3d4`): Primeros 8 chars del user UUID para debugging
 - **Content Hash** (`f7e8d9c2`): Hash SHA-256 truncado de items
 
 **Benefits:**
+
 - Human-readable para debugging/logs
 - Sorteable cronológicamente
 - User-identifiable sin exponer full UUID
@@ -213,14 +222,15 @@ CREATE TABLE orders (
   ...
 );
 
-CREATE UNIQUE INDEX idx_orders_idempotency_key 
-  ON orders(idempotency_key) 
+CREATE UNIQUE INDEX idx_orders_idempotency_key
+  ON orders(idempotency_key)
   WHERE idempotency_key IS NOT NULL; -- Partial index (performance)
 ```
 
 **Critical:** Unique constraint en base de datos, NO solo app logic.
 
 **Why Database-Level?**
+
 - ✅ **Race Condition Safe:** DB garantiza atomicidad (SERIALIZABLE isolation)
 - ✅ **Multi-Instance Safe:** Funciona con múltiples API servers (horizontal scaling)
 - ✅ **Fail-Safe:** Imposible que app logic tenga bug que permita duplicados
@@ -230,7 +240,7 @@ CREATE UNIQUE INDEX idx_orders_idempotency_key
 
 ```typescript
 // 1. Generate/extract idempotency key
-const idempotencyKey = dto.idempotencyKey || 
+const idempotencyKey = dto.idempotencyKey ||
   this.generateIdempotencyKey(userId, dto);
 
 // 2. Check if order with key exists
@@ -249,6 +259,7 @@ const newOrder = await this.orderRepository.save({...});
 ```
 
 **Flow Benefits:**
+
 - Evita exception throwing en caso común (user retries)
 - Retorna respuesta idéntica (same HTTP 201, same order ID)
 - Logs duplicate attempts para metrics
@@ -267,11 +278,11 @@ const newOrder = await this.orderRepository.save({...});
 /**
  * Generate idempotency key from user and order data
  * Format: order-{date}-{userIdPrefix}-{contentHash}
- * 
+ *
  * @param userId - User UUID
  * @param createOrderDto - Order creation payload
  * @returns Deterministic idempotency key
- * 
+ *
  * @example
  * generateIdempotencyKey(
  *   'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
@@ -280,27 +291,27 @@ const newOrder = await this.orderRepository.save({...});
  * // Returns: "order-2024-01-16-a1b2c3d4-f7e8d9c2"
  */
 private generateIdempotencyKey(
-  userId: string, 
+  userId: string,
   createOrderDto: CreateOrderDto
 ): string {
   // 1. Extract date component (YYYY-MM-DD)
   const timestamp = new Date().toISOString().substring(0, 10);
-  
+
   // 2. Create deterministic item hash
   const itemsHash = createOrderDto.items
     .map((item) => `${item.productId}-${item.quantity}`)
     .sort() // ⚠️ CRITICAL: Sort to ensure deterministic order
     .join('|');
-  
+
   // 3. Hash items with SHA-256 (collision resistant)
   const hash = createHash('sha256')
     .update(itemsHash)
     .digest('hex')
     .substring(0, 8); // Use first 8 hex chars (32 bits)
-  
+
   // 4. Extract user ID prefix (first 8 chars)
   const userPrefix = userId.substring(0, 8);
-  
+
   // 5. Compose final key
   return `order-${timestamp}-${userPrefix}-${hash}`;
 }
@@ -309,6 +320,7 @@ private generateIdempotencyKey(
 **Key Design Decisions:**
 
 **a) Item Sorting (.sort())**
+
 ```typescript
 // WITHOUT sorting:
 items: [{ productId: 'A', qty: 1 }, { productId: 'B', qty: 2 }]
@@ -322,6 +334,7 @@ Both orders → sorted: [A-1, B-2] → hash: abc123 ✅ Same hash!
 ```
 
 **b) Hash Truncation (8 chars)**
+
 ```
 Full SHA-256: 64 hex chars (256 bits)
 Truncated:     8 hex chars ( 32 bits)
@@ -337,6 +350,7 @@ Mitigation: Date component provides natural partitioning
 ```
 
 **c) Date as Partition Key**
+
 ```
 order-2024-01-16-{user}-{hash}
 order-2024-01-17-{user}-{hash}
@@ -356,37 +370,37 @@ Benefits:
  * Location: src/modules/orders/orders.service.ts (L51-90)
  */
 async createOrder(
-  userId: string, 
+  userId: string,
   createOrderDto: CreateOrderDto
 ): Promise<OrderResponseDto> {
   const startTime = Date.now();
-  
+
   // STEP 1: Get or generate idempotency key
-  const idempotencyKey = 
-    createOrderDto.idempotencyKey || 
+  const idempotencyKey =
+    createOrderDto.idempotencyKey ||
     this.generateIdempotencyKey(userId, createOrderDto);
-  
+
   this.logger.log(
     `Creating order for user ${userId} with idempotency key: ${idempotencyKey}`
   );
-  
+
   // STEP 2: Check for duplicate (idempotency check)
   const existingOrder = await this.orderRepository.findOne({
     where: { idempotencyKey },
     relations: ['items', 'items.product'],
   });
-  
+
   if (existingOrder) {
     // DUPLICATE DETECTED! Return existing order
     this.logger.warn(
       `Order with idempotency key ${idempotencyKey} already exists: ${existingOrder.id}. ` +
       `Duplicate request detected, returning existing order.`
     );
-    
+
     // Return exact same response as original request would have
     return this.mapToResponseDto(existingOrder);
   }
-  
+
   // STEP 3: Validate products exist and are active
   const productIds = createOrderDto.items.map((item) => item.productId);
   const products = await this.productRepository
@@ -395,48 +409,48 @@ async createOrder(
     .andWhere('product.isActive = :isActive', { isActive: true })
     .andWhere('product.deletedAt IS NULL')
     .getMany();
-  
+
   if (products.length !== productIds.length) {
     throw new NotFoundException('One or more products not found or inactive');
   }
-  
+
   // STEP 4: Start transaction (ACID guarantees)
   const queryRunner = this.dataSource.createQueryRunner();
   await queryRunner.connect();
   await queryRunner.startTransaction();
-  
+
   try {
     // ... create order, items, calculate totals ...
     // ... publish events ...
-    
+
     await queryRunner.commitTransaction();
-    
+
     this.logger.log(
       `Order created successfully: ${savedOrder.id} ` +
       `(duration: ${Date.now() - startTime}ms)`
     );
-    
+
     return this.mapToResponseDto(savedOrder);
-    
+
   } catch (error) {
     await queryRunner.rollbackTransaction();
-    
+
     // Check if error is duplicate key violation
     if (error.code === '23505') { // PostgreSQL unique violation
       this.logger.warn(
         `Duplicate key detected during insert: ${idempotencyKey}. ` +
         `Race condition occurred. Fetching existing order.`
       );
-      
+
       // Fetch the order that was inserted by concurrent request
       const raceConditionOrder = await this.orderRepository.findOne({
         where: { idempotencyKey },
         relations: ['items', 'items.product'],
       });
-      
+
       return this.mapToResponseDto(raceConditionOrder!);
     }
-    
+
     throw error;
   } finally {
     await queryRunner.release();
@@ -447,6 +461,7 @@ async createOrder(
 **Critical Flow Analysis:**
 
 **Happy Path (No Duplicate):**
+
 ```
 1. Generate idempotencyKey: "order-2024-01-16-a1b2c3d4-abc123"
 2. Check DB: SELECT * FROM orders WHERE idempotency_key = '...'
@@ -458,6 +473,7 @@ async createOrder(
 ```
 
 **Duplicate Path (Same Key Exists):**
+
 ```
 1. Generate idempotencyKey: "order-2024-01-16-a1b2c3d4-abc123"
 2. Check DB: SELECT * FROM orders WHERE idempotency_key = '...'
@@ -468,6 +484,7 @@ async createOrder(
 ```
 
 **Race Condition Path (Concurrent Requests):**
+
 ```
 Timeline:
 t0: Request A arrives → generate key: "abc123"
@@ -486,18 +503,19 @@ t10: Request B returns order created by Request A
 ```
 
 **PostgreSQL Unique Constraint Protection:**
+
 ```sql
 -- Request A:
 BEGIN;
-INSERT INTO orders (id, idempotency_key, ...) 
+INSERT INTO orders (id, idempotency_key, ...)
 VALUES ('uuid-1', 'abc123', ...);
 COMMIT; -- ✅ SUCCESS
 
 -- Request B (concurrent):
 BEGIN;
-INSERT INTO orders (id, idempotency_key, ...) 
+INSERT INTO orders (id, idempotency_key, ...)
 VALUES ('uuid-2', 'abc123', ...); -- ❌ FAILS
-ERROR: duplicate key value violates unique constraint 
+ERROR: duplicate key value violates unique constraint
        "UQ_orders_idempotency_key"
 DETAIL: Key (idempotency_key)=(abc123) already exists.
 ```
@@ -519,10 +537,10 @@ CREATE TABLE "orders" (
   "payment_id" character varying(255),
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
-  
+
   CONSTRAINT "PK_orders_id" PRIMARY KEY ("id"),
   CONSTRAINT "UQ_orders_idempotency_key" UNIQUE ("idempotency_key"), -- ✨ Unique constraint
-  CONSTRAINT "FK_orders_user_id" FOREIGN KEY ("user_id") 
+  CONSTRAINT "FK_orders_user_id" FOREIGN KEY ("user_id")
     REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 ```
@@ -531,8 +549,8 @@ CREATE TABLE "orders" (
 
 ```sql
 -- Index 1: Unique index on idempotency_key (partial index for performance)
-CREATE UNIQUE INDEX "idx_orders_idempotency_key" 
-  ON "orders" ("idempotency_key") 
+CREATE UNIQUE INDEX "idx_orders_idempotency_key"
+  ON "orders" ("idempotency_key")
   WHERE "idempotency_key" IS NOT NULL;
 -- WHY PARTIAL? Nulls don't participate in uniqueness check
 -- BENEFIT: Smaller index size (only non-null keys indexed)
@@ -551,13 +569,14 @@ CREATE INDEX "idx_orders_created_at" ON "orders" ("created_at");
 ```
 
 **Why Partial Index?**
+
 ```sql
 -- WITHOUT partial index (indexes ALL rows including NULLs):
 CREATE UNIQUE INDEX idx_key ON orders (idempotency_key);
 -- Size: ~500MB for 10M orders (even if only 5M have keys)
 
 -- WITH partial index (only non-NULL):
-CREATE UNIQUE INDEX idx_key ON orders (idempotency_key) 
+CREATE UNIQUE INDEX idx_key ON orders (idempotency_key)
 WHERE idempotency_key IS NOT NULL;
 -- Size: ~250MB for 10M orders (only 5M indexed)
 -- 50% space savings!
@@ -617,8 +636,8 @@ export class Order {
   @Column({
     type: 'varchar',
     length: 255,
-    unique: true,        // ✨ TypeORM unique constraint
-    nullable: true,      // Optional (client-provided or auto-generated)
+    unique: true, // ✨ TypeORM unique constraint
+    nullable: true, // Optional (client-provided or auto-generated)
     name: 'idempotency_key',
   })
   @Index('idx_orders_idempotency_key_btree', { unique: true })
@@ -643,6 +662,7 @@ export class Order {
 ```
 
 **TypeORM Decorators:**
+
 - `@Column({ unique: true })`: Genera constraint en DB
 - `@Index(..., { unique: true })`: Genera unique index
 - `nullable: true`: Permite client-provided keys (opcional)
@@ -685,15 +705,13 @@ describe('OrdersService - Idempotency', () => {
     // ASSERT: Returns existing order
     expect(result).toBeDefined();
     expect(result.id).toBe('existing-order-id'); // Same ID!
-    
+
     // CRITICAL: Should NOT start transaction
     expect(queryRunner.connect).not.toHaveBeenCalled();
     expect(queryRunner.startTransaction).not.toHaveBeenCalled();
-    
+
     // Should log duplicate detection
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('already exists')
-    );
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('already exists'));
   });
 
   it('should create new order if idempotency key is unique', async () => {
@@ -723,7 +741,7 @@ describe('generateIdempotencyKey', () => {
         { productId: 'prod-B', quantity: 1 },
       ],
     };
-    
+
     const dto2 = {
       items: [
         { productId: 'prod-A', quantity: 2 },
@@ -739,7 +757,7 @@ describe('generateIdempotencyKey', () => {
 
   it('should generate same key regardless of item order', () => {
     const userId = 'user-123';
-    
+
     // Order 1: A then B
     const dto1 = {
       items: [
@@ -747,7 +765,7 @@ describe('generateIdempotencyKey', () => {
         { productId: 'prod-B', quantity: 1 },
       ],
     };
-    
+
     // Order 2: B then A (reversed!)
     const dto2 = {
       items: [
@@ -764,11 +782,11 @@ describe('generateIdempotencyKey', () => {
 
   it('should generate different keys for different quantities', () => {
     const userId = 'user-123';
-    
+
     const dto1 = {
       items: [{ productId: 'prod-A', quantity: 1 }],
     };
-    
+
     const dto2 = {
       items: [{ productId: 'prod-A', quantity: 2 }], // Different qty!
     };
@@ -800,10 +818,9 @@ describe('generateIdempotencyKey', () => {
   });
 
   it('should generate key format: order-{date}-{userPrefix}-{hash}', () => {
-    const key = service['generateIdempotencyKey'](
-      'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-      { items: [{ productId: 'prod-A', quantity: 1 }] }
-    );
+    const key = service['generateIdempotencyKey']('a1b2c3d4-e5f6-7890-abcd-ef1234567890', {
+      items: [{ productId: 'prod-A', quantity: 1 }],
+    });
 
     expect(key).toMatch(/^order-\d{4}-\d{2}-\d{2}-[a-f0-9]{8}-[a-f0-9]{8}$/);
     // Format: order-2024-01-16-a1b2c3d4-abc12345
@@ -848,15 +865,15 @@ describe('POST /orders - Idempotency (E2E)', () => {
 
     // ASSERT: Same order ID returned
     expect(response1.body.data.orderId).toBe(response2.body.data.orderId);
-    
+
     // Wait for event processing
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     // ASSERT: Only ONE outbox event created (not two!)
     const outboxEvents = await outboxRepository.find({
-      where: { 
-        eventType: 'OrderCreated', 
-        aggregateId: response1.body.data.data.id 
+      where: {
+        eventType: 'OrderCreated',
+        aggregateId: response1.body.data.data.id,
       },
     });
 
@@ -900,9 +917,7 @@ describe('POST /orders - Idempotency (E2E)', () => {
     });
 
     expect(outboxEvents).toHaveLength(2);
-    expect(outboxEvents[0]!.idempotencyKey).not.toBe(
-      outboxEvents[1]!.idempotencyKey
-    );
+    expect(outboxEvents[0]!.idempotencyKey).not.toBe(outboxEvents[1]!.idempotencyKey);
   });
 
   it('should prevent duplicate outbox events with unique constraint', async () => {
@@ -933,7 +948,7 @@ describe('POST /orders - Idempotency (E2E)', () => {
 
     // ASSERT: Should throw unique constraint violation
     await expect(outboxRepository.save(event2)).rejects.toThrow();
-    
+
     // Error code should be PostgreSQL unique violation
     try {
       await outboxRepository.save(event2);
@@ -956,24 +971,26 @@ describe('Concurrent Request Race Conditions', () => {
     };
 
     // Fire 5 concurrent requests with same key
-    const promises = Array(5).fill(null).map(() =>
-      request(app.getHttpServer())
-        .post('/orders')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send(orderData)
-    );
+    const promises = Array(5)
+      .fill(null)
+      .map(() =>
+        request(app.getHttpServer())
+          .post('/orders')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .send(orderData),
+      );
 
     const responses = await Promise.all(promises);
 
     // All requests should succeed (200 or 202)
-    responses.forEach(res => {
+    responses.forEach((res) => {
       expect([200, 201, 202]).toContain(res.status);
     });
 
     // All should return SAME order ID
-    const orderIds = responses.map(r => r.body.data.orderId);
+    const orderIds = responses.map((r) => r.body.data.orderId);
     const uniqueOrderIds = [...new Set(orderIds)];
-    
+
     expect(uniqueOrderIds).toHaveLength(1); // ✅ Only ONE order created!
 
     // Verify only 1 order in database
@@ -1010,7 +1027,7 @@ scenarios:
           capture:
             - json: "$.accessToken"
               as: "token"
-      
+
       # First click
       - post:
           url: "/orders"
@@ -1024,7 +1041,7 @@ scenarios:
           capture:
             - json: "$.data.orderId"
               as: "orderId1"
-      
+
       # Second click (immediate duplicate)
       - post:
           url: "/orders"
@@ -1038,13 +1055,14 @@ scenarios:
           capture:
             - json: "$.data.orderId"
               as: "orderId2"
-      
+
       # Verify same order ID
       - think: 1
       - log: "Order ID 1: {{ orderId1 }}, Order ID 2: {{ orderId2 }}"
 ```
 
 **Expected Results:**
+
 ```
 Summary:
   Requests: 12,000 (6,000 unique orders × 2 requests each)
@@ -1062,6 +1080,7 @@ Summary:
 ### Implementation Files
 
 **1. Service Layer (Business Logic)**
+
 ```
 📄 src/modules/orders/orders.service.ts (369 lines)
 ├── createOrder() (L51-183)
@@ -1075,6 +1094,7 @@ Summary:
 ```
 
 **2. Entity Layer (Data Model)**
+
 ```
 📄 src/modules/orders/entities/order.entity.ts (351 lines)
 ├── @Column idempotencyKey (L63-71)
@@ -1085,6 +1105,7 @@ Summary:
 ```
 
 **3. Database Layer (Schema)**
+
 ```
 📄 src/database/migrations/1727215000000-CreateInitialSchema.ts (446 lines)
 ├── orders table (L85-114)
@@ -1096,6 +1117,7 @@ Summary:
 ```
 
 **4. Test Coverage**
+
 ```
 📄 src/modules/orders/orders.service.core.spec.ts (281 lines)
 ├── Duplicate detection test (L189-207)
@@ -1110,8 +1132,9 @@ Summary:
 ### Database Verification
 
 **Query 1: Check Unique Constraint**
+
 ```sql
-SELECT 
+SELECT
   conname AS constraint_name,
   contype AS constraint_type,
   pg_get_constraintdef(oid) AS definition
@@ -1125,8 +1148,9 @@ WHERE conrelid = 'orders'::regclass
 ```
 
 **Query 2: Check Index**
+
 ```sql
-SELECT 
+SELECT
   indexname,
   indexdef
 FROM pg_indexes
@@ -1140,8 +1164,9 @@ WHERE tablename = 'orders'
 ```
 
 **Query 3: Verify No Duplicates**
+
 ```sql
-SELECT 
+SELECT
   idempotency_key,
   COUNT(*) as count
 FROM orders
@@ -1153,8 +1178,9 @@ HAVING COUNT(*) > 1;
 ```
 
 **Query 4: Idempotency Key Distribution**
+
 ```sql
-SELECT 
+SELECT
   DATE(created_at) as date,
   COUNT(DISTINCT idempotency_key) as unique_keys,
   COUNT(*) as total_orders,
@@ -1179,12 +1205,14 @@ ORDER BY date DESC;
 ### Positive Consequences
 
 **1. Zero Duplicate Orders**
+
 - **Before Idempotency:** 2-5% duplicate order rate during high traffic
 - **After Idempotency:** 0% duplicates (database-enforced)
 - **Impact:** Zero customer complaints about duplicate charges
 - **Savings:** ~$10,000/month in refund processing costs
 
 **2. Improved User Experience**
+
 ```
 User double-clicks "Place Order"
     ↓
@@ -1196,6 +1224,7 @@ No confusion, no duplicate charges, happy customer! 😊
 ```
 
 **3. Safe Retry Behavior**
+
 ```
 Client timeout after 30s (no response)
     ↓
@@ -1207,24 +1236,27 @@ No duplicate, no side effects, automatic deduplication!
 ```
 
 **4. Horizontal Scalability**
+
 - **Multi-Instance Safe:** Works across multiple API servers
 - **Load Balancer Safe:** Retries handled correctly
 - **Database Guarantee:** PostgreSQL UNIQUE constraint is atomic
 - **No Coordination Needed:** No need for distributed locks
 
 **5. Auditability & Debugging**
+
 ```typescript
 // Log every duplicate detection
 this.logger.warn(
-  `Duplicate request detected: ${idempotencyKey}. ` +
-  `Existing order: ${existingOrder.id}`
+  `Duplicate request detected: ${idempotencyKey}. ` + `Existing order: ${existingOrder.id}`,
 );
 ```
+
 - Track duplicate rate for monitoring
 - Identify problematic clients (excessive retries)
 - Debug race conditions with key analysis
 
 **6. Performance Benefits**
+
 - **Duplicate Check:** ~2ms (indexed query)
 - **Hash Generation:** ~0.1ms (SHA-256 on small payload)
 - **Total Overhead:** ~2ms per request (negligible)
@@ -1233,6 +1265,7 @@ this.logger.warn(
 ### Negative Consequences / Trade-offs
 
 **1. Idempotency Window Limitation**
+
 ```
 Key: "order-2024-01-16-user123-abc123"
 ↓
@@ -1249,11 +1282,13 @@ Day 2: User retries with same items
 ```
 
 **Mitigation:**
+
 - Acceptable trade-off (users rarely retry after 24h)
 - Alternative: Remove date component (but lose partitioning benefit)
 - Better solution: Client-provided keys (mobile apps control TTL)
 
 **2. No Content-Based Deduplication Across Users**
+
 ```
 User A orders: [Product X, qty: 1]
 User B orders: [Product X, qty: 1]
@@ -1267,10 +1302,12 @@ BUT: If User A accidentally creates order from User B's session
 ```
 
 **Mitigation:**
+
 - This is actually correct behavior (different users, different orders)
 - Session management prevents wrong user context
 
 **3. Hash Collision Risk (Theoretical)**
+
 ```
 SHA-256 truncated to 8 hex chars = 32 bits
 Collision probability: ~0.01% at 10,000 orders/day
@@ -1283,28 +1320,33 @@ Real-world impact:
 ```
 
 **Mitigation:**
+
 - Date component partitions search space (collisions only within same day)
 - Effective collision rate: ~0.001% × (1/365) ≈ 0.000003%
 - Acceptable for business (< 1 collision per 10 years)
 - Can increase hash length if needed (8 → 16 chars)
 
 **4. Database Index Overhead**
+
 ```sql
-CREATE UNIQUE INDEX idx_orders_idempotency_key 
+CREATE UNIQUE INDEX idx_orders_idempotency_key
 ON orders (idempotency_key) WHERE idempotency_key IS NOT NULL;
 ```
 
 **Overhead:**
+
 - Index size: ~50MB per 1M orders (varchar(255))
 - Insert performance: +2ms per order (index update)
 - Query performance: +0.5ms per duplicate check
 
 **Benefit vs Cost:**
+
 - Cost: 2.5ms overhead per order
 - Benefit: Prevent $50 duplicate charge + refund overhead
 - ROI: Infinite (even 1 duplicate prevented justifies cost)
 
 **5. Idempotency Key Exposure Risk**
+
 ```
 GET /orders/order-2024-01-16-user123-abc123
 
@@ -1314,19 +1356,22 @@ Potential issues:
 ```
 
 **Mitigation:**
+
 - User ID prefix is already UUID (not sequential)
 - Hash is cryptographic (not reversible)
 - Keys are not authentication tokens (safe to expose)
 - Alternative: Use full UUID as key (sacrifice readability)
 
 **6. Client-Provided Key Abuse**
+
 ```typescript
 // Malicious client could provide
-idempotencyKey: "order-malicious-key"
+idempotencyKey: 'order-malicious-key';
 // Then spam requests with same key, blocking real orders
 ```
 
 **Mitigation:**
+
 - Rate limiting per user (max 10 orders/minute)
 - Key validation (reject suspicious patterns)
 - Monitoring for key reuse patterns
@@ -1339,6 +1384,7 @@ idempotencyKey: "order-malicious-key"
 ### Alternative 1: UUID v4 as Idempotency Key
 
 **Approach:**
+
 ```typescript
 // Client generates random UUID
 const idempotencyKey = crypto.randomUUID();
@@ -1353,6 +1399,7 @@ POST /orders
 ```
 
 **Why Rejected:**
+
 - ❌ **Not Deterministic:** Same request content → different UUIDs
 - ❌ **Client Responsibility:** Burden on client to generate and store keys
 - ❌ **No Auto-Retry Support:** If client loses key, can't retry safely
@@ -1362,16 +1409,16 @@ POST /orders
 ### Alternative 2: Request Body Hash Only
 
 **Approach:**
+
 ```typescript
 // Hash entire request body
-const idempotencyKey = createHash('sha256')
-  .update(JSON.stringify(req.body))
-  .digest('hex');
+const idempotencyKey = createHash('sha256').update(JSON.stringify(req.body)).digest('hex');
 ```
 
 **Why Rejected:**
+
 - ❌ **No User Context:** Different users with same cart → same key (collision!)
-- ❌ **JSON Serialization Issues:** 
+- ❌ **JSON Serialization Issues:**
   ```json
   {"a":1,"b":2} vs {"b":2,"a":1}
   // Same object, different JSON, different hash!
@@ -1382,6 +1429,7 @@ const idempotencyKey = createHash('sha256')
 ### Alternative 3: Distributed Lock (Redis)
 
 **Approach:**
+
 ```typescript
 // Use Redis for distributed locking
 const lockKey = `order:lock:${userId}:${contentHash}`;
@@ -1399,6 +1447,7 @@ try {
 ```
 
 **Why Rejected:**
+
 - ❌ **Additional Dependency:** Requires Redis for locks
 - ❌ **Network Overhead:** 2 Redis calls per order (set + del)
 - ❌ **Lock Expiration Issues:** What if process dies? Lock stuck for 10s
@@ -1410,6 +1459,7 @@ try {
 ### Alternative 4: Token Bucket / Rate Limiting Only
 
 **Approach:**
+
 ```typescript
 // Just rate limit users
 @UseGuards(ThrottlerGuard)
@@ -1418,6 +1468,7 @@ async createOrder() { ... }
 ```
 
 **Why Rejected:**
+
 - ❌ **Doesn't Prevent Duplicates:** User can still send 10 duplicate requests
 - ❌ **No Idempotency:** Same request 10 times = 10 orders
 - ❌ **Punishes Legitimate Retries:** User retries on timeout = rate limited
@@ -1426,6 +1477,7 @@ async createOrder() { ... }
 ### Alternative 5: Application-Level Deduplication (In-Memory)
 
 **Approach:**
+
 ```typescript
 // Keep in-memory set of recent keys
 const recentKeys = new Set<string>();
@@ -1439,6 +1491,7 @@ setTimeout(() => recentKeys.delete(idempotencyKey), 60000); // TTL 1min
 ```
 
 **Why Rejected:**
+
 - ❌ **Not Multi-Instance Safe:** Each server has own memory
 - ❌ **Process Restart = Lost State:** Keys forgotten on deploy
 - ❌ **Memory Leak Risk:** Unbounded growth if TTL fails
@@ -1448,6 +1501,7 @@ setTimeout(() => recentKeys.delete(idempotencyKey), 60000); // TTL 1min
 ### Alternative 6: Idempotency Middleware (Stripe-style)
 
 **Approach:**
+
 ```typescript
 // Store request/response pairs in database
 @UseInterceptors(IdempotencyInterceptor)
@@ -1458,11 +1512,11 @@ class IdempotencyInterceptor {
   async intercept(context, next) {
     const key = extractKey(request);
     const cached = await idempotencyRepo.findOne({ key });
-    
+
     if (cached) {
       return cached.response; // Return cached response
     }
-    
+
     const response = await next.handle();
     await idempotencyRepo.save({ key, response });
     return response;
@@ -1471,6 +1525,7 @@ class IdempotencyInterceptor {
 ```
 
 **Why Rejected:**
+
 - ❌ **Requires Separate Table:** Additional table for idempotency cache
 - ❌ **Response Caching Complexity:** Serialize/deserialize responses
 - ❌ **TTL Management:** Need cleanup job for old entries
@@ -1485,36 +1540,44 @@ class IdempotencyInterceptor {
 ### What Worked Well
 
 **1. Database-Enforced Uniqueness**
+
 ```sql
 CONSTRAINT "UQ_orders_idempotency_key" UNIQUE ("idempotency_key")
 ```
+
 - ✅ **Zero Bugs:** Database guarantees no duplicates (impossible to bypass)
 - ✅ **No Code Bugs:** Even if app logic has race condition, DB prevents duplicate
 - ✅ **Multi-Instance Safe:** Works across any number of API servers
 - **Learning:** Always enforce critical constraints at database level
 
 **2. Partial Index for Performance**
+
 ```sql
 CREATE UNIQUE INDEX ... WHERE idempotency_key IS NOT NULL
 ```
+
 - ✅ **50% Smaller Index:** Only indexes non-null keys
 - ✅ **Faster Inserts:** Fewer index updates
 - ✅ **Same Uniqueness:** NULL values don't participate in uniqueness
 - **Learning:** Use partial indexes when column is nullable
 
 **3. Deterministic + Client-Provided Hybrid**
+
 ```typescript
 const key = dto.idempotencyKey || this.generateIdempotencyKey(...)
 ```
+
 - ✅ **Flexibility:** Supports both auto-generated and client-provided
 - ✅ **Backward Compatible:** Existing clients work without changes
 - ✅ **Future-Proof:** Sophisticated clients can provide own keys
 - **Learning:** Hybrid approach gives best of both worlds
 
 **4. Composite Key Format**
+
 ```
 order-{date}-{userPrefix}-{contentHash}
 ```
+
 - ✅ **Debuggable:** Can identify user and date from key
 - ✅ **Partitionable:** Date enables time-based cleanup
 - ✅ **Sortable:** Chronological ordering
@@ -1522,12 +1585,14 @@ order-{date}-{userPrefix}-{contentHash}
 - **Learning:** Structured keys > opaque hashes for operations
 
 **5. Graceful Duplicate Handling**
+
 ```typescript
 if (existingOrder) {
   this.logger.warn('Duplicate detected');
   return existingOrder; // Same response
 }
 ```
+
 - ✅ **No Errors Thrown:** User doesn't see error, just success
 - ✅ **Idempotent Response:** Same HTTP 201, same order ID
 - ✅ **Audit Trail:** Log warnings for monitoring
@@ -1538,15 +1603,17 @@ if (existingOrder) {
 **Challenge 1: Deterministic Hashing with Unsorted Items**
 
 **Problem:**
+
 ```typescript
 // Request 1: [A, B] → hash: abc123
 // Request 2: [B, A] → hash: def456  // ❌ Different!
 ```
 
 **Solution:**
+
 ```typescript
 const itemsHash = items
-  .map(item => `${item.productId}-${item.quantity}`)
+  .map((item) => `${item.productId}-${item.quantity}`)
   .sort() // ✨ Critical!
   .join('|');
 ```
@@ -1558,6 +1625,7 @@ const itemsHash = items
 **Challenge 2: Race Condition Between Check and Insert**
 
 **Problem:**
+
 ```
 Request A: Check DB → NULL (no duplicate)
 Request B: Check DB → NULL (no duplicate)
@@ -1566,6 +1634,7 @@ Request B: INSERT order → 💥 Both insert!
 ```
 
 **Solution:**
+
 ```typescript
 try {
   await orderRepository.save({ idempotencyKey, ... });
@@ -1586,12 +1655,14 @@ try {
 **Challenge 3: Hash Collision Probability**
 
 **Problem:**
+
 ```
 8 hex chars = 32 bits
 Birthday paradox: 50% collision at √(2^32) ≈ 65,536 items
 ```
 
 **Solution:**
+
 - Add date prefix (partitions by day)
 - Add user prefix (partitions by user)
 - Effective collision space: ~100 orders/user/day
@@ -1606,6 +1677,7 @@ Birthday paradox: 50% collision at √(2^32) ≈ 65,536 items
 **Problem:** User clicks "Place Order" twice rapidly
 
 **Solution:**
+
 ```typescript
 // Frontend debouncing
 const handleSubmit = debounce(async () => {
@@ -1625,16 +1697,17 @@ if (existingOrder) return existingOrder;
 **Problem:** Hard to reproduce race conditions in tests
 
 **Solution:**
+
 ```typescript
 // Fire concurrent requests
-const promises = Array(5).fill(null).map(() =>
-  request(app).post('/orders').send(orderData)
-);
+const promises = Array(5)
+  .fill(null)
+  .map(() => request(app).post('/orders').send(orderData));
 
 const responses = await Promise.all(promises);
 
 // Assert only 1 order created
-const uniqueIds = [...new Set(responses.map(r => r.body.orderId))];
+const uniqueIds = [...new Set(responses.map((r) => r.body.orderId))];
 expect(uniqueIds).toHaveLength(1);
 ```
 
@@ -1673,6 +1746,7 @@ async createOrder() {
 ```
 
 **Grafana Dashboard:**
+
 ```
 Duplicate Detection Rate (Last 24h)
 ─────────────────────────────────────
@@ -1697,10 +1771,10 @@ Top Duplicate Sources:
 ```typescript
 // Increase hash length if collision detected
 private generateIdempotencyKey(...): string {
-  const hashLength = this.detectCollisionRate() > 0.01 
+  const hashLength = this.detectCollisionRate() > 0.01
     ? 16  // High collision → longer hash
     : 8;  // Normal → shorter hash
-  
+
   return hash.substring(0, hashLength);
 }
 ```
@@ -1758,11 +1832,11 @@ export class CreateOrderCommand {
 export class CreateOrderHandler {
   async execute(command: CreateOrderCommand) {
     const existing = await this.repo.findOne({
-      idempotencyKey: command.idempotencyKey
+      idempotencyKey: command.idempotencyKey,
     });
-    
+
     if (existing) return existing; // Idempotent!
-    
+
     // ... create order ...
   }
 }
@@ -1780,7 +1854,7 @@ export class CreateOrderHandler {
 export class OutboxEvent {
   @Column({ unique: true })
   idempotencyKey!: string; // ✨ Prevents duplicate events
-  
+
   // Format: "{aggregateId}_{eventType}_{timestamp}_{nonce}"
 }
 
@@ -1791,7 +1865,7 @@ async processEvent(event: OutboxEvent) {
     this.logger.warn('Event already processed, skipping');
     return;
   }
-  
+
   await this.handler.handle(event);
   await this.cache.set(event.idempotencyKey, true, 3600); // 1h TTL
 }
@@ -1813,14 +1887,14 @@ interface OrderProcessingJob {
 // Job processor checks before processing
 async process(job: Job<OrderProcessingJob>) {
   const { orderId, idempotencyKey } = job.data;
-  
+
   // Check if already processed
   const order = await this.repo.findOne({ idempotencyKey });
   if (order.status === OrderStatus.COMPLETED) {
     this.logger.log('Order already completed, skipping');
     return; // Idempotent!
   }
-  
+
   // ... process order ...
 }
 ```
@@ -1847,12 +1921,12 @@ interface SagaState {
 // Each step uses its own idempotency key
 async verifyStock(saga: SagaState) {
   const stepKey = saga.stepIdempotencyKeys.verifyStock;
-  
+
   // Check if step already completed
   if (saga.completedSteps.includes(stepKey)) {
     return saga.stepResults.verifyStock; // Cached result
   }
-  
+
   // ... execute step ...
 }
 ```
@@ -1866,14 +1940,17 @@ async verifyStock(saga: SagaState) {
 ### Industry Standards
 
 **Stripe Idempotency:**
+
 - [Stripe API - Idempotent Requests](https://stripe.com/docs/api/idempotent_requests)
 - Client-provided keys, 24h TTL, response caching
 
 **AWS API Gateway:**
+
 - [Making idempotent API requests](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-idempotency.html)
 - Header-based: `Idempotency-Key: <uuid>`
 
 **REST API Design:**
+
 - [RFC 7231 - HTTP Idempotency](https://tools.ietf.org/html/rfc7231#section-4.2.2)
 - PUT, DELETE are idempotent by nature
 - POST requires explicit idempotency mechanism
@@ -1908,30 +1985,35 @@ test/e2e/integration/event-outbox.e2e-spec.ts - E2E tests
 ### Key Performance Indicators
 
 **1. Duplicate Detection Rate**
+
 - **Metric:** `duplicates_detected / total_requests`
 - **Target:** 2-5% (expected user retry rate)
 - **Measurement:** Log analysis, Prometheus counter
 - **Alert:** > 10% (indicates client retry bug)
 
 **2. False Positive Rate**
+
 - **Metric:** `false_duplicates / duplicates_detected`
 - **Target:** 0% (no false positives)
 - **Measurement:** Manual review of logs
 - **Definition:** Different order marked as duplicate
 
 **3. Idempotency Check Latency**
+
 - **Metric:** Time to check `findOne({ idempotencyKey })`
 - **Target:** < 5ms P95
 - **Measurement:** Query performance logs
 - **Alert:** > 10ms (index performance issue)
 
 **4. Hash Collision Rate**
+
 - **Metric:** `hash_collisions / total_orders`
 - **Target:** < 0.001%
 - **Measurement:** Compare idempotency keys with order content
 - **Alert:** > 0.01% (consider longer hash)
 
 **5. Database Constraint Violations**
+
 - **Metric:** PostgreSQL error code 23505 count
 - **Target:** < 1% of orders (race conditions)
 - **Measurement:** Error logs
@@ -1940,6 +2022,7 @@ test/e2e/integration/event-outbox.e2e-spec.ts - E2E tests
 ### Success Criteria
 
 ✅ **ACHIEVED:**
+
 - [x] Zero duplicate orders in production (100% prevention)
 - [x] Idempotency check < 5ms P95 (currently ~2ms)
 - [x] Database unique constraint enforced (23505 errors caught)
@@ -1947,11 +2030,13 @@ test/e2e/integration/event-outbox.e2e-spec.ts - E2E tests
 - [x] E2E tests for race conditions passing
 
 ⏳ **IN PROGRESS:**
+
 - [ ] Prometheus metrics integration
 - [ ] Grafana dashboard for duplicate detection
 - [ ] Alerting on high duplicate rate (> 10%)
 
 🔮 **FUTURE:**
+
 - [ ] TTL-based cleanup job (90 days)
 - [ ] Client SDK with automatic key management
 - [ ] Adaptive hash length based on collision rate
@@ -1960,15 +2045,15 @@ test/e2e/integration/event-outbox.e2e-spec.ts - E2E tests
 
 ## Decision Log
 
-| Date       | Decision                                      | Rationale                                   |
-|------------|-----------------------------------------------|---------------------------------------------|
-| 2024-01-10 | SHA-256 for hashing vs MD5                    | Collision resistance, security              |
-| 2024-01-11 | Hybrid (auto-generated + client-provided)     | Flexibility, backward compatibility         |
-| 2024-01-12 | Composite key format (date-user-hash)         | Debuggability, partitioning, readability    |
-| 2024-01-13 | Database UNIQUE constraint vs app logic       | Atomic guarantee, multi-instance safe       |
-| 2024-01-14 | Partial index (WHERE NOT NULL)                | Performance, 50% index size reduction       |
-| 2024-01-15 | 8 hex chars hash truncation vs full 64        | Balance between collision risk and key size |
-| 2024-01-16 | Graceful duplicate handling (no error throw)  | Better UX, idempotent response              |
+| Date       | Decision                                     | Rationale                                   |
+| ---------- | -------------------------------------------- | ------------------------------------------- |
+| 2024-01-10 | SHA-256 for hashing vs MD5                   | Collision resistance, security              |
+| 2024-01-11 | Hybrid (auto-generated + client-provided)    | Flexibility, backward compatibility         |
+| 2024-01-12 | Composite key format (date-user-hash)        | Debuggability, partitioning, readability    |
+| 2024-01-13 | Database UNIQUE constraint vs app logic      | Atomic guarantee, multi-instance safe       |
+| 2024-01-14 | Partial index (WHERE NOT NULL)               | Performance, 50% index size reduction       |
+| 2024-01-15 | 8 hex chars hash truncation vs full 64       | Balance between collision risk and key size |
+| 2024-01-16 | Graceful duplicate handling (no error throw) | Better UX, idempotent response              |
 
 ---
 
@@ -1982,15 +2067,17 @@ La estrategia de idempotencia basada en **SHA-256 hashing + Database UNIQUE cons
 ✅ **Horizontal Scalability:** Multi-instance safe (no coordination needed)  
 ✅ **Performance:** <2ms overhead per request (negligible)  
 ✅ **Debuggability:** Structured keys with user/date context  
-✅ **Race-Condition Safe:** PostgreSQL handles concurrent inserts atomically  
+✅ **Race-Condition Safe:** PostgreSQL handles concurrent inserts atomically
 
 **Trade-offs aceptables:**
+
 - Theoretical hash collision risk: < 0.001% (acceptable)
 - Daily key rotation: Users can't retry after 24h (acceptable)
 - Index overhead: 2ms insert penalty (worth it for duplicate prevention)
 - Client complexity: Optional client-provided keys (not required)
 
 **Impacto medible:**
+
 - 100% duplicate prevention rate (0 duplicates in production)
 - ~2-5% of requests are duplicates (caught and handled gracefully)
 - $10,000/month savings in refund processing
@@ -1999,6 +2086,7 @@ La estrategia de idempotencia basada en **SHA-256 hashing + Database UNIQUE cons
 El pattern se integra perfectamente con CQRS (ADR-004), Outbox Pattern (ADR-002), Saga Pattern (ADR-003), y Retry Pattern (ADR-009), creando una estrategia de resiliencia comprehensiva end-to-end.
 
 **Next Steps:**
+
 1. ✅ **Completed:** Core implementation con database enforcement
 2. ⏳ **In Progress:** Prometheus metrics y Grafana dashboards
 3. 🔜 **Next:** TTL-based cleanup job para keys antiguas
@@ -2009,4 +2097,3 @@ El pattern se integra perfectamente con CQRS (ADR-004), Outbox Pattern (ADR-002)
 **Status:** ✅ **IMPLEMENTED AND OPERATIONAL**  
 **Last Updated:** 2024-01-16  
 **Author:** Development Team
-

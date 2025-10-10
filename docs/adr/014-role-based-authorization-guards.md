@@ -27,6 +27,7 @@ Después de implementar JWT authentication (ADR-013), necesitamos **autorizació
 ### Problem Scenarios
 
 **Scenario 1: Admin-Only Endpoints**
+
 ```typescript
 @Delete('/users/:id')  // Delete user endpoint
 async deleteUser(@Param('id') id: string) {
@@ -38,6 +39,7 @@ NEED: Only admins should be able to delete users
 ```
 
 **Scenario 2: User Can Only Access Own Data**
+
 ```typescript
 @Get('/orders/:id')
 async getOrder(@Param('id') orderId: string) {
@@ -49,6 +51,7 @@ NEED: Users can only view their OWN orders (or admins can view all)
 ```
 
 **Scenario 3: Role-Based Pricing/Features**
+
 ```typescript
 // VIP customers get discounts
 if (user.role === 'vip') {
@@ -72,10 +75,10 @@ Implement **@Roles() Decorator + RolesGuard** for declarative role-based authori
  * Planned: Roles enum in User entity
  */
 export enum UserRole {
-  ADMIN = 'admin',       // Full access
+  ADMIN = 'admin', // Full access
   CUSTOMER = 'customer', // Standard user
-  GUEST = 'guest',       // Limited access
-  VIP = 'vip',          // Premium customer
+  GUEST = 'guest', // Limited access
+  VIP = 'vip', // Premium customer
 }
 
 /**
@@ -94,10 +97,10 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (!requiredRoles) {
       return true; // No role requirement
@@ -117,8 +120,8 @@ export class RolesGuard implements CanActivate {
 
 ```typescript
 @Controller('admin/users')
-@UseGuards(JwtAuthGuard, RolesGuard)  // ✅ Apply both guards
-@Roles(UserRole.ADMIN)                // ✅ Require admin role
+@UseGuards(JwtAuthGuard, RolesGuard) // ✅ Apply both guards
+@Roles(UserRole.ADMIN) // ✅ Require admin role
 export class UserAdminController {
   @Delete(':id')
   async deleteUser(@Param('id') id: string) {
@@ -167,10 +170,11 @@ async getOrder(
 ## Implementation Plan
 
 **Phase 1: Database Schema (Priority: HIGH)**
+
 ```sql
 -- Add role column to users table
 ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'customer';
-ALTER TABLE users ADD CONSTRAINT check_user_role 
+ALTER TABLE users ADD CONSTRAINT check_user_role
   CHECK (role IN ('admin', 'customer', 'guest', 'vip'));
 
 -- Create index for role filtering
@@ -178,6 +182,7 @@ CREATE INDEX idx_users_role ON users(role);
 ```
 
 **Phase 2: Update User Entity**
+
 ```typescript
 // src/modules/users/entities/user.entity.ts
 @Column({
@@ -190,6 +195,7 @@ role: UserRole;
 ```
 
 **Phase 3: Create RolesGuard**
+
 ```typescript
 // src/common/guards/roles.guard.ts
 @Injectable()
@@ -197,17 +203,17 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (!requiredRoles) {
       return true;
     }
 
     const { user } = context.switchToHttp().getRequest();
-    
+
     if (!user || !user.role) {
       throw new ForbiddenException('User role not found');
     }
@@ -215,9 +221,7 @@ export class RolesGuard implements CanActivate {
     const hasRole = requiredRoles.some((role) => user.role === role);
 
     if (!hasRole) {
-      throw new ForbiddenException(
-        `Requires one of roles: ${requiredRoles.join(', ')}`,
-      );
+      throw new ForbiddenException(`Requires one of roles: ${requiredRoles.join(', ')}`);
     }
 
     return true;
@@ -226,26 +230,32 @@ export class RolesGuard implements CanActivate {
 ```
 
 **Phase 4: Apply to Controllers**
+
 ```typescript
 // Protect admin routes
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
-export class AdminController { /* ... */ }
+export class AdminController {
+  /* ... */
+}
 
 // Customer-only routes
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.CUSTOMER, UserRole.VIP, UserRole.ADMIN)
-export class OrdersController { /* ... */ }
+export class OrdersController {
+  /* ... */
+}
 ```
 
 **Phase 5: Testing**
+
 ```typescript
 describe('RolesGuard', () => {
   it('should allow admin to access admin-only endpoint', async () => {
     const token = await generateTestToken({ role: UserRole.ADMIN });
-    
+
     await request(app.getHttpServer())
       .delete('/admin/users/123')
       .set('Authorization', `Bearer ${token}`)
@@ -254,7 +264,7 @@ describe('RolesGuard', () => {
 
   it('should deny customer access to admin endpoint', async () => {
     const token = await generateTestToken({ role: UserRole.CUSTOMER });
-    
+
     await request(app.getHttpServer())
       .delete('/admin/users/123')
       .set('Authorization', `Bearer ${token}`)
@@ -273,13 +283,15 @@ describe('RolesGuard', () => {
 **Current Priority:** Core business logic (orders, payments, inventory) takes precedence
 
 **Workaround:** Manual role checks in route handlers:
+
 ```typescript
 if (user.role !== 'admin') {
   throw new ForbiddenException();
 }
 ```
 
-**When to Implement:** 
+**When to Implement:**
+
 - Before production launch (security requirement)
 - When adding admin panel features
 - When implementing VIP/tiered pricing
@@ -293,7 +305,7 @@ if (user.role !== 'admin') {
 ✅ **Type-Safe:** UserRole enum prevents typos  
 ✅ **Testable:** Easy to test guard in isolation  
 ✅ **Reusable:** Apply to any controller/route  
-✅ **Composable:** Combine with JwtAuthGuard  
+✅ **Composable:** Combine with JwtAuthGuard
 
 ---
 

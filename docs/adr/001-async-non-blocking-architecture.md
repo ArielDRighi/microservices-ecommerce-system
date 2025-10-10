@@ -19,6 +19,7 @@ En un sistema de e-commerce, cuando un cliente crea una orden, múltiples operac
 ### Problema
 
 **Enfoque Síncrono (Tradicional)**:
+
 ```typescript
 POST /orders
 → Validar productos (50-100ms)
@@ -30,6 +31,7 @@ POST /orders
 ```
 
 **Problemas Identificados**:
+
 - ❌ **Latencia Alta**: Usuario espera 2-5 segundos por respuesta
 - ❌ **Punto Único de Fallo**: Si email falla, toda la orden falla
 - ❌ **Pobre UX**: Usuario bloqueado mirando spinner
@@ -52,18 +54,19 @@ POST /orders
 ```
 
 **Implementación Real**:
+
 ```typescript
 // src/modules/orders/orders.service.ts
 async createOrder(userId: string, createOrderDto: CreateOrderDto): Promise<OrderResponseDto> {
   // 1. Validar productos (mínimo bloqueante)
   const products = await this.validateProducts(createOrderDto.items);
-  
+
   // 2. Crear orden en transacción atómica
   const order = await this.createOrderWithItems(userId, products, createOrderDto);
-  
+
   // 3. Publicar evento via Outbox Pattern (transaccional)
   await this.eventPublisher.publish(orderCreatedEvent, queryRunner.manager);
-  
+
   // 4. Encolar procesamiento asíncrono (no-bloqueante)
   await this.orderProcessingQueue.add('create-order', {
     orderId: order.id,
@@ -72,7 +75,7 @@ async createOrder(userId: string, createOrderDto: CreateOrderDto): Promise<Order
     attempts: 3,
     backoff: { type: 'exponential', delay: 2000 }
   });
-  
+
   // 5. Responder INMEDIATAMENTE con 202 Accepted
   return this.mapToResponseDto(order);
 }
@@ -87,26 +90,25 @@ export class OrderProcessingProcessor {
   @Process('create-order')
   async handleOrderCreated(job: Job<OrderProcessingJobData>) {
     const { orderId, userId } = job.data;
-    
+
     // Iniciar Saga de procesamiento
     const saga = await this.sagaService.startOrderProcessing(orderId);
-    
+
     try {
       // Step 1: Verificar y reservar stock
       await this.inventoryService.reserveStock(orderId);
       await saga.updateStep('STOCK_RESERVED');
-      
+
       // Step 2: Procesar pago
       const payment = await this.paymentService.processPayment(orderId);
       await saga.updateStep('PAYMENT_COMPLETED');
-      
+
       // Step 3: Confirmar orden
       await this.orderService.confirmOrder(orderId, payment.id);
       await saga.complete();
-      
+
       // Step 4: Enviar notificaciones (fire-and-forget)
       await this.notificationService.sendOrderConfirmation(orderId);
-      
     } catch (error) {
       // Compensación automática (rollback)
       await saga.compensate(error);
@@ -202,6 +204,7 @@ POST /orders
 ```
 
 **Por qué se rechazó**:
+
 - ❌ Latencia inaceptable (2-5 segundos)
 - ❌ No escala bajo alta carga
 - ❌ Punto único de fallo
@@ -220,6 +223,7 @@ POST /orders
 ```
 
 **Por qué se rechazó**:
+
 - ❌ Sin garantías de ejecución (se pierde si app crashea)
 - ❌ No hay retry automático
 - ❌ Sin control de rate limiting
@@ -238,6 +242,7 @@ POST /orders { "webhookUrl": "https://client.com/callback" }
 ```
 
 **Por qué se rechazó**:
+
 - ❌ Requiere que TODOS los clientes expongan endpoints
 - ❌ Problemas de seguridad (webhook authentication)
 - ❌ Firewall/NAT issues para algunos clientes
@@ -249,6 +254,7 @@ POST /orders { "webhookUrl": "https://client.com/callback" }
 **Descripción**: Usar RabbitMQ o Kafka en lugar de Bull + Redis
 
 **Por qué se descartó para v1.0**:
+
 - ⚠️ Overhead de infraestructura (+2 servicios)
 - ⚠️ Complejidad operacional mayor
 - ⚠️ Overkill para escala actual (<100k orders/día)
@@ -258,6 +264,7 @@ POST /orders { "webhookUrl": "https://client.com/callback" }
 ## Métricas de Éxito
 
 ### Baseline (Antes - Síncrono)
+
 ```
 Latencia P50:     2,500 ms
 Latencia P95:     4,200 ms
@@ -268,6 +275,7 @@ User Satisfaction: 6.2/10
 ```
 
 ### Actual (Después - Asíncrono)
+
 ```
 Latencia P50:     45 ms    ✅ 98% mejora
 Latencia P95:     78 ms    ✅ 98% mejora

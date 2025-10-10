@@ -23,7 +23,7 @@ Use **@nestjs/terminus** for health checks with custom indicators:
  * Location: src/health/health.controller.ts
  */
 @Controller('health')
-@Public()  // No authentication required
+@Public() // No authentication required
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
@@ -48,6 +48,7 @@ export class HealthController {
 ```
 
 **Health Service:**
+
 ```typescript
 /**
  * Health Service
@@ -67,16 +68,17 @@ export class HealthService {
     return this.health.check([
       // Database connectivity
       () => this.db.pingCheck('database'),
-      
+
       // Memory usage (< 300MB)
       () => this.memory.checkHeap('memory_heap', 300 * 1024 * 1024),
-      
+
       // Disk usage (< 90%)
-      () => this.disk.checkStorage('storage', {
-        path: '/',
-        thresholdPercent: 0.9,
-      }),
-      
+      () =>
+        this.disk.checkStorage('storage', {
+          path: '/',
+          thresholdPercent: 0.9,
+        }),
+
       // Queue health (custom indicator)
       () => this.checkQueueHealth(),
     ]);
@@ -106,6 +108,7 @@ export class HealthService {
 ## Endpoints
 
 **GET /health** - Overall health (all checks)
+
 ```json
 {
   "status": "ok",
@@ -119,11 +122,13 @@ export class HealthService {
 ```
 
 **GET /health/ready** - Readiness probe (K8s)
+
 - Database connected
 - Redis connected
 - Dependencies ready
 
 **GET /health/live** - Liveness probe (K8s)
+
 - App process running
 - Not deadlocked
 
@@ -136,19 +141,19 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: app
-    livenessProbe:
-      httpGet:
-        path: /health/live
-        port: 3000
-      initialDelaySeconds: 10
-      periodSeconds: 10
-    readinessProbe:
-      httpGet:
-        path: /health/ready
-        port: 3000
-      initialDelaySeconds: 5
-      periodSeconds: 5
+    - name: app
+      livenessProbe:
+        httpGet:
+          path: /health/live
+          port: 3000
+        initialDelaySeconds: 10
+        periodSeconds: 10
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 3000
+        initialDelaySeconds: 5
+        periodSeconds: 5
 ```
 
 ---
@@ -158,7 +163,7 @@ spec:
 ✅ **Auto-Discovery:** K8s auto-detects unhealthy pods  
 ✅ **Graceful Shutdown:** Stop traffic before terminating  
 ✅ **Zero Downtime:** Rolling updates with readiness checks  
-✅ **Debugging:** `/health` shows which component is failing  
+✅ **Debugging:** `/health` shows which component is failing
 
 ---
 
