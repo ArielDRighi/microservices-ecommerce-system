@@ -158,18 +158,21 @@ Threshold (70%)        |      ✅ |       ⚠️ |      ✅ |      ✅ | 3/4 ✅
 ```
 
 **Análisis Detallado:**
+
 - ✅ **Statements:** 74.66% (2986/3999) - Supera threshold 70%
 - ⚠️ **Branches:** 63.32% (720/1137) - Requiere mejora: +6.68% para alcanzar 70%
 - ✅ **Functions:** 76.45% (565/739) - Supera threshold 70%
 - ✅ **Lines:** 75.08% (2764/3681) - Supera threshold 70%
 
 **Módulos con Excelencia (>90%):**
+
 - Event Handlers: 100%
 - Queue Processors Base: 100%
 - Products Service: 100% (lines)
 - Inventory Processor: 96.61%
 
 **Módulos Críticos en Mejora:**
+
 - ⚠️ Payments Service: 77.38% statements (necesita 80%)
 - ⚠️ Order Saga: 46.34% branches (necesita 80%)
 - ⚠️ Circuit Breaker: 38.88% branches (necesita 70%+)
@@ -224,7 +227,7 @@ Threshold (70%)        |      ✅ |       ⚠️ |      ✅ |      ✅ | 3/4 ✅
 
 **Módulos con 0% Coverage**
 
-- app.module.ts, queue.module.ts, *.module.ts
+- app.module.ts, queue.module.ts, \*.module.ts
 - Agregar integration tests para DI
 - Testear health indicators
 
