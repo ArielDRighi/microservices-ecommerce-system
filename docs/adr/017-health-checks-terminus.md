@@ -1,29 +1,29 @@
-# ADR-017: Health Checks with Terminus
+# ADR-017: Health Checks con Terminus
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-005 (NestJS), ADR-006 (PostgreSQL)
-
----
-
-## Context
-
-Kubernetes and load balancers need to know if the application is healthy before routing traffic. Need **health endpoints** for liveness (is app running?) and readiness (can app handle traffic?).
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-005 (NestJS), ADR-006 (PostgreSQL)
 
 ---
 
-## Decision
+## Contexto
 
-Use **@nestjs/terminus** for health checks with custom indicators:
+Docker Compose y balanceadores de carga necesitan saber si la aplicación está saludable antes de enrutar tráfico. Se necesitan **endpoints de salud** para liveness (¿está corriendo la app?) y readiness (¿puede la app manejar tráfico?).
+
+---
+
+## Decisión
+
+Usar **@nestjs/terminus** para health checks con indicadores personalizados:
 
 ```typescript
 /**
  * Health Controller
- * Location: src/health/health.controller.ts
+ * Ubicación: src/health/health.controller.ts
  */
 @Controller('health')
-@Public() // No authentication required
+@Public() // No requiere autenticación
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
@@ -52,7 +52,7 @@ export class HealthController {
 ```typescript
 /**
  * Health Service
- * Location: src/health/health.service.ts
+ * Ubicación: src/health/health.service.ts
  */
 @Injectable()
 export class HealthService {
@@ -65,40 +65,31 @@ export class HealthService {
   ) {}
 
   async check(): Promise<HealthCheckResult> {
+    const heapThreshold = process.env['NODE_ENV'] === 'test'
+      ? 1000 * 1024 * 1024  // 1GB para tests
+      : 150 * 1024 * 1024;  // 150MB para producción
+
+    const rssThreshold = process.env['NODE_ENV'] === 'test'
+      ? 1200 * 1024 * 1024  // 1.2GB para tests
+      : 300 * 1024 * 1024;  // 300MB para producción
+
     return this.health.check([
-      // Database connectivity
+      // Conectividad de base de datos
       () => this.db.pingCheck('database'),
 
-      // Memory usage (< 300MB)
-      () => this.memory.checkHeap('memory_heap', 300 * 1024 * 1024),
+      // Uso de memoria heap (< 150MB producción, < 1GB tests)
+      () => this.memory.checkHeap('memory_heap', heapThreshold),
 
-      // Disk usage (< 90%)
+      // Uso de memoria RSS (< 300MB producción, < 1.2GB tests)
+      () => this.memory.checkRSS('memory_rss', rssThreshold),
+
+      // Uso de disco (< 90%)
       () =>
         this.disk.checkStorage('storage', {
-          path: '/',
+          path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.9,
         }),
-
-      // Queue health (custom indicator)
-      () => this.checkQueueHealth(),
     ]);
-  }
-
-  private async checkQueueHealth(): Promise<HealthIndicatorResult> {
-    const waitingCount = await this.orderQueue.getWaitingCount();
-    const activeCount = await this.orderQueue.getActiveCount();
-    const failedCount = await this.orderQueue.getFailedCount();
-
-    const isHealthy = waitingCount < 1000 && failedCount < 100;
-
-    return {
-      queue: {
-        status: isHealthy ? 'up' : 'down',
-        waiting: waitingCount,
-        active: activeCount,
-        failed: failedCount,
-      },
-    };
   }
 }
 ```
@@ -107,7 +98,7 @@ export class HealthService {
 
 ## Endpoints
 
-**GET /health** - Overall health (all checks)
+**GET /health** - Salud general (todos los checks)
 
 ```json
 {
@@ -115,57 +106,58 @@ export class HealthService {
   "info": {
     "database": { "status": "up" },
     "memory_heap": { "status": "up" },
-    "storage": { "status": "up" },
-    "queue": { "status": "up", "waiting": 23, "active": 5, "failed": 2 }
+    "memory_rss": { "status": "up" },
+    "storage": { "status": "up" }
   }
 }
 ```
 
-**GET /health/ready** - Readiness probe (K8s)
+**GET /health/ready** - Readiness probe (Docker Compose)
 
-- Database connected
-- Redis connected
-- Dependencies ready
+- Base de datos conectada
 
-**GET /health/live** - Liveness probe (K8s)
+**GET /health/live** - Liveness probe (Docker Compose)
 
-- App process running
-- Not deadlocked
+- Proceso de aplicación corriendo
+- Memoria dentro de límites
+
+**GET /health/detailed** - Health check detallado
+
+- Todas las verificaciones anteriores
+- Información adicional de base de datos
 
 ---
 
-## Kubernetes Integration
+## Integración con Docker Compose
 
 ```yaml
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: app
-      livenessProbe:
-        httpGet:
-          path: /health/live
-          port: 3000
-        initialDelaySeconds: 10
-        periodSeconds: 10
-      readinessProbe:
-        httpGet:
-          path: /health/ready
-          port: 3000
-        initialDelaySeconds: 5
-        periodSeconds: 5
+# docker-compose.yml
+services:
+  app:
+    healthcheck:
+      test: ['CMD', 'node', 'health-check.js']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 ```
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Auto-Discovery:** K8s auto-detects unhealthy pods  
-✅ **Graceful Shutdown:** Stop traffic before terminating  
-✅ **Zero Downtime:** Rolling updates with readiness checks  
-✅ **Debugging:** `/health` shows which component is failing
+✅ **Monitoreo Automático:** Docker Compose detecta contenedores no saludables  
+✅ **Apagado Graceful:** Detiene tráfico antes de terminar  
+✅ **Reinicio Automático:** Docker reinicia contenedores que fallan health checks  
+✅ **Debugging:** `/health` muestra qué componente está fallando
 
 ---
 
-**Status:** ✅ **IMPLEMENTED**  
-**Endpoints:** `/health`, `/health/ready`, `/health/live`
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Endpoints:** `/health`, `/health/ready`, `/health/live`, `/health/detailed`  
+**Última Actualización:** 2024-01-17

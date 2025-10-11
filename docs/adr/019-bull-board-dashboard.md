@@ -1,93 +1,81 @@
-# ADR-019: Bull Board Queue Dashboard
+# ADR-019: Dashboard Bull Board para Colas
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-008 (Bull Queue System), ADR-012 (Dead Letter Queue)
-
----
-
-## Context
-
-Need **visual dashboard** to monitor Bull queues: view jobs, inspect failures, retry manually, check DLQ (dead letter queue).
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-008 (Sistema de Colas Bull), ADR-012 (Dead Letter Queue)
 
 ---
 
-## Decision
+## Contexto
 
-Use **@bull-board/express** for web-based queue monitoring:
+Se necesita un **dashboard visual** para monitorear colas Bull: ver jobs, inspeccionar fallos, reintentar manualmente, verificar DLQ (dead letter queue).
+
+---
+
+## Decisión
+
+Usar **@bull-board/express** para monitoreo web de colas. La configuración está centralizada en `main.ts`:
 
 ```typescript
 /**
- * Bull Board Controller
- * Location: src/queues/bull-board.controller.ts
+ * Bull Board Setup
+ * Ubicación: src/main.ts
  */
-@Controller('admin/queues')
-export class BullBoardController {
-  private serverAdapter: ExpressAdapter;
+async function bootstrap() {
+  // ... código anterior ...
 
-  constructor(
-    @InjectQueue('order-processing') private readonly orderQueue: Queue,
-    @InjectQueue('payment-processing') private readonly paymentQueue: Queue,
-    @InjectQueue('inventory-management') private readonly inventoryQueue: Queue,
-    @InjectQueue('notification-sending') private readonly notificationQueue: Queue,
-  ) {
-    this.setupBullBoard();
-  }
+  try {
+    const serverAdapter = new ExpressAdapter();
+    serverAdapter.setBasePath('/api/v1/admin/queues');
 
-  private setupBullBoard(): void {
-    this.serverAdapter = new ExpressAdapter();
-    this.serverAdapter.setBasePath('/api/v1/admin/queues');
+    // Obtener instancias de colas desde la app
+    const orderQueue = app.get<Queue>('BullQueue_order-processing');
+    const paymentQueue = app.get<Queue>('BullQueue_payment-processing');
+    const inventoryQueue = app.get<Queue>('BullQueue_inventory-management');
+    const notificationQueue = app.get<Queue>('BullQueue_notification-sending');
 
     createBullBoard({
       queues: [
-        new BullAdapter(this.orderQueue),
-        new BullAdapter(this.paymentQueue),
-        new BullAdapter(this.inventoryQueue),
-        new BullAdapter(this.notificationQueue),
+        new BullAdapter(orderQueue),
+        new BullAdapter(paymentQueue),
+        new BullAdapter(inventoryQueue),
+        new BullAdapter(notificationQueue),
       ],
-      serverAdapter: this.serverAdapter,
+      serverAdapter,
     });
-  }
 
-  @Get('*')
-  bullBoard(@Req() req: Request, @Res() res: Response): void {
-    const router = this.serverAdapter.getRouter();
-    router(req, res);
+    // Montar Bull Board antes de establecer prefijo global
+    app.use('/api/v1/admin/queues', serverAdapter.getRouter());
+    logger.log(`📊 Bull Board dashboard disponible en: http://localhost:${port}/api/v1/admin/queues`);
+  } catch (error) {
+    logger.warn('⚠️  No se pudo configurar Bull Board dashboard:', (error as Error).message);
   }
 }
 ```
 
-**main.ts Setup:**
+---
 
-```typescript
-// Mount Bull Board before setting global prefix
-app.use('/api/v1/admin/queues', serverAdapter.getRouter());
-logger.log('📊 Bull Board: http://localhost:3002/api/v1/admin/queues');
-```
+## Características del Dashboard
+
+**Acceso:** `http://localhost:3000/api/v1/admin/queues`
+
+**Vistas:**
+
+1. **Overview:** Todas las colas, contadores de jobs (activos, esperando, completados, fallidos)
+2. **Detalles de Cola:** Cola específica, lista paginada de jobs
+3. **Inspector de Jobs:** Ver datos del job, stack de error, logs
+4. **Acciones:**
+   - Reintentar jobs fallidos (individual o masivo)
+   - Eliminar jobs
+   - Promover jobs (mover al frente de la cola)
+   - Ver timeline del job (encolado → activo → completado/fallido)
+
+**Actualizaciones en Tiempo Real:** Auto-refresh de contadores de jobs, cambios de estado
 
 ---
 
-## Dashboard Features
-
-**Access:** `http://localhost:3002/api/v1/admin/queues`
-
-**Views:**
-
-1. **Overview:** All queues, job counts (active, waiting, completed, failed)
-2. **Queue Details:** Specific queue, paginated job list
-3. **Job Inspector:** View job data, error stack, logs
-4. **Actions:**
-   - Retry failed jobs (individual or bulk)
-   - Delete jobs
-   - Promote jobs (move to front of queue)
-   - View job timeline (queued → active → completed/failed)
-
-**Real-Time Updates:** Auto-refresh job counts, state changes
-
----
-
-## Queue Monitoring
+## Monitoreo de Colas
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -113,9 +101,9 @@ logger.log('📊 Bull Board: http://localhost:3002/api/v1/admin/queues');
 
 ---
 
-## DLQ Management
+## Gestión de DLQ (Dead Letter Queue)
 
-**Failed Jobs View:**
+**Vista de Jobs Fallidos:**
 
 ```
 Job ID: 12345
@@ -135,78 +123,73 @@ Actions:
 [Retry Job]  [Delete Job]  [View Logs]
 ```
 
-**Bulk Actions:**
+**Acciones Masivas:**
 
-- Retry all failed jobs in queue
-- Delete all failed jobs older than 30 days
-- Export failed jobs as JSON
-
----
-
-## Benefits
-
-✅ **Visual Monitoring:** See queue health at a glance  
-✅ **DLQ Inspection:** Debug failed jobs with full context  
-✅ **Manual Recovery:** Retry jobs without code deploy  
-✅ **Debugging:** View job data, errors, stack traces  
-✅ **Zero Setup:** Bull Board auto-discovers queues  
-✅ **Production Ready:** Used in production by many companies
+- Reintentar todos los jobs fallidos en la cola
+- Eliminar todos los jobs fallidos más antiguos de 30 días
+- Exportar jobs fallidos como JSON
 
 ---
 
-## Use Cases
+## Beneficios
 
-**1. Post-Incident Recovery**
+✅ **Monitoreo Visual:** Ver salud de colas de un vistazo  
+✅ **Inspección de DLQ:** Debuggear jobs fallidos con contexto completo  
+✅ **Recuperación Manual:** Reintentar jobs sin redesplegar código  
+✅ **Debugging:** Ver datos de job, errores, stack traces  
+✅ **Configuración Cero:** Bull Board auto-descubre colas  
+✅ **Listo para Producción:** Usado en producción por muchas empresas
 
-```
-Payment gateway was down for 2 hours
-→ 150 payment jobs moved to DLQ
-→ Gateway recovered
-→ Bull Board: Select all failed payments → Retry
-→ All 150 jobs processed successfully
-```
+---
 
-**2. Debugging Production Bug**
+## Casos de Uso
 
-```
-Order processing failing with "Cannot read property 'x' of undefined"
-→ Bull Board: View failed order job
-→ Inspect job data
-→ Notice: shipping address is null (validation bug)
-→ Fix code, redeploy, retry jobs
-```
-
-**3. Queue Health Monitoring**
+**1. Recuperación Post-Incidente**
 
 ```
-Bull Board shows: order-processing has 1,200 waiting jobs (unusual)
-→ Check payment circuit breaker: OPEN (Stripe API down)
-→ Wait for Stripe recovery
-→ Circuit breaker closes, jobs process automatically
+Gateway de pagos estuvo caído por 2 horas
+→ 150 payment jobs movidos a DLQ
+→ Gateway recuperado
+→ Bull Board: Seleccionar todos los pagos fallidos → Retry
+→ Todos los 150 jobs procesados exitosamente
+```
+
+**2. Debugging de Bug en Producción**
+
+```
+Procesamiento de órdenes fallando con "Cannot read property 'x' of undefined"
+→ Bull Board: Ver job de orden fallido
+→ Inspeccionar datos del job
+→ Notar: dirección de envío es null (bug de validación)
+→ Arreglar código, redesplegar, reintentar jobs
+```
+
+**3. Monitoreo de Salud de Colas**
+
+```
+Bull Board muestra: order-processing tiene 1,200 jobs esperando (inusual)
+→ Verificar circuit breaker de pagos: OPEN (API de Stripe caída)
+→ Esperar recuperación de Stripe
+→ Circuit breaker se cierra, jobs se procesan automáticamente
 ```
 
 ---
 
-## Security Considerations
+## Consideraciones de Seguridad
 
-**Current:** No authentication (dev only)
+**Actual:** Sin autenticación (solo desarrollo)
 
-**Planned for Production:**
+**Recomendación para Producción:**
 
-```typescript
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN) // Admin only
-@Controller('admin/queues')
-export class BullBoardController {
-  /* ... */
-}
-```
-
-**Alternative:** IP whitelist, VPN access, or separate admin service
+- Agregar autenticación JWT + guard de roles ADMIN
+- Whitelist de IPs
+- Acceso vía VPN
+- Servicio admin separado
 
 ---
 
-**Status:** ✅ **IMPLEMENTED AND OPERATIONAL**  
-**URL:** `http://localhost:3002/api/v1/admin/queues`  
-**Queues Monitored:** 4 (order, payment, inventory, notification)  
-**Related:** ADR-012 (DLQ Handling), ADR-008 (Bull Queue System)
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**URL:** `http://localhost:3000/api/v1/admin/queues`  
+**Colas Monitoreadas:** 4 (order-processing, payment-processing, inventory-management, notification-sending)  
+**Ubicación:** `src/main.ts` (líneas 47-75)  
+**Última Actualización:** 2024-01-17

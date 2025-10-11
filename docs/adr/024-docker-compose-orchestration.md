@@ -1,27 +1,27 @@
-# ADR-024: Docker Compose Orchestration
+# ADR-024: Orquestación con Docker Compose
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team
-
----
-
-## Context
-
-Need to run **multiple services** locally: app, PostgreSQL, Redis, with proper networking and volumes.
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo
 
 ---
 
-## Decision
+## Contexto
 
-Use **Docker Compose** for local development and testing:
+Se necesita ejecutar **múltiples servicios** localmente: app, PostgreSQL, Redis, con networking y volumes apropiados.
+
+---
+
+## Decisión
+
+Usar **Docker Compose** para desarrollo local y testing:
 
 ```yaml
 # docker-compose.yml
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # Base de Datos PostgreSQL
   postgres:
     image: postgres:15-alpine
     environment:
@@ -38,7 +38,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache
+  # Cache Redis
   redis:
     image: redis:7-alpine
     ports:
@@ -47,7 +47,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
 
-  # NestJS App
+  # App NestJS
   app:
     build:
       context: .
@@ -75,32 +75,33 @@ volumes:
 
 ---
 
-## Commands
+## Comandos
 
 ```bash
-# Start all services
+# Iniciar todos los servicios
 docker-compose up -d
 
-# View logs
+# Ver logs
 docker-compose logs -f app
 
-# Stop services
+# Detener servicios
 docker-compose down
 
-# Rebuild after changes
+# Rebuild después de cambios
 docker-compose up -d --build
 ```
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **One Command:** Start entire stack with `docker-compose up`  
-✅ **Networking:** Services auto-discover via DNS  
-✅ **Persistence:** Volumes for data  
-✅ **Health Checks:** Wait for DB before starting app
+✅ **Un Solo Comando:** Iniciar todo el stack con `docker-compose up`  
+✅ **Networking:** Servicios se auto-descubren vía DNS  
+✅ **Persistencia:** Volumes para datos  
+✅ **Health Checks:** Espera a DB antes de iniciar app
 
 ---
 
-**Status:** ✅ **IMPLEMENTED**  
-**Files:** `docker-compose.yml`, `docker-compose.dev.yml`
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Archivos:** `docker-compose.yml`, `docker-compose.dev.yml`  
+**Última Actualización:** 2024-01-17

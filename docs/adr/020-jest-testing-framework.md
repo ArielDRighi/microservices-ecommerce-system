@@ -1,79 +1,97 @@
-# ADR-020: Jest Testing Framework
+# ADR-020: Framework de Testing Jest
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-005 (NestJS)
-
----
-
-## Context
-
-Need comprehensive testing strategy for unit tests, integration tests, and E2E tests.
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-005 (NestJS)
 
 ---
 
-## Decision
+## Contexto
 
-Use **Jest 29.x** (NestJS default) with custom configuration:
+Se necesita una estrategia de testing integral para unit tests, integration tests y E2E tests.
+
+---
+
+## Decisión
+
+Usar **Jest 29.x** (default de NestJS) con configuración personalizada:
 
 ```javascript
 // jest.config.js
 module.exports = {
-  preset: '@nestjs/testing',
+  preset: 'ts-jest',
   testEnvironment: 'node',
+  displayName: 'Unit Tests',
 
-  // Test organization
-  roots: ['<rootDir>/src', '<rootDir>/test'],
-  testMatch: [
-    '**/*.spec.ts', // Unit tests
-    '**/*.e2e-spec.ts', // E2E tests
-  ],
+  // Organización de tests
+  rootDir: 'src',
+  testMatch: ['<rootDir>/**/*.spec.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/test/'],
 
-  // Coverage configuration
+  // Configuración de cobertura
   collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/main.ts',
-    '!src/**/*.module.ts',
-    '!src/**/*.interface.ts',
-    '!src/**/*.dto.ts',
-    '!src/database/migrations/**',
+    '**/*.ts',
+    '!**/*.spec.ts',
+    '!**/*.test.ts',
+    '!**/*.d.ts',
+    '!**/*.interface.ts',
+    '!**/*.dto.ts',
+    '!**/*.entity.ts',
+    '!**/*.enum.ts',
+    '!**/*.config.ts',
+    '!**/index.ts',
+    '!main.ts',
+    '!test/**',
   ],
+  coverageDirectory: '../coverage',
+  coverageReporters: ['text', 'text-summary', 'lcov', 'html', 'json'],
+
+  // Umbral de cobertura - Actualmente en 20% (trabajo en progreso)
   coverageThreshold: {
     global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
+      branches: 20,
+      functions: 20,
+      lines: 20,
+      statements: 20,
     },
   },
+
+  // Archivos de setup
+  setupFilesAfterEnv: ['<rootDir>/../test/config/setup-after-env.ts'],
+
+  // Timeout y performance
+  testTimeout: 30000,
+  maxWorkers: '50%',
 
   // Transform TypeScript
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
 
-  // Setup files
-  setupFilesAfterEnv: ['<rootDir>/test/config/setup-tests.ts'],
+  // Limpieza entre tests
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
 };
 ```
 
 ---
 
-## Test Organization
+## Organización de Tests
 
 ```
-src/                         # Unit tests (co-located)
+src/                         # Unit tests (co-localizados)
   modules/
     orders/
       orders.service.ts
       orders.service.spec.ts  ← Unit test
 
-test/                        # E2E tests (separate folder)
+test/                        # E2E tests (carpeta separada)
   e2e/
     orders.e2e-spec.ts       ← E2E test
-  fixtures/                  # Test data
-  helpers/                   # Test utilities
+  fixtures/                  # Datos de prueba
+  helpers/                   # Utilidades de testing
   config/
     global-setup-e2e.ts
     global-teardown-e2e.ts
@@ -81,13 +99,13 @@ test/                        # E2E tests (separate folder)
 
 ---
 
-## Test Types
+## Tipos de Tests
 
 **Unit Tests (\*.spec.ts):**
 
-- Test single class/function in isolation
-- Mock all dependencies
-- Fast (< 1ms per test)
+- Testear una sola clase/función en aislamiento
+- Mockear todas las dependencias
+- Rápidos (< 1ms por test)
 
 ```typescript
 describe('OrdersService', () => {
@@ -119,15 +137,15 @@ describe('OrdersService', () => {
 
 **Integration Tests (\*.integration.spec.ts):**
 
-- Test multiple components together
-- Real database (test DB)
-- Slower (100-500ms per test)
+- Testear múltiples componentes juntos
+- Base de datos real (DB de prueba)
+- Más lentos (100-500ms por test)
 
 **E2E Tests (\*.e2e-spec.ts):**
 
-- Test full HTTP request flow
-- Real app, real DB, real queues
-- Slowest (500-2000ms per test)
+- Testear flujo completo de HTTP request
+- App real, DB real, colas reales
+- Más lentos (500-2000ms por test)
 
 ```typescript
 describe('Orders (e2e)', () => {
@@ -158,33 +176,44 @@ describe('Orders (e2e)', () => {
 
 ---
 
-## Coverage Reports
+## Reportes de Cobertura
 
 ```bash
-# Run tests with coverage
+# Ejecutar tests con cobertura
 npm run test:cov
 
-# Output
+# Salida ejemplo
 -----------------------|---------|----------|---------|---------|
 File                   | % Stmts | % Branch | % Funcs | % Lines |
 -----------------------|---------|----------|---------|---------|
-All files              |   82.45 |    78.32 |   85.67 |   82.91 |
- orders.service.ts     |   95.34 |    89.23 |   100   |   95.12 |
- payments.service.ts   |   78.45 |    72.11 |   80.34 |   78.89 |
+All files              |   XX.XX |    XX.XX |   XX.XX |   XX.XX |
+ app.config.ts         |     100 |      100 |     100 |     100 |
+ winston-logger.svc    |   XX.XX |    XX.XX |   XX.XX |   XX.XX |
 -----------------------|---------|----------|---------|---------|
+```
+
+**Archivos de Cobertura:**
+
+```
+coverage/
+  lcov-report/index.html  # Reporte HTML visual
+  lcov.info               # Formato LCOV
+  coverage-final.json     # JSON completo
 ```
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Fast:** Jest runs tests in parallel  
-✅ **Built-in:** Mocking, assertions, coverage included  
-✅ **Watch Mode:** Auto-rerun on file changes  
-✅ **Snapshots:** UI testing with snapshot assertions
+✅ **Rápido:** Jest ejecuta tests en paralelo  
+✅ **Built-in:** Mocking, assertions, cobertura incluidos  
+✅ **Watch Mode:** Auto-reejecutar en cambios de archivos  
+✅ **Snapshots:** Testing de UI con snapshot assertions
 
 ---
 
-**Status:** ✅ **IMPLEMENTED**  
-**Target Coverage:** 80% (branches, functions, lines, statements)  
-**Config:** `jest.config.js`
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Umbral de Cobertura Actual:** 20% (en todas las métricas)  
+**Meta a Futuro:** 80% de cobertura  
+**Configuración:** `jest.config.js`  
+**Última Actualización:** 2024-01-17

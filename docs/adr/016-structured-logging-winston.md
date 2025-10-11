@@ -1,26 +1,26 @@
-# ADR-016: Structured Logging with Winston
+# ADR-016: Logging Estructurado con Winston
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-005 (NestJS)
-
----
-
-## Context
-
-Logs are critical for debugging production issues, but **unstructured logs** (plain text) are hard to search, parse, and analyze at scale. Need **structured JSON logging** with metadata (request IDs, user IDs, timestamps).
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-005 (NestJS)
 
 ---
 
-## Decision
+## Contexto
 
-Use **Winston 3.x** with **nest-winston** integration for structured JSON logging:
+Los logs son críticos para depurar problemas en producción, pero **logs no estructurados** (texto plano) son difíciles de buscar, analizar y parsear a escala. Se necesita **logging estructurado en JSON** con metadatos (IDs de request, IDs de usuario, timestamps).
+
+---
+
+## Decisión
+
+Usar **Winston 3.x** con integración **nest-winston** para logging estructurado en JSON:
 
 ```typescript
 /**
  * Winston Logger Service
- * Location: src/common/utils/winston-logger.service.ts
+ * Ubicación: src/common/utils/winston-logger.service.ts
  */
 @Injectable()
 export class WinstonLoggerService implements LoggerService {
@@ -32,7 +32,7 @@ export class WinstonLoggerService implements LoggerService {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json(), // ✅ Structured JSON
+        winston.format.json(), // ✅ JSON Estructurado
       ),
       defaultMeta: {
         service: configService.get('app.name'),
@@ -45,7 +45,7 @@ export class WinstonLoggerService implements LoggerService {
           /* ... */
         }),
 
-        // File rotation (production)
+        // Rotación de archivos (producción)
         new DailyRotateFile({
           filename: 'logs/error-%DATE%.log',
           level: 'warn',
@@ -69,7 +69,7 @@ export class WinstonLoggerService implements LoggerService {
     this.logger.error(message, { context, trace, ...meta });
   }
 
-  // HTTP request logging
+  // Logging de requests HTTP
   logRequest(req: CustomRequest): void {
     this.log('Incoming request', 'HTTP', {
       method: req.method,
@@ -94,7 +94,7 @@ export class WinstonLoggerService implements LoggerService {
 
 ---
 
-## Configuration
+## Configuración
 
 ```typescript
 // app.config.ts
@@ -112,9 +112,9 @@ logging: {
 
 ---
 
-## Log Formats
+## Formatos de Log
 
-**Development (Pretty):**
+**Desarrollo (Pretty):**
 
 ```
 [App] Info    2024-01-17 10:30:45  [HTTP] Incoming request +2ms
@@ -123,7 +123,7 @@ logging: {
   correlationId: abc-123
 ```
 
-**Production (JSON):**
+**Producción (JSON):**
 
 ```json
 {
@@ -142,17 +142,17 @@ logging: {
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Structured:** JSON format, easy to parse/query  
-✅ **Searchable:** Correlation IDs trace requests across services  
-✅ **Rotation:** Auto-rotate logs daily, compress old logs  
-✅ **Performance:** Async writes, non-blocking  
-✅ **Integration:** Works with ELK Stack, Datadog, CloudWatch
+✅ **Estructurado:** Formato JSON, fácil de parsear/consultar  
+✅ **Rastreable:** Correlation IDs rastrean requests a través de servicios  
+✅ **Rotación:** Auto-rotación diaria de logs, compresión de logs antiguos  
+✅ **Rendimiento:** Escrituras async, no bloqueantes  
+✅ **Integración:** Funciona con ELK Stack, Datadog, CloudWatch
 
 ---
 
-## Usage
+## Uso
 
 ```typescript
 @Controller('orders')
@@ -183,5 +183,6 @@ export class OrdersController {
 
 ---
 
-**Status:** ✅ **IMPLEMENTED**  
-**Code:** `src/common/utils/winston-logger.service.ts`
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Código:** `src/common/utils/winston-logger.service.ts`  
+**Última Actualización:** 2024-01-17

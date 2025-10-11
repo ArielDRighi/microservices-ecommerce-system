@@ -1,26 +1,26 @@
-# ADR-018: Prometheus Metrics (Planned)
+# ADR-018: Métricas de Prometheus
 
-**Status:** Planned  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-017 (Health Checks)
-
----
-
-## Context
-
-Need **real-time metrics** for monitoring application performance: request rates, error rates, latency, queue sizes, circuit breaker states.
+**Estado:** Implementado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-017 (Health Checks)
 
 ---
 
-## Decision (Planned)
+## Contexto
 
-Use **prom-client** for Prometheus metrics exposure:
+Se necesitan **métricas en tiempo real** para monitorear el rendimiento de la aplicación: tasas de requests, tasas de error, latencia, tamaños de colas, estados de circuit breakers.
+
+---
+
+## Decisión
+
+Usar **prom-client** para exposición de métricas Prometheus:
 
 ```typescript
 /**
- * Prometheus Service (Planned)
- * Location: src/health/prometheus.service.ts
+ * Prometheus Service
+ * Ubicación: src/health/prometheus.service.ts
  */
 @Injectable()
 export class PrometheusService {
@@ -76,49 +76,50 @@ export class PrometheusService {
 **Metrics Controller:**
 
 ```typescript
-@Controller('metrics')
+@Controller()
 @Public()
 export class MetricsController {
-  constructor(private readonly prometheus: PrometheusService) {}
+  constructor(private readonly prometheusService: PrometheusService) {}
 
-  @Get()
-  getMetrics(): string {
-    return this.prometheus.getMetrics();
+  @Get('metrics')
+  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+  async getMetrics(@Res() res: Response): Promise<void> {
+    const metrics = await this.prometheusService.getMetrics();
+    res.send(metrics);
   }
 }
 ```
 
 ---
 
-## Planned Metrics
+## Métricas Implementadas
 
-**HTTP Metrics:**
+**Métricas HTTP:**
 
-- `http_request_duration_seconds` - Request latency histogram
-- `http_requests_total` - Total requests counter
-- `http_errors_total` - Error counter by status code
+- `http_request_duration_seconds` - Histograma de latencia de requests
+- `http_request_errors_total` - Contador de errores por código de estado
 
-**Queue Metrics:**
+**Métricas de Órdenes:**
 
-- `queue_jobs_waiting` - Jobs in queue
-- `queue_jobs_active` - Jobs being processed
-- `queue_jobs_failed` - Failed jobs (DLQ size)
-- `queue_job_duration_seconds` - Job processing time
+- `orders_processed_total` - Total de órdenes procesadas (por status)
+- `order_processing_duration_seconds` - Duración de procesamiento de órdenes (por stage)
+- `order_processing_errors_total` - Total de errores de procesamiento (por tipo)
 
-**Circuit Breaker Metrics:**
+**Métricas de Colas:**
 
-- `circuit_breaker_state` - State gauge (0/1/2)
-- `circuit_breaker_failures_total` - Failure counter
-- `circuit_breaker_successes_total` - Success counter
+- `queue_length` - Longitud actual de colas de procesamiento
+- `queue_job_processing_duration_seconds` - Duración de procesamiento de jobs
 
-**Database Metrics:**
+**Métricas por Defecto (prom-client):**
 
-- `db_connections_active` - Active connections
-- `db_query_duration_seconds` - Query latency
+- `ecommerce_process_cpu_user_seconds_total` - Uso de CPU
+- `ecommerce_process_resident_memory_bytes` - Uso de memoria
+- `ecommerce_nodejs_gc_duration_seconds` - Duración de Garbage Collection
+- Y más métricas estándar de Node.js
 
 ---
 
-## Grafana Dashboard (Planned)
+## Dashboard de Grafana (Planificado)
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -140,27 +141,49 @@ export class MetricsController {
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Real-Time:** Instant visibility into system health  
-✅ **Alerting:** Trigger alerts on thresholds (error rate > 5%)  
-✅ **Trending:** Historical data for capacity planning  
-✅ **Standard:** Prometheus = industry standard, works with Grafana
-
----
-
-## Implementation Plan
-
-1. Install `prom-client` package
-2. Create PrometheusService with metrics
-3. Add interceptor to record HTTP metrics
-4. Add Bull queue event listeners for queue metrics
-5. Expose `/metrics` endpoint
-6. Configure Prometheus scraper
-7. Create Grafana dashboards
+✅ **Tiempo Real:** Visibilidad instantánea del estado del sistema  
+✅ **Alertas:** Activar alertas en umbrales (tasa de error > 5%)  
+✅ **Tendencias:** Datos históricos para planificación de capacidad  
+✅ **Estándar:** Prometheus = estándar de la industria, funciona con Grafana
 
 ---
 
-**Status:** ⏳ **PLANNED** (basic structure exists)  
-**Priority:** HIGH (visibility critical for production)  
-**Endpoint (Planned):** `GET /metrics` (Prometheus format)
+## Uso
+
+**Acceder a Métricas:**
+
+```bash
+curl http://localhost:3000/metrics
+
+# Output (formato Prometheus):
+# HELP orders_processed_total Total number of orders processed
+# TYPE orders_processed_total counter
+orders_processed_total{status="success"} 1234
+orders_processed_total{status="failed"} 12
+
+# HELP http_request_duration_seconds HTTP request duration in seconds
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{method="GET",route="/api/v1/orders",status_code="200",le="0.5"} 100
+...
+```
+
+**Integración con Prometheus (Opcional):**
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'ecommerce-app'
+    static_configs:
+      - targets: ['localhost:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+```
+
+---
+
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
+**Endpoint:** `GET /metrics` (formato Prometheus)  
+**Ubicación:** `src/health/prometheus.service.ts`, `src/health/metrics.controller.ts`  
+**Última Actualización:** 2024-01-17

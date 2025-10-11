@@ -1,26 +1,26 @@
-# ADR-021: Supertest for E2E API Testing
+# ADR-021: Supertest para Testing E2E de API
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team  
-**Related ADRs:** ADR-020 (Jest), ADR-005 (NestJS)
-
----
-
-## Context
-
-Need to test HTTP API endpoints end-to-end with real requests, ensuring authentication, validation, error handling work correctly.
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo  
+**ADRs Relacionados:** ADR-020 (Jest), ADR-005 (NestJS)
 
 ---
 
-## Decision
+## Contexto
 
-Use **Supertest 6.x** for HTTP testing:
+Se necesita testear endpoints de API HTTP end-to-end con requests reales, asegurando que autenticación, validación y manejo de errores funcionen correctamente.
+
+---
+
+## Decisión
+
+Usar **Supertest 6.x** para testing HTTP:
 
 ```typescript
 /**
- * E2E Test Example
- * Location: test/e2e/orders.e2e-spec.ts
+ * Ejemplo de Test E2E
+ * Ubicación: test/e2e/orders.e2e-spec.ts
  */
 import * as request from 'supertest';
 
@@ -29,7 +29,7 @@ describe('Orders API (e2e)', () => {
   let accessToken: string;
 
   beforeAll(async () => {
-    // Create test app
+    // Crear app de prueba
     const module = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -39,14 +39,14 @@ describe('Orders API (e2e)', () => {
 
     app = module.createNestApplication();
 
-    // Apply same middleware as main.ts
+    // Aplicar el mismo middleware que main.ts
     app.use(helmet());
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe());
 
     await app.init();
 
-    // Authenticate test user
+    // Autenticar usuario de prueba
     const loginResponse = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: 'test@example.com', password: 'Test123!' })
@@ -60,7 +60,7 @@ describe('Orders API (e2e)', () => {
   });
 
   describe('POST /orders', () => {
-    it('should create order with valid data', async () => {
+    it('debería crear orden con datos válidos', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/orders')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -87,7 +87,7 @@ describe('Orders API (e2e)', () => {
       });
     });
 
-    it('should reject order without authentication', async () => {
+    it('debería rechazar orden sin autenticación', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/orders')
         .send({
@@ -99,12 +99,12 @@ describe('Orders API (e2e)', () => {
         });
     });
 
-    it('should validate required fields', async () => {
+    it('debería validar campos requeridos', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/orders')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          items: [], // Empty items (invalid)
+          items: [], // Items vacíos (inválido)
         })
         .expect(400)
         .expect((res) => {
@@ -117,7 +117,7 @@ describe('Orders API (e2e)', () => {
     let orderId: string;
 
     beforeEach(async () => {
-      // Create order for test
+      // Crear orden para test
       const response = await request(app.getHttpServer())
         .post('/api/v1/orders')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -126,7 +126,7 @@ describe('Orders API (e2e)', () => {
       orderId = response.body.id;
     });
 
-    it('should get order by id', async () => {
+    it('debería obtener orden por id', async () => {
       const response = await request(app.getHttpServer())
         .get(`/api/v1/orders/${orderId}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -135,7 +135,7 @@ describe('Orders API (e2e)', () => {
       expect(response.body.id).toBe(orderId);
     });
 
-    it('should return 404 for non-existent order', async () => {
+    it('debería retornar 404 para orden inexistente', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/orders/non-existent-uuid')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -147,27 +147,27 @@ describe('Orders API (e2e)', () => {
 
 ---
 
-## Test Patterns
+## Patrones de Testing
 
 **Setup/Teardown:**
 
 ```typescript
 beforeAll(async () => {
-  // Create app, login, seed data
+  // Crear app, login, seed data
 });
 
 beforeEach(async () => {
-  // Clean database tables
+  // Limpiar tablas de base de datos
   await cleanupDatabase();
 });
 
 afterAll(async () => {
-  // Close app, cleanup
+  // Cerrar app, cleanup
   await app.close();
 });
 ```
 
-**Authentication Helper:**
+**Helper de Autenticación:**
 
 ```typescript
 async function authenticateUser(role: UserRole = UserRole.CUSTOMER) {
@@ -179,7 +179,7 @@ async function authenticateUser(role: UserRole = UserRole.CUSTOMER) {
 }
 ```
 
-**Database Seeding:**
+**Seeding de Base de Datos:**
 
 ```typescript
 async function seedTestData() {
@@ -218,15 +218,16 @@ expect(response.body.items).toContainEqual(expect.objectContaining({ productId: 
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Real HTTP Requests:** Test entire request/response cycle  
-✅ **Chainable API:** `.set()`, `.send()`, `.expect()` methods  
-✅ **Type-Safe:** Full TypeScript support  
-✅ **Integration with Jest:** Runs in Jest test suite
+✅ **HTTP Requests Reales:** Testea ciclo completo de request/response  
+✅ **API Encadenable:** Métodos `.set()`, `.send()`, `.expect()`  
+✅ **Type-Safe:** Soporte completo de TypeScript  
+✅ **Integración con Jest:** Se ejecuta en suite de Jest
 
 ---
 
-**Status:** ✅ **IMPLEMENTED**  
+**Estado:** ✅ **IMPLEMENTADO Y OPERACIONAL**  
 **Tests:** `test/e2e/*.e2e-spec.ts`  
-**Coverage:** 80+ E2E scenarios across modules
+**Configuración:** `test/config/jest-e2e.json`  
+**Última Actualización:** 2024-01-17

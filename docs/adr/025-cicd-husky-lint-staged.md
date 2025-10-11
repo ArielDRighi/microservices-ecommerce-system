@@ -1,22 +1,22 @@
-# ADR-025: CI/CD with Husky & lint-staged
+# ADR-025: CI/CD con Husky & lint-staged
 
-**Status:** Accepted  
-**Date:** 2024-01-17  
-**Author:** Development Team
-
----
-
-## Context
-
-Need **automated quality checks** before commits: linting, formatting, tests.
+**Estado:** Aceptado  
+**Fecha:** 2024-01-17  
+**Autor:** Equipo de Desarrollo
 
 ---
 
-## Decision
+## Contexto
 
-Use **Husky + lint-staged** for Git hooks:
+Se necesitan **checks automáticos de calidad** antes de commits: linting, formateo, tests.
 
-**Husky Setup:**
+---
+
+## Decisión
+
+Usar **Husky + lint-staged** para Git hooks:
+
+**Configuración Husky:**
 
 ```json
 // package.json
@@ -43,40 +43,40 @@ npm run test:e2e
 
 ---
 
-## Workflow
+## Flujo de Trabajo
 
 ```
-1. Developer commits code
+1. Desarrollador hace commit del código
    ↓
-2. pre-commit hook runs
-   - ESLint fixes issues
-   - Prettier formats code
-   - Jest tests related files
+2. Hook pre-commit se ejecuta
+   - ESLint arregla issues
+   - Prettier formatea código
+   - Jest testea archivos relacionados
    ↓
-3. If all pass → commit succeeds
-   If any fail → commit blocked
+3. Si todos pasan → commit exitoso
+   Si alguno falla → commit bloqueado
    ↓
-4. Developer pushes code
+4. Desarrollador hace push del código
    ↓
-5. pre-push hook runs
-   - Full test suite (unit + E2E)
+5. Hook pre-push se ejecuta
+   - Suite completa de tests (unit + E2E)
    ↓
-6. If pass → push succeeds
-   If fail → push blocked
+6. Si pasa → push exitoso
+   Si falla → push bloqueado
 ```
 
 ---
 
-## Benefits
+## Beneficios
 
-✅ **Quality Gate:** No bad code reaches repo  
-✅ **Fast:** Only test changed files  
-✅ **Automatic:** Zero manual intervention  
-✅ **Consistent:** Same checks for all developers
+✅ **Quality Gate:** Ningún código malo llega al repo  
+✅ **Rápido:** Solo testea archivos modificados  
+✅ **Automático:** Cero intervención manual  
+✅ **Consistente:** Mismos checks para todos los desarrolladores
 
 ---
 
-## CI/CD Pipeline (Planned)
+## Pipeline CI/CD (Planeado)
 
 ```yaml
 # .github/workflows/ci.yml
@@ -109,6 +109,7 @@ jobs:
 
 ---
 
-**Status:** ✅ **IMPLEMENTED** (Husky + lint-staged)  
-**Planned:** GitHub Actions CI/CD pipeline  
-**Files:** `.husky/`, `package.json`
+**Estado:** ✅ **IMPLEMENTADO** (Husky + lint-staged operacional)  
+**Planeado:** Pipeline GitHub Actions CI/CD  
+**Archivos:** `.husky/`, `package.json`  
+**Última Actualización:** 2024-01-17
