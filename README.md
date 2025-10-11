@@ -5,10 +5,10 @@
     <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/ecommerce-async-resilient-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/tests-103%20unit%20%2B%2014%20e2e-brightgreen?style=for-the-badge" alt="Test Coverage"/>
+    <img src="https://img.shields.io/badge/tests-1033%20passed%20(102%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/coverage-20%25%20(goal%2080%25)-yellow?style=for-the-badge" alt="Code Coverage"/>
+    <img src="https://img.shields.io/badge/coverage-74.64%25%20(threshold%2020%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/queues-4%20specialized-blue?style=for-the-badge" alt="Queue System"/>
@@ -58,6 +58,7 @@ Cuando un cliente crea una orden en un e-commerce, múltiples operaciones deben 
 - 📊 Actualizar métricas y analytics
 
 Hacer todo esto **de forma síncrona** tiene graves problemas:
+
 - ❌ **Bloquea al usuario** esperando operaciones lentas (emails, APIs externas)
 - ❌ **Fragilidad**: Un fallo en email rompe toda la orden
 - ❌ **No escalable**: Cuellos de botella en procesos síncronos
@@ -130,24 +131,24 @@ Este proyecto está construido con un stack tecnológico moderno y de nivel empr
 
 ### Stack Principal
 
-| Capa               | Tecnología                                | Versión | Propósito                                    |
-| ------------------ | ----------------------------------------- | ------- | -------------------------------------------- |
-| **Framework**      | NestJS                                    | 10.x    | Framework backend modular y escalable        |
-| **Lenguaje**       | TypeScript                                | 5.x     | Type safety y desarrollo robusto             |
-| **Base de Datos**  | PostgreSQL                                | 15+     | Persistencia relacional con JSON support     |
-| **ORM**            | TypeORM                                   | 0.3.x   | Object-relational mapping y migraciones      |
-| **Message Queue**  | Bull                                      | 4.x     | Sistema de colas basado en Redis             |
-| **Cache/Queue**    | Redis                                     | 7.x     | Cache en memoria y backend de Bull           |
-| **Autenticación**  | Passport JWT                              | -       | Estrategia JWT con access/refresh tokens     |
-| **Validación**     | class-validator + class-transformer       | -       | Validación de DTOs y transformación de tipos |
-| **Documentación**  | Swagger/OpenAPI                           | -       | Documentación interactiva de API             |
-| **Logging**        | Winston                                   | 3.x     | Structured logging con rotation              |
-| **Testing**        | Jest + Supertest                          | 29.x    | Unit, integration y E2E testing              |
-| **Health Checks**  | @nestjs/terminus                          | -       | Health checks para Docker Compose            |
-| **Metrics**        | prom-client (Prometheus)                  | -       | Métricas de negocio y sistema                |
-| **Security**       | Helmet                                    | 7.x     | Security headers HTTP                        |
-| **Contenerización**| Docker + Docker Compose                   | -       | Orquestación multi-servicio                  |
-| **CI/CD**          | GitHub Actions                            | -       | Pipeline automatizado de integración         |
+| Capa                | Tecnología                          | Versión | Propósito                                    |
+| ------------------- | ----------------------------------- | ------- | -------------------------------------------- |
+| **Framework**       | NestJS                              | 10.x    | Framework backend modular y escalable        |
+| **Lenguaje**        | TypeScript                          | 5.x     | Type safety y desarrollo robusto             |
+| **Base de Datos**   | PostgreSQL                          | 15+     | Persistencia relacional con JSON support     |
+| **ORM**             | TypeORM                             | 0.3.x   | Object-relational mapping y migraciones      |
+| **Message Queue**   | Bull                                | 4.x     | Sistema de colas basado en Redis             |
+| **Cache/Queue**     | Redis                               | 7.x     | Cache en memoria y backend de Bull           |
+| **Autenticación**   | Passport JWT                        | -       | Estrategia JWT con access/refresh tokens     |
+| **Validación**      | class-validator + class-transformer | -       | Validación de DTOs y transformación de tipos |
+| **Documentación**   | Swagger/OpenAPI                     | -       | Documentación interactiva de API             |
+| **Logging**         | Winston                             | 3.x     | Structured logging con rotation              |
+| **Testing**         | Jest + Supertest                    | 29.x    | Unit, integration y E2E testing              |
+| **Health Checks**   | @nestjs/terminus                    | -       | Health checks para Docker Compose            |
+| **Metrics**         | prom-client (Prometheus)            | -       | Métricas de negocio y sistema                |
+| **Security**        | Helmet                              | 7.x     | Security headers HTTP                        |
+| **Contenerización** | Docker + Docker Compose             | -       | Orquestación multi-servicio                  |
+| **CI/CD**           | GitHub Actions                      | -       | Pipeline automatizado de integración         |
 
 ### Patrones de Diseño Implementados
 
@@ -240,6 +241,7 @@ Para obtener una copia local y ponerla en marcha, sigue estos sencillos pasos.
 ### Instalación
 
 1.  **Clona el repositorio:**
+
     ```sh
     git clone https://github.com/ArielDRighi/ecommerce-async-resilient-system.git
     cd ecommerce-async-resilient-system
@@ -255,6 +257,7 @@ Para obtener una copia local y ponerla en marcha, sigue estos sencillos pasos.
     _Actualiza el archivo `.env` con tus credenciales de base de datos, Redis y otras configuraciones._
 
 3.  **Instala las dependencias:**
+
     ```sh
     npm install
     ```
@@ -378,84 +381,88 @@ El sistema implementa **4 colas especializadas** para procesar jobs asíncronos:
 
 ### Desarrollo y Build
 
-| Comando                | Descripción                                     |
-| :--------------------- | :---------------------------------------------- |
-| `npm run start`        | Iniciar aplicación (modo normal)                |
-| `npm run start:dev`    | Desarrollo con hot reload                       |
-| `npm run start:debug`  | Desarrollo con debugger habilitado              |
-| `npm run build`        | Build para producción (compila TypeScript)      |
-| `npm run start:prod`   | Ejecutar build de producción                    |
+| Comando               | Descripción                                |
+| :-------------------- | :----------------------------------------- |
+| `npm run start`       | Iniciar aplicación (modo normal)           |
+| `npm run start:dev`   | Desarrollo con hot reload                  |
+| `npm run start:debug` | Desarrollo con debugger habilitado         |
+| `npm run build`       | Build para producción (compila TypeScript) |
+| `npm run start:prod`  | Ejecutar build de producción               |
 
 ### Testing
 
-| Comando                | Descripción                                                          |
-| :--------------------- | :------------------------------------------------------------------- |
-| `npm test`             | Ejecuta 103 tests unitarios                                          |
-| `npm run test:watch`   | Tests en modo watch para desarrollo                                  |
-| `npm run test:cov`     | Genera reporte de cobertura (20% actual, meta 80%)                   |
-| `npm run test:debug`   | Tests con debugger para troubleshooting                              |
-| `npm run test:e2e`     | Ejecuta 14 suites de tests End-to-End completas                      |
-| `npm run test:e2e:cov` | Tests E2E con coverage                                               |
+| Comando                | Descripción                                        |
+| :--------------------- | :------------------------------------------------- |
+| `npm test`             | Ejecuta 103 tests unitarios                        |
+| `npm run test:watch`   | Tests en modo watch para desarrollo                |
+| `npm run test:cov`     | Genera reporte de cobertura (20% actual, meta 80%) |
+| `npm run test:debug`   | Tests con debugger para troubleshooting            |
+| `npm run test:e2e`     | Ejecuta 14 suites de tests End-to-End completas    |
+| `npm run test:e2e:cov` | Tests E2E con coverage                             |
 
 ### Code Quality
 
-| Comando                | Descripción                                     |
-| :--------------------- | :---------------------------------------------- |
-| `npm run lint`         | Ejecutar ESLint (code quality analysis)         |
-| `npm run lint:fix`     | Auto-fix issues de linting                      |
-| `npm run format`       | Formatear código con Prettier                   |
-| `npm run format:check` | Verificar formato sin modificar                 |
+| Comando                | Descripción                             |
+| :--------------------- | :-------------------------------------- |
+| `npm run lint`         | Ejecutar ESLint (code quality analysis) |
+| `npm run lint:fix`     | Auto-fix issues de linting              |
+| `npm run format`       | Formatear código con Prettier           |
+| `npm run format:check` | Verificar formato sin modificar         |
 
 ### Base de Datos
 
-| Comando                                               | Descripción                           |
-| :---------------------------------------------------- | :------------------------------------ |
-| `npm run migration:generate -- --name MigrationName`  | Generar migración desde entities      |
-| `npm run migration:create -- --name MigrationName`    | Crear migración vacía                 |
-| `npm run migration:run`                               | Ejecutar migraciones pendientes       |
-| `npm run migration:revert`                            | Revertir última migración             |
-| `npm run seed:run`                                    | Ejecutar seeds (datos iniciales)      |
+| Comando                                              | Descripción                      |
+| :--------------------------------------------------- | :------------------------------- |
+| `npm run migration:generate -- --name MigrationName` | Generar migración desde entities |
+| `npm run migration:create -- --name MigrationName`   | Crear migración vacía            |
+| `npm run migration:run`                              | Ejecutar migraciones pendientes  |
+| `npm run migration:revert`                           | Revertir última migración        |
+| `npm run seed:run`                                   | Ejecutar seeds (datos iniciales) |
 
 ---
 
 ## ✅ Testing
 
-El proyecto cuenta con una suite de pruebas empresarial con **103 tests unitarios** y **14 suites E2E** completas.
+El proyecto cuenta con una suite de pruebas empresarial con **1033 tests unitarios** (102 suites) y **14 suites E2E** completas.
 
 ### Métricas de Testing
 
-- **103 tests unitarios** ✅ distribuidos en múltiples módulos
+- **1033 tests unitarios** ✅ distribuidos en 102 suites de test (6 skipped)
 - **14 suites E2E** ✅ (smoke, API, integration, business flows, contracts)
-- **20% cobertura de código** (umbral actual, meta futura: 80%)
-- **Tiempo de ejecución**: <20 segundos (unit), variables (E2E con servicios reales)
+- **74.64% cobertura de código** (umbral mínimo: 20%, **superado ampliamente**)
+  - Statements: 74.64% (2985/3999)
+  - Branches: 63.5% (722/1137)
+  - Functions: 76.18% (563/739)
+  - Lines: 75.06% (2763/3681)
+- **Tiempo de ejecución**: ~108 segundos (unit con coverage), variables (E2E con servicios reales)
 
 ### Tests Unitarios por Módulo
 
-| Módulo              | Archivos de Test | Descripción                                      |
-| :------------------ | :--------------- | :----------------------------------------------- |
-| **Queue Service**   | 5 archivos       | Core, lifecycle, metrics, management, edge cases |
-| **Processors**      | 18 archivos      | Order, payment, inventory, notification workers  |
-| **Orders**          | 8 archivos       | Service (core, queries, errors), controller      |
-| **Products**        | 5 archivos       | CRUD, search, updates, edge cases                |
-| **Inventory**       | 7 archivos       | Core, reservations, movements, statistics        |
-| **Payments**        | 5 archivos       | Core, refunds, idempotency, errors, stats        |
-| **Notifications**   | 3 archivos       | Order, payment/shipping, preferences             |
-| **Auth**            | 3 archivos       | Authentication, user operations, JWT strategy    |
-| **Users**           | 5 archivos       | CRUD, queries, updates (service + controller)    |
-| **Categories**      | 2 archivos       | CRUD controller, service utilities               |
-| **Events**          | 1 archivo        | Event publisher                                  |
-| **Winston Logger**  | 1 archivo        | Structured logging service                       |
-| **Helpers**         | 1 archivo        | Response helpers                                 |
+| Módulo             | Archivos de Test | Descripción                                      |
+| :----------------- | :--------------- | :----------------------------------------------- |
+| **Queue Service**  | 5 archivos       | Core, lifecycle, metrics, management, edge cases |
+| **Processors**     | 18 archivos      | Order, payment, inventory, notification workers  |
+| **Orders**         | 8 archivos       | Service (core, queries, errors), controller      |
+| **Products**       | 5 archivos       | CRUD, search, updates, edge cases                |
+| **Inventory**      | 7 archivos       | Core, reservations, movements, statistics        |
+| **Payments**       | 5 archivos       | Core, refunds, idempotency, errors, stats        |
+| **Notifications**  | 3 archivos       | Order, payment/shipping, preferences             |
+| **Auth**           | 3 archivos       | Authentication, user operations, JWT strategy    |
+| **Users**          | 5 archivos       | CRUD, queries, updates (service + controller)    |
+| **Categories**     | 2 archivos       | CRUD controller, service utilities               |
+| **Events**         | 1 archivo        | Event publisher                                  |
+| **Winston Logger** | 1 archivo        | Structured logging service                       |
+| **Helpers**        | 1 archivo        | Response helpers                                 |
 
 ### Tests E2E Organizados
 
-| Categoría          | Archivos | Descripción                                             |
-| :----------------- | :------- | :------------------------------------------------------ |
-| **Smoke**          | 1        | Health check básico del sistema                         |
-| **API**            | 6        | Auth, users, products, categories, orders, inventory    |
-| **Integration**    | 3        | Event outbox, database transactions, queue processing   |
-| **Business Flows** | 3        | Order saga (happy path, failures), customer journey     |
-| **Contracts**      | 1        | API schema validation                                   |
+| Categoría          | Archivos | Descripción                                           |
+| :----------------- | :------- | :---------------------------------------------------- |
+| **Smoke**          | 1        | Health check básico del sistema                       |
+| **API**            | 6        | Auth, users, products, categories, orders, inventory  |
+| **Integration**    | 3        | Event outbox, database transactions, queue processing |
+| **Business Flows** | 3        | Order saga (happy path, failures), customer journey   |
+| **Contracts**      | 1        | API schema validation                                 |
 
 ### Estrategia de Cobertura
 
@@ -475,13 +482,13 @@ Este proyecto incluye documentación técnica completa y profesional que demuest
 
 ### 📖 Documentos Técnicos Principales
 
-| Documento                | Descripción                                                | Link                                                   |
-| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------ |
-| **🏗️ Architecture**      | Arquitectura completa del sistema con diagramas Mermaid    | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)           |
-| **🗄️ Database Design**   | Diseño de base de datos, tablas, índices, relaciones       | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md)     |
-| **🌐 API Documentation** | Documentación exhaustiva de endpoints, request/response    | [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) |
-| **⚙️ Project Setup**     | Guía de instalación, configuración, despliegue             | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md)         |
-| **📋 ADRs (25 docs)**    | Architecture Decision Records en español                   | [docs/adr/README.md](docs/adr/README.md)               |
+| Documento                | Descripción                                             | Link                                                   |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------ |
+| **🏗️ Architecture**      | Arquitectura completa del sistema con diagramas Mermaid | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)           |
+| **🗄️ Database Design**   | Diseño de base de datos, tablas, índices, relaciones    | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md)     |
+| **🌐 API Documentation** | Documentación exhaustiva de endpoints, request/response | [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) |
+| **⚙️ Project Setup**     | Guía de instalación, configuración, despliegue          | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md)         |
+| **📋 ADRs (25 docs)**    | Architecture Decision Records en español                | [docs/adr/README.md](docs/adr/README.md)               |
 
 ### 🌐 API Swagger UI
 
@@ -498,33 +505,33 @@ La arquitectura de este proyecto se basa en **25 Architectural Decision Records 
 
 ### 🔍 ADRs Principales Implementados
 
-| ADR                                                           | Título                                        | Estado      | Fecha      |
-| ------------------------------------------------------------- | --------------------------------------------- | ----------- | ---------- |
-| [ADR-001](docs/adr/001-async-non-blocking-architecture.md)    | Arquitectura Asíncrona No-Bloqueante          | ✅ Aceptado | 2024-01-15 |
-| [ADR-002](docs/adr/002-event-driven-outbox-pattern.md)        | Event-Driven con Outbox Pattern               | ✅ Aceptado | 2024-01-15 |
-| [ADR-003](docs/adr/003-saga-pattern-orchestration.md)         | Saga Pattern para Orquestación                | ✅ Aceptado | 2024-01-15 |
-| [ADR-004](docs/adr/004-cqrs-command-query-separation.md)      | CQRS (Command Query Responsibility Segregation) | ✅ Aceptado | 2024-01-15 |
-| [ADR-005](docs/adr/005-nestjs-framework-selection.md)         | Selección de NestJS como Framework            | ✅ Aceptado | 2024-01-15 |
-| [ADR-006](docs/adr/006-postgresql-typeorm-database.md)        | PostgreSQL + TypeORM para Persistencia        | ✅ Aceptado | 2024-01-15 |
-| [ADR-007](docs/adr/007-typeorm-data-layer.md)                 | TypeORM como Capa de Datos                    | ✅ Aceptado | 2024-01-15 |
-| [ADR-008](docs/adr/008-redis-bull-queue-system.md)            | Redis + Bull para Sistema de Colas            | ✅ Aceptado | 2024-01-16 |
-| [ADR-009](docs/adr/009-retry-pattern-exponential-backoff.md)  | Retry Pattern con Exponential Backoff         | ✅ Aceptado | 2024-01-16 |
-| [ADR-010](docs/adr/010-circuit-breaker-pattern.md)            | Circuit Breaker Pattern                       | ✅ Aceptado | 2024-01-16 |
-| [ADR-011](docs/adr/011-idempotency-key-strategy.md)           | Estrategia de Idempotency Keys                | ✅ Aceptado | 2024-01-16 |
-| [ADR-012](docs/adr/012-dead-letter-queue-handling.md)         | Dead Letter Queue Handling                    | ✅ Aceptado | 2024-01-16 |
-| [ADR-013](docs/adr/013-jwt-authentication-strategy.md)        | JWT Authentication Strategy                   | ✅ Aceptado | 2024-01-16 |
-| [ADR-014](docs/adr/014-role-based-authorization-guards.md)    | Role-Based Authorization Guards               | ✅ Aceptado | 2024-01-16 |
-| [ADR-015](docs/adr/015-helmet-security-middleware.md)         | Middleware de Seguridad Helmet                | ✅ Aceptado | 2024-01-17 |
-| [ADR-016](docs/adr/016-structured-logging-winston.md)         | Logging Estructurado con Winston              | ✅ Aceptado | 2024-01-17 |
-| [ADR-017](docs/adr/017-health-checks-terminus.md)             | Health Checks con Terminus                    | ✅ Aceptado | 2024-01-17 |
-| [ADR-018](docs/adr/018-prometheus-metrics.md)                 | Métricas de Prometheus                        | ✅ Aceptado | 2024-01-17 |
-| [ADR-019](docs/adr/019-bull-board-dashboard.md)               | Bull Board Dashboard                          | ✅ Aceptado | 2024-01-17 |
-| [ADR-020](docs/adr/020-jest-testing-framework.md)             | Jest Testing Framework                        | ✅ Aceptado | 2024-01-17 |
-| [ADR-021](docs/adr/021-supertest-e2e-api-testing.md)          | Supertest para Testing E2E de API             | ✅ Aceptado | 2024-01-17 |
-| [ADR-022](docs/adr/022-test-coverage-strategy.md)             | Estrategia de Cobertura de Tests              | ✅ Aceptado | 2024-01-17 |
-| [ADR-023](docs/adr/023-docker-multi-stage-builds.md)          | Docker Multi-Stage Builds                     | ✅ Aceptado | 2024-01-17 |
-| [ADR-024](docs/adr/024-docker-compose-orchestration.md)       | Orquestación con Docker Compose               | ✅ Aceptado | 2024-01-17 |
-| [ADR-025](docs/adr/025-cicd-husky-lint-staged.md)             | CI/CD con Husky & lint-staged                 | ✅ Aceptado | 2024-01-17 |
+| ADR                                                          | Título                                          | Estado      | Fecha      |
+| ------------------------------------------------------------ | ----------------------------------------------- | ----------- | ---------- |
+| [ADR-001](docs/adr/001-async-non-blocking-architecture.md)   | Arquitectura Asíncrona No-Bloqueante            | ✅ Aceptado | 2024-01-15 |
+| [ADR-002](docs/adr/002-event-driven-outbox-pattern.md)       | Event-Driven con Outbox Pattern                 | ✅ Aceptado | 2024-01-15 |
+| [ADR-003](docs/adr/003-saga-pattern-orchestration.md)        | Saga Pattern para Orquestación                  | ✅ Aceptado | 2024-01-15 |
+| [ADR-004](docs/adr/004-cqrs-command-query-separation.md)     | CQRS (Command Query Responsibility Segregation) | ✅ Aceptado | 2024-01-15 |
+| [ADR-005](docs/adr/005-nestjs-framework-selection.md)        | Selección de NestJS como Framework              | ✅ Aceptado | 2024-01-15 |
+| [ADR-006](docs/adr/006-postgresql-typeorm-database.md)       | PostgreSQL + TypeORM para Persistencia          | ✅ Aceptado | 2024-01-15 |
+| [ADR-007](docs/adr/007-typeorm-data-layer.md)                | TypeORM como Capa de Datos                      | ✅ Aceptado | 2024-01-15 |
+| [ADR-008](docs/adr/008-redis-bull-queue-system.md)           | Redis + Bull para Sistema de Colas              | ✅ Aceptado | 2024-01-16 |
+| [ADR-009](docs/adr/009-retry-pattern-exponential-backoff.md) | Retry Pattern con Exponential Backoff           | ✅ Aceptado | 2024-01-16 |
+| [ADR-010](docs/adr/010-circuit-breaker-pattern.md)           | Circuit Breaker Pattern                         | ✅ Aceptado | 2024-01-16 |
+| [ADR-011](docs/adr/011-idempotency-key-strategy.md)          | Estrategia de Idempotency Keys                  | ✅ Aceptado | 2024-01-16 |
+| [ADR-012](docs/adr/012-dead-letter-queue-handling.md)        | Dead Letter Queue Handling                      | ✅ Aceptado | 2024-01-16 |
+| [ADR-013](docs/adr/013-jwt-authentication-strategy.md)       | JWT Authentication Strategy                     | ✅ Aceptado | 2024-01-16 |
+| [ADR-014](docs/adr/014-role-based-authorization-guards.md)   | Role-Based Authorization Guards                 | ✅ Aceptado | 2024-01-16 |
+| [ADR-015](docs/adr/015-helmet-security-middleware.md)        | Middleware de Seguridad Helmet                  | ✅ Aceptado | 2024-01-17 |
+| [ADR-016](docs/adr/016-structured-logging-winston.md)        | Logging Estructurado con Winston                | ✅ Aceptado | 2024-01-17 |
+| [ADR-017](docs/adr/017-health-checks-terminus.md)            | Health Checks con Terminus                      | ✅ Aceptado | 2024-01-17 |
+| [ADR-018](docs/adr/018-prometheus-metrics.md)                | Métricas de Prometheus                          | ✅ Aceptado | 2024-01-17 |
+| [ADR-019](docs/adr/019-bull-board-dashboard.md)              | Bull Board Dashboard                            | ✅ Aceptado | 2024-01-17 |
+| [ADR-020](docs/adr/020-jest-testing-framework.md)            | Jest Testing Framework                          | ✅ Aceptado | 2024-01-17 |
+| [ADR-021](docs/adr/021-supertest-e2e-api-testing.md)         | Supertest para Testing E2E de API               | ✅ Aceptado | 2024-01-17 |
+| [ADR-022](docs/adr/022-test-coverage-strategy.md)            | Estrategia de Cobertura de Tests                | ✅ Aceptado | 2024-01-17 |
+| [ADR-023](docs/adr/023-docker-multi-stage-builds.md)         | Docker Multi-Stage Builds                       | ✅ Aceptado | 2024-01-17 |
+| [ADR-024](docs/adr/024-docker-compose-orchestration.md)      | Orquestación con Docker Compose                 | ✅ Aceptado | 2024-01-17 |
+| [ADR-025](docs/adr/025-cicd-husky-lint-staged.md)            | CI/CD con Husky & lint-staged                   | ✅ Aceptado | 2024-01-17 |
 
 ### 🎯 Principios de Arquitectura Aplicados
 
