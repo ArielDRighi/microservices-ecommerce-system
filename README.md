@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/badge/tests-1033%20passed%20(102%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/coverage-74.64%25%20(threshold%2020%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
+    <img src="https://img.shields.io/badge/coverage-74.66%25%20(threshold%2070%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/queues-4%20specialized-blue?style=for-the-badge" alt="Queue System"/>
@@ -429,12 +429,13 @@ El proyecto cuenta con una suite de pruebas empresarial con **1033 tests unitari
 
 - **1033 tests unitarios** ✅ distribuidos en 102 suites de test (6 skipped)
 - **14 suites E2E** ✅ (smoke, API, integration, business flows, contracts)
-- **74.64% cobertura de código** (umbral mínimo: 20%, **superado ampliamente**)
-  - Statements: 74.64% (2985/3999)
-  - Branches: 63.5% (722/1137)
-  - Functions: 76.18% (563/739)
-  - Lines: 75.06% (2763/3681)
-- **Tiempo de ejecución**: ~108 segundos (unit con coverage), variables (E2E con servicios reales)
+- **74.66% cobertura de código** (umbral profesional: **70%**, superado ✅)
+  - Statements: 74.66% ✅ (2986/3999) - Threshold: 70%
+  - Branches: 63.32% ⚠️ (720/1137) - Threshold: 70% (en progreso)
+  - Functions: 76.45% ✅ (565/739) - Threshold: 70%
+  - Lines: 75.08% ✅ (2764/3681) - Threshold: 70%
+- **Módulos críticos**: 80% threshold (payments, orders)
+- **Tiempo de ejecución**: ~120 segundos (unit con coverage), variables (E2E con servicios reales)
 
 ### Tests Unitarios por Módulo
 
