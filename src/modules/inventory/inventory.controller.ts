@@ -36,6 +36,8 @@ import {
   ReservationResponseDto,
   InventoryQueryDto,
   PaginatedResponseDto,
+  CreateInventoryDto,
+  ReservationDetailsDto,
 } from './dto';
 
 // Shared ValidationPipe configuration for consistent parameter handling
@@ -49,6 +51,100 @@ export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
 
   constructor(private readonly inventoryService: InventoryService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create inventory record',
+    description:
+      'Create initial inventory record for a product. ' +
+      'This endpoint allows creating inventory via API instead of seeds. ' +
+      'Product must exist before creating inventory.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Inventory created successfully',
+    type: InventoryResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Product not found',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Product with ID abc-123 not found' },
+        error: { type: 'string', example: 'Not Found' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Inventory already exists for this product and location',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 409 },
+        message: {
+          type: 'string',
+          example: 'Inventory already exists for product abc-123 at MAIN_WAREHOUSE',
+        },
+        error: { type: 'string', example: 'Conflict' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - validation error',
+  })
+  @ApiBody({
+    type: CreateInventoryDto,
+    examples: {
+      basicInventory: {
+        summary: 'Basic inventory with minimal fields',
+        description: 'Create inventory with only required fields',
+        value: {
+          productId: 'a21ba620-1020-4611-9b54-200811f2448f',
+          sku: 'LAP-GAMING-001',
+          initialStock: 100,
+        },
+      },
+      completeInventory: {
+        summary: 'Complete inventory with all optional fields',
+        description: 'Create inventory with full configuration',
+        value: {
+          productId: 'a21ba620-1020-4611-9b54-200811f2448f',
+          sku: 'LAP-GAMING-001',
+          location: 'MAIN_WAREHOUSE',
+          initialStock: 100,
+          minimumStock: 10,
+          maximumStock: 1000,
+          reorderPoint: 20,
+          reorderQuantity: 50,
+          notes: 'Initial inventory for gaming laptop line',
+        },
+      },
+      multiLocationInventory: {
+        summary: 'Inventory for different location',
+        description: 'Create inventory at a specific warehouse',
+        value: {
+          productId: 'b32ca730-f23c-5722-a765-557766551111',
+          sku: 'MOUSE-WIRELESS-001',
+          location: 'SECONDARY_WAREHOUSE',
+          initialStock: 250,
+          minimumStock: 25,
+          reorderPoint: 50,
+          notes: 'Peripheral inventory at secondary warehouse',
+        },
+      },
+    },
+  })
+  async createInventory(
+    @Body(ValidationPipe) createDto: CreateInventoryDto,
+  ): Promise<InventoryResponseDto> {
+    this.logger.log(`Creating inventory for product ${createDto.productId}`);
+    return await this.inventoryService.createInventory(createDto);
+  }
 
   @Public()
   @Post('check-availability')
@@ -92,6 +188,42 @@ export class InventoryController {
   ): Promise<ReservationResponseDto> {
     this.logger.log(`Reserving stock: ${JSON.stringify(reserveStockDto)}`);
     return await this.inventoryService.reserveStock(reserveStockDto);
+  }
+
+  @Get('reservations/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get reservation details',
+    description:
+      'Get current status and detailed information about a stock reservation. ' +
+      'Use this endpoint to check if a reservation is still valid before attempting ' +
+      'to release or fulfill it.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Reservation ID',
+    example: 'res-1760285000-abc123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reservation details',
+    type: ReservationDetailsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Reservation not found',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Reservation with ID res-123 not found' },
+        error: { type: 'string', example: 'Not Found' },
+      },
+    },
+  })
+  async getReservation(@Param('id') reservationId: string): Promise<ReservationDetailsDto> {
+    this.logger.log(`Fetching reservation details: ${reservationId}`);
+    return await this.inventoryService.getReservationDetails(reservationId);
   }
 
   @Put('release-reservation')
