@@ -24,6 +24,7 @@ import {
   ApiConflictResponse,
   ApiQuery,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import {
@@ -50,6 +51,52 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Create a new product',
     description: 'Create a new product (admin only)',
+  })
+  @ApiBody({
+    type: CreateProductDto,
+    description: 'Product data to create',
+    examples: {
+      premiumProduct: {
+        summary: 'Premium Wireless Headphones',
+        description: 'Example of a premium product with full details',
+        value: {
+          name: 'Premium Wireless Headphones',
+          description:
+            'High-quality wireless headphones with noise cancellation and premium sound quality',
+          price: 299.99,
+          sku: 'PWH-001-BLK',
+          brand: 'AudioTech',
+          weight: 0.85,
+          attributes: {
+            color: 'Black',
+            connectivity: 'Bluetooth 5.0',
+            batteryLife: '30 hours',
+            noiseCancellation: true,
+          },
+          images: [
+            'https://example.com/images/headphones-front.jpg',
+            'https://example.com/images/headphones-side.jpg',
+          ],
+          tags: ['wireless', 'bluetooth', 'headphones', 'audio', 'premium'],
+          costPrice: 150.0,
+          compareAtPrice: 399.99,
+          isActive: true,
+          trackInventory: true,
+          minimumStock: 5,
+        },
+      },
+      basicProduct: {
+        summary: 'Basic Product Example',
+        description: 'Minimal required fields for product creation',
+        value: {
+          name: 'USB-C Cable 2m',
+          price: 12.99,
+          sku: 'USBC-002-2M',
+          brand: 'TechGear',
+          tags: ['cable', 'usb-c', 'accessories'],
+        },
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -240,6 +287,42 @@ export class ProductsController {
     description: 'Product ID',
     type: String,
     format: 'uuid',
+  })
+  @ApiBody({
+    type: UpdateProductDto,
+    description: 'Fields to update (partial update)',
+    examples: {
+      updatePrice: {
+        summary: 'Update price and discount',
+        description: 'Example of updating pricing information',
+        value: {
+          price: 279.99,
+          compareAtPrice: 349.99,
+        },
+      },
+      updateDetails: {
+        summary: 'Update product details',
+        description: 'Example of updating description and attributes',
+        value: {
+          description: 'Updated high-quality wireless headphones with improved noise cancellation',
+          attributes: {
+            color: 'Matte Black',
+            connectivity: 'Bluetooth 5.2',
+            batteryLife: '35 hours',
+            noiseCancellation: true,
+            warranty: '2 years',
+          },
+          tags: ['wireless', 'bluetooth', 'headphones', 'audio', 'premium', 'noise-cancellation'],
+        },
+      },
+      deactivateProduct: {
+        summary: 'Deactivate product',
+        description: 'Example of marking a product as inactive',
+        value: {
+          isActive: false,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.OK,
