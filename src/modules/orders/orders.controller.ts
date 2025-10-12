@@ -10,7 +10,14 @@ import {
   ParseUUIDPipe,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, OrderResponseDto, OrderStatusResponseDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -42,6 +49,48 @@ export class OrdersController {
       'Creates a new order with PENDING status and publishes OrderCreatedEvent. ' +
       'Returns 202 Accepted immediately - order will be processed asynchronously. ' +
       'Supports idempotency - sending the same request twice will return the existing order.',
+  })
+  @ApiBody({
+    type: CreateOrderDto,
+    description: 'Order data with items and optional idempotency key',
+    examples: {
+      singleItem: {
+        summary: 'Single item order',
+        value: {
+          items: [
+            {
+              productId: '550e8400-e29b-41d4-a716-446655440000',
+              quantity: 2,
+              price: 99.99,
+            },
+          ],
+          idempotencyKey: 'order-2025-10-11-unique-12345',
+        },
+      },
+      multipleItems: {
+        summary: 'Multiple items order',
+        value: {
+          items: [
+            {
+              productId: '550e8400-e29b-41d4-a716-446655440000',
+              quantity: 2,
+              price: 99.99,
+            },
+            {
+              productId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+              quantity: 1,
+              price: 149.99,
+            },
+            {
+              productId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+              quantity: 5,
+              price: 29.99,
+            },
+          ],
+          idempotencyKey: 'order-2025-10-11-user-john-doe-9876543',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.ACCEPTED,

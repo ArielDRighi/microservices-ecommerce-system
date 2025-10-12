@@ -19,8 +19,16 @@ export class CreateOrderDto {
     description: 'Array of order items (products and quantities)',
     type: [OrderItemDto],
     example: [
-      { productId: '123e4567-e89b-12d3-a456-426614174000', quantity: 2 },
-      { productId: '987e6543-e89b-12d3-a456-426614174999', quantity: 1 },
+      {
+        productId: '550e8400-e29b-41d4-a716-446655440000',
+        quantity: 2,
+        price: 99.99,
+      },
+      {
+        productId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+        quantity: 1,
+        price: 149.99,
+      },
     ],
   })
   @IsArray({ message: 'Items must be an array' })
@@ -32,7 +40,7 @@ export class CreateOrderDto {
   @ApiPropertyOptional({
     description:
       'Optional idempotency key to prevent duplicate orders. If not provided, one will be generated automatically.',
-    example: 'order-2025-10-01-user-123-abc',
+    example: 'order-2025-10-11-user-john-doe-1234567890',
     maxLength: 255,
   })
   @IsOptional()

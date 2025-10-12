@@ -16,6 +16,7 @@ import {
   ApiUnauthorizedResponse,
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, RefreshTokenDto, AuthResponseDto, MessageResponseDto } from './dto';
@@ -36,6 +37,33 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register a new user',
     description: 'Create a new user account with email, password, and personal information',
+  })
+  @ApiBody({
+    type: RegisterDto,
+    description: 'User registration data',
+    examples: {
+      completeRegistration: {
+        summary: 'Complete registration with phone',
+        description: 'Full registration with all fields including optional phone number',
+        value: {
+          email: 'john.doe@example.com',
+          password: 'SecurePassword123!',
+          firstName: 'John',
+          lastName: 'Doe',
+          phoneNumber: '+1234567890',
+        },
+      },
+      basicRegistration: {
+        summary: 'Basic registration',
+        description: 'Minimal registration with required fields only',
+        value: {
+          email: 'jane.smith@example.com',
+          password: 'MySecurePass456@',
+          firstName: 'Jane',
+          lastName: 'Smith',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -60,6 +88,28 @@ export class AuthController {
     summary: 'User login',
     description: 'Authenticate user with email and password',
   })
+  @ApiBody({
+    type: LoginDto,
+    description: 'User login credentials',
+    examples: {
+      userLogin: {
+        summary: 'Standard user login',
+        description: 'Example login with email and password',
+        value: {
+          email: 'john.doe@example.com',
+          password: 'SecurePassword123!',
+        },
+      },
+      alternativeUser: {
+        summary: 'Alternative user login',
+        description: 'Another example with different credentials',
+        value: {
+          email: 'jane.smith@example.com',
+          password: 'MySecurePass456@',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'User successfully authenticated',
@@ -82,6 +132,21 @@ export class AuthController {
   @ApiOperation({
     summary: 'Refresh access token',
     description: 'Generate new access token using refresh token',
+  })
+  @ApiBody({
+    type: RefreshTokenDto,
+    description: 'Refresh token from previous login/register',
+    examples: {
+      refreshToken: {
+        summary: 'Refresh access token',
+        description:
+          'Use the refresh token obtained from login or register to get a new access token',
+        value: {
+          refreshToken:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwiaWF0IjoxNjQwOTk1MjAwLCJleHAiOjE2NDE2MDAwMDB9.example_signature_here',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: HttpStatus.OK,
