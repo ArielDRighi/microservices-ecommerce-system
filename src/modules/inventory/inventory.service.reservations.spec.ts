@@ -5,6 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { Inventory, InventoryMovement } from './entities/inventory.entity';
 import { InventoryReservation } from './entities/inventory-reservation.entity';
+import { Product } from '../products/entities/product.entity';
 import {
   mockInventory,
   mockInventoryRepository,
@@ -31,6 +32,12 @@ describe('InventoryService - Reservations', () => {
         {
           provide: getRepositoryToken(InventoryReservation),
           useValue: mockReservationRepository(),
+        },
+        {
+          provide: getRepositoryToken(Product),
+          useValue: {
+            findOne: jest.fn(),
+          },
         },
         {
           provide: EntityManager,
@@ -166,8 +173,19 @@ describe('InventoryService - Reservations', () => {
         releaseReservedStock: jest.fn(),
       };
 
+      const mockReservation = {
+        id: 'RES-123',
+        productId: mockInventory.productId,
+        quantity: 20,
+        status: 'ACTIVE',
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+
       const mockEntityManager = {
-        findOne: jest.fn().mockResolvedValue(inventoryWithMethods),
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce(mockReservation) // First call for reservation
+          .mockResolvedValueOnce(inventoryWithMethods), // Second call for inventory
         save: jest.fn().mockResolvedValue(inventoryWithMethods),
       };
 
@@ -188,7 +206,7 @@ describe('InventoryService - Reservations', () => {
       expect(result).toBeDefined();
       expect(result.productId).toBe(mockInventory.productId);
       expect(inventoryWithMethods.releaseReservedStock).toHaveBeenCalledWith(20);
-      expect(mockEntityManager.save).toHaveBeenCalledTimes(2);
+      expect(mockEntityManager.save).toHaveBeenCalledTimes(3); // Saves: reservation + inventory + movement
     });
 
     it('should throw NotFoundException when inventory not found', async () => {
@@ -228,8 +246,19 @@ describe('InventoryService - Reservations', () => {
         }),
       };
 
+      const mockReservation = {
+        id: 'RES-123',
+        productId: mockInventory.productId,
+        quantity: 20,
+        status: 'ACTIVE',
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+
       const mockEntityManager = {
-        findOne: jest.fn().mockResolvedValue(inventoryWithMethods),
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce(mockReservation) // First call for reservation
+          .mockResolvedValueOnce(inventoryWithMethods), // Second call for inventory
       };
 
       const transactionCallback = jest.fn(async (callback) => callback(mockEntityManager));
@@ -259,8 +288,19 @@ describe('InventoryService - Reservations', () => {
         fulfillReservation: jest.fn(),
       };
 
+      const mockReservation = {
+        id: 'RES-123',
+        productId: mockInventory.productId,
+        quantity: 20,
+        status: 'ACTIVE',
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+
       const mockEntityManager = {
-        findOne: jest.fn().mockResolvedValue(inventoryWithMethods),
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce(mockReservation) // First call for reservation
+          .mockResolvedValueOnce(inventoryWithMethods), // Second call for inventory
         save: jest.fn().mockResolvedValue(inventoryWithMethods),
       };
 
@@ -281,7 +321,7 @@ describe('InventoryService - Reservations', () => {
       expect(result).toBeDefined();
       expect(result.productId).toBe(mockInventory.productId);
       expect(inventoryWithMethods.fulfillReservation).toHaveBeenCalledWith(20);
-      expect(mockEntityManager.save).toHaveBeenCalledTimes(2);
+      expect(mockEntityManager.save).toHaveBeenCalledTimes(3); // Saves: reservation + inventory + movement
     });
 
     it('should throw NotFoundException when inventory not found', async () => {
