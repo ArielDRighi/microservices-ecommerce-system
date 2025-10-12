@@ -11,18 +11,21 @@
 ### **Problemas Identificados**
 
 #### 1️⃣ **Endpoints de Reservas Fallando**
+
 ```
 ⚠️ PUT /inventory/release-reservation - Error 500 (reserva ya liberada)
 ⚠️ PUT /inventory/fulfill-reservation - Error 500 (estado de reserva)
 ```
 
 #### 2️⃣ **Falta Endpoint de Creación de Inventario**
+
 ```
 ❌ No existe POST /inventory (para crear inventario inicial)
 ✅ Existe POST /inventory/add-stock (para agregar stock a inventario existente)
 ```
 
 **Situación actual**:
+
 - El inventario se crea únicamente mediante **seed** (`npm run seed:run`)
 - Los tests E2E fallan porque no hay forma de crear inventario via API
 - Recruiters no pueden probar el sistema fácilmente sin ejecutar seeds
@@ -36,7 +39,7 @@
 **Causa Raíz**:
 Los endpoints `release-reservation` y `fulfill-reservation` están diseñados para trabajar con **reservas activas**. Los tests fallaron porque:
 
-1. **Reserva ya liberada**: 
+1. **Reserva ya liberada**:
    - Test 27 creó una reserva
    - Test 28 intentó liberar la misma reserva
    - La reserva ya había **expirado automáticamente** (TTL de 30 minutos)
@@ -48,6 +51,7 @@ Los endpoints `release-reservation` y `fulfill-reservation` están diseñados pa
    - Resultado: Error 500 (transición de estado inválida)
 
 **¿Es un bug?** ❌ NO
+
 - El sistema funciona correctamente
 - Los tests fallaron por **estado de datos inconsistente** entre tests
 - Las reservas tienen **TTL automático** (característica de negocio)
@@ -66,15 +70,18 @@ Los endpoints `release-reservation` y `fulfill-reservation` están diseñados pa
 ```
 
 **Problema**:
+
 - **Testing E2E es difícil**: Requiere ejecutar seed antes de cada test
 - **Demostraciones son complejas**: Recruiters no pueden crear inventario fácilmente
 - **Portfolio menos profesional**: Falta CRUD completo de Inventory
 
 **¿Es un bug?** ❌ NO
+
 - Es una **decisión de diseño** (posiblemente por simplificación)
 - El inventario está acoplado al producto
 
 **¿Es óptimo para portfolio?** ⚠️ **NO**
+
 - Para un portfolio profesional, se espera CRUD completo
 - Los recruiters buscan endpoints RESTful estándar
 
@@ -87,6 +94,7 @@ Los endpoints `release-reservation` y `fulfill-reservation` están diseñados pa
 #### **Opción A: POST /inventory (Recomendada para Portfolio)** ✅
 
 **Ventajas**:
+
 - ✅ CRUD completo (Create, Read, Update, Delete)
 - ✅ RESTful estándar que recruiters esperan ver
 - ✅ Fácil de demostrar en Swagger
@@ -94,10 +102,12 @@ Los endpoints `release-reservation` y `fulfill-reservation` están diseñados pa
 - ✅ Profesional y completo
 
 **Desventajas**:
+
 - ⚠️ Duplica responsabilidad (Product tiene `trackInventory`)
 - ⚠️ Requiere validación (producto debe existir)
 
 **Implementación**:
+
 ```typescript
 // POST /inventory
 @Post()
@@ -159,13 +169,14 @@ export class CreateInventoryDto {
 ```
 
 **Service Implementation**:
+
 ```typescript
 async createInventory(dto: CreateInventoryDto): Promise<InventoryResponseDto> {
   // 1. Verificar que el producto existe
-  const product = await this.productRepo.findOne({ 
-    where: { id: dto.productId } 
+  const product = await this.productRepo.findOne({
+    where: { id: dto.productId }
   });
-  
+
   if (!product) {
     throw new NotFoundException(`Product with ID ${dto.productId} not found`);
   }
@@ -220,18 +231,21 @@ async createInventory(dto: CreateInventoryDto): Promise<InventoryResponseDto> {
 **Si decides NO agregar POST /inventory**:
 
 **Requisitos Mínimos**:
+
 1. Documentar claramente en README que inventario se crea via seed
 2. Agregar script de inicialización fácil
 3. Mejorar mensajes de error de los endpoints existentes
 
 **Documentación sugerida**:
-```markdown
+
+````markdown
 ## 📦 Inventory Setup
 
-This system uses Domain-Driven Design where inventory is automatically 
+This system uses Domain-Driven Design where inventory is automatically
 created for products via database seeding.
 
 **Why this design?**
+
 - Inventory is tightly coupled to products (1:1 relationship)
 - Prevents orphan inventory records without products
 - Simplifies business logic (inventory created with product lifecycle)
@@ -241,12 +255,15 @@ created for products via database seeding.
 ```bash
 npm run seed:run
 ```
+````
 
 This creates:
+
 - 5 sample products with inventory
 - 2 test users (admin@test.com / user@test.com)
 - Initial stock levels (20-120 units per product)
-```
+
+````
 
 ---
 
@@ -259,18 +276,19 @@ This creates:
 // Código actual en release-reservation
 async releaseReservation(dto: ReleaseReservationDto) {
   const reservation = await this.findReservation(dto.reservationId);
-  
+
   // ❌ No valida estado actual
   reservation.status = ReservationStatus.RELEASED;
   await this.save(reservation);
 }
-```
+````
 
 **Solución**:
+
 ```typescript
 async releaseReservation(dto: ReleaseReservationDto) {
   const reservation = await this.findReservation(dto.reservationId);
-  
+
   // ✅ Validar estado actual
   if (reservation.status !== ReservationStatus.PENDING) {
     throw new BadRequestException(
@@ -321,7 +339,8 @@ async getReservation(
 }
 ```
 
-**Beneficio**: 
+**Beneficio**:
+
 - Permite verificar estado de reserva antes de intentar release/fulfill
 - Evita errores 500 por estado inválido
 
@@ -330,6 +349,7 @@ async getReservation(
 #### **Mejora C: Tests E2E Mejorados**
 
 **Problema actual**:
+
 ```typescript
 // Test 27: Create reservation
 const reservation = await POST('/inventory/reserve', {...});
@@ -339,6 +359,7 @@ await PUT('/inventory/release-reservation', { reservationId });
 ```
 
 **Solución**:
+
 ```typescript
 describe('Inventory Reservations', () => {
   let reservationId: string;
@@ -390,12 +411,14 @@ describe('Inventory Reservations', () => {
 **Acción**: Implementar `POST /inventory`
 
 **Justificación**:
+
 1. ✅ **Para Recruiters Técnicos**: Demuestra conocimiento de RESTful APIs completas
 2. ✅ **Para Recruiters No Técnicos**: Swagger UI muestra CRUD completo (fácil de entender)
 3. ✅ **Para Testing**: Tests E2E autosuficientes sin dependencia de seeds
 4. ✅ **Para Demos**: Puedes crear inventario on-the-fly en demostraciones
 
 **Tiempo estimado**: 2-3 horas
+
 - Crear DTO (30 min)
 - Implementar service (1 hora)
 - Implementar controller (30 min)
@@ -407,12 +430,14 @@ describe('Inventory Reservations', () => {
 
 #### **Fase 2: Mejorar Validación de Reservas (Prioridad Media)** ⚠️
 
-**Acción**: 
+**Acción**:
+
 1. Agregar validación de estado en `release-reservation` y `fulfill-reservation`
 2. Crear endpoint `GET /inventory/reservations/:id`
 3. Mejorar tests E2E
 
 **Justificación**:
+
 1. ✅ **Robustez**: Previene errores 500 por estados inválidos
 2. ✅ **Profesionalismo**: Mensajes de error claros y específicos
 3. ✅ **Observabilidad**: Permite inspeccionar estado de reservas
@@ -428,17 +453,19 @@ describe('Inventory Reservations', () => {
 **Crear**: `docs/INVENTORY_DESIGN_RATIONALE.md`
 
 **Contenido**:
+
 ```markdown
 # Inventory Design Rationale
 
 ## Why No POST /inventory Endpoint?
 
-This system follows Domain-Driven Design where inventory has a 
+This system follows Domain-Driven Design where inventory has a
 1:1 relationship with products. Key design decisions:
 
 ### Design Decision 1: Inventory Lifecycle Coupled to Product
 
-**Rationale**: 
+**Rationale**:
+
 - Inventory cannot exist without a product
 - Creating inventory separately could lead to orphan records
 - Business logic simplified (one source of truth)
@@ -446,6 +473,7 @@ This system follows Domain-Driven Design where inventory has a
 ### Design Decision 2: Inventory Created via Seeds
 
 **Rationale**:
+
 - Initial setup is a one-time operation
 - Seeds ensure consistent test data
 - Prevents accidental creation of duplicate inventory
@@ -453,6 +481,7 @@ This system follows Domain-Driven Design where inventory has a
 ### Alternative Approach for Production
 
 In a production environment, we would:
+
 1. Create inventory automatically when product is created
 2. Use event-driven approach: ProductCreated → CreateInventory
 3. Implement saga pattern for transactional consistency
@@ -466,16 +495,16 @@ Run: `npm run seed:run` to initialize inventory with sample data.
 
 ## 📊 **Comparación de Opciones**
 
-| Criterio | Con POST /inventory | Sin POST /inventory + Docs |
-|----------|---------------------|----------------------------|
-| **RESTful Completeness** | ✅ CRUD completo | ⚠️ Incompleto |
-| **Facilidad para Recruiters** | ✅ Fácil de probar | ⚠️ Requiere seed |
-| **Profesionalismo** | ✅ Alta | ⚠️ Media |
-| **Esfuerzo de Implementación** | 2-3 horas | 30 min (docs) |
-| **Complejidad del Sistema** | ⚠️ Más código | ✅ Más simple |
-| **Testing E2E** | ✅ Autosuficiente | ⚠️ Requiere setup |
-| **Demo en Swagger** | ✅ Completo | ⚠️ Limitado |
-| **Design Pattern Purity** | ⚠️ Menos puro | ✅ DDD puro |
+| Criterio                       | Con POST /inventory | Sin POST /inventory + Docs |
+| ------------------------------ | ------------------- | -------------------------- |
+| **RESTful Completeness**       | ✅ CRUD completo    | ⚠️ Incompleto              |
+| **Facilidad para Recruiters**  | ✅ Fácil de probar  | ⚠️ Requiere seed           |
+| **Profesionalismo**            | ✅ Alta             | ⚠️ Media                   |
+| **Esfuerzo de Implementación** | 2-3 horas           | 30 min (docs)              |
+| **Complejidad del Sistema**    | ⚠️ Más código       | ✅ Más simple              |
+| **Testing E2E**                | ✅ Autosuficiente   | ⚠️ Requiere setup          |
+| **Demo en Swagger**            | ✅ Completo         | ⚠️ Limitado                |
+| **Design Pattern Purity**      | ⚠️ Menos puro       | ✅ DDD puro                |
 
 ---
 
@@ -486,6 +515,7 @@ Run: `npm run seed:run` to initialize inventory with sample data.
 **Recomendación**: ✅ **Implementar POST /inventory**
 
 **Por qué**:
+
 1. Los recruiters (técnicos y no técnicos) valoran **completeness**
 2. Swagger UI mostrará CRUD completo (impresiona visualmente)
 3. Tests E2E más robustos y autosuficientes
@@ -493,6 +523,7 @@ Run: `npm run seed:run` to initialize inventory with sample data.
 5. Muestra dominio de RESTful APIs estándares
 
 **Riesgo de NO implementarlo**:
+
 - Recruiters técnicos pueden ver el sistema como "incompleto"
 - Tests E2E que fallan debido a setup complejo dan mala impresión
 - Dificultad para hacer demos sin preparación previa
@@ -504,6 +535,7 @@ Run: `npm run seed:run` to initialize inventory with sample data.
 **Plan B**: Implementar Fase 1 (POST /inventory) + Mejorar mensajes de error de reservas
 
 **Mínimo viable**:
+
 - POST /inventory con validaciones básicas
 - Mensajes de error claros en release/fulfill (400 instead of 500)
 - 1-2 tests E2E que demuestren el flujo completo
@@ -532,6 +564,7 @@ Run: `npm run seed:run` to initialize inventory with sample data.
 **¿Quieres que implemente POST /inventory ahora?** 🚀
 
 Puedo:
+
 - Crear el DTO completo
 - Implementar el service con validaciones
 - Agregar el endpoint al controller

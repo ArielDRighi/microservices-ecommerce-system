@@ -87,6 +87,7 @@ Task 7: Documentación (30 min)
 
 **Tiempo Estimado**: 30 minutos  
 **Archivos a Crear/Modificar**:
+
 - `src/modules/inventory/dto/create-inventory.dto.ts` (NUEVO)
 - `src/modules/inventory/dto/reservation-details.dto.ts` (NUEVO)
 - `src/modules/inventory/dto/index.ts` (MODIFICAR)
@@ -446,10 +447,10 @@ async getReservationDetails(reservationId: string): Promise<ReservationDetailsDt
   const isExpired = ttlSeconds < 0;
 
   // Determine if reservation can be released or fulfilled
-  const canBeReleased = 
+  const canBeReleased =
     reservation.status === ReservationStatus.PENDING && !isExpired;
-  
-  const canBeFulfilled = 
+
+  const canBeFulfilled =
     reservation.status === ReservationStatus.PENDING && !isExpired;
 
   return {
@@ -662,7 +663,7 @@ async fulfillReservation(dto: FulfillReservationDto): Promise<InventoryStockDto>
 @HttpCode(HttpStatus.CREATED)
 @ApiOperation({
   summary: 'Create inventory record',
-  description: 
+  description:
     'Create initial inventory record for a product. ' +
     'This endpoint allows creating inventory via API instead of seeds. ' +
     'Product must exist before creating inventory.',
@@ -691,9 +692,9 @@ async fulfillReservation(dto: FulfillReservationDto): Promise<InventoryStockDto>
     type: 'object',
     properties: {
       statusCode: { type: 'number', example: 409 },
-      message: { 
-        type: 'string', 
-        example: 'Inventory already exists for product abc-123 at MAIN_WAREHOUSE' 
+      message: {
+        type: 'string',
+        example: 'Inventory already exists for product abc-123 at MAIN_WAREHOUSE'
       },
       error: { type: 'string', example: 'Conflict' },
     },
@@ -762,7 +763,7 @@ async createInventory(
 @HttpCode(HttpStatus.OK)
 @ApiOperation({
   summary: 'Get reservation details',
-  description: 
+  description:
     'Get current status and detailed information about a stock reservation. ' +
     'Use this endpoint to check if a reservation is still valid before attempting ' +
     'to release or fulfill it.',
@@ -805,6 +806,7 @@ async getReservation(
 **Archivos**: Ya implementado en Task 2.3 y 2.4
 
 **Resumen de Mejoras**:
+
 1. ✅ Validación de estado antes de release/fulfill
 2. ✅ Verificación de expiración
 3. ✅ Mensajes de error descriptivos (400 en lugar de 500)
@@ -816,6 +818,7 @@ async getReservation(
 
 **Tiempo Estimado**: 1 hora  
 **Archivos a Crear/Modificar**:
+
 - `src/modules/inventory/inventory.service.spec.ts` (MODIFICAR)
 - `src/modules/inventory/inventory.controller.spec.ts` (MODIFICAR)
 
@@ -834,9 +837,9 @@ describe('createInventory', () => {
     };
 
     const mockProduct = { id: 'prod-123', name: 'Test Product' };
-    const mockInventory = { 
-      id: 'inv-123', 
-      ...dto, 
+    const mockInventory = {
+      id: 'inv-123',
+      ...dto,
       currentStock: 100,
       reservedStock: 0,
     };
@@ -849,8 +852,8 @@ describe('createInventory', () => {
     const result = await service.createInventory(dto);
 
     expect(result).toBeDefined();
-    expect(mockProductRepo.findOne).toHaveBeenCalledWith({ 
-      where: { id: dto.productId } 
+    expect(mockProductRepo.findOne).toHaveBeenCalledWith({
+      where: { id: dto.productId },
     });
     expect(mockInventoryRepo.save).toHaveBeenCalled();
   });
@@ -943,9 +946,7 @@ describe('getReservationDetails', () => {
   it('should throw NotFoundException if reservation not found', async () => {
     mockReservationRepo.findOne.mockResolvedValue(null);
 
-    await expect(service.getReservationDetails('non-existent')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.getReservationDetails('non-existent')).rejects.toThrow(NotFoundException);
   });
 });
 ```
@@ -989,9 +990,9 @@ describe('releaseReservation - improved validation', () => {
 
 describe('fulfillReservation - improved validation', () => {
   it('should throw BadRequestException if reservation is not PENDING', async () => {
-    const dto: FulfillReservationDto = { 
-      reservationId: 'res-123', 
-      orderId: 'ord-456' 
+    const dto: FulfillReservationDto = {
+      reservationId: 'res-123',
+      orderId: 'ord-456',
     };
     const mockReservation = {
       reservationId: 'res-123',
@@ -1008,9 +1009,9 @@ describe('fulfillReservation - improved validation', () => {
   });
 
   it('should throw BadRequestException if reservation is expired', async () => {
-    const dto: FulfillReservationDto = { 
-      reservationId: 'res-expired', 
-      orderId: 'ord-456' 
+    const dto: FulfillReservationDto = {
+      reservationId: 'res-expired',
+      orderId: 'ord-456',
     };
     const mockReservation = {
       reservationId: 'res-expired',
@@ -1299,7 +1300,7 @@ describe('Reservation Flow with Validation (Complete)', () => {
 
 Agregar sección sobre nuevo endpoint:
 
-```markdown
+````markdown
 ### 📦 Inventory Management
 
 **NEW**: Inventory can now be created via API!
@@ -1317,12 +1318,15 @@ curl -X POST "http://localhost:3002/api/v1/inventory" \
     "reorderPoint": 20
   }'
 ```
+````
 
 **Alternative**: Use database seeds for initial setup:
+
 ```bash
 npm run seed:run
 ```
-```
+
+````
 
 ---
 
@@ -1351,7 +1355,7 @@ Create initial inventory record for a product.
   "location": "MAIN_WAREHOUSE",
   "notes": "Initial inventory for gaming laptop line"
 }
-```
+````
 
 **Success Response**: `201 Created`
 
@@ -1374,6 +1378,7 @@ Create initial inventory record for a product.
 ```
 
 **Error Responses**:
+
 - `404 Not Found`: Product doesn't exist
 - `409 Conflict`: Inventory already exists for this product
 - `400 Bad Request`: Validation error
@@ -1411,8 +1416,10 @@ Get detailed information about a stock reservation.
 ```
 
 **Error Response**:
+
 - `404 Not Found`: Reservation doesn't exist
-```
+
+````
 
 ---
 
@@ -1433,7 +1440,7 @@ Get detailed information about a stock reservation.
 - ✅ Validación de estado de reservas (400 en lugar de 500)
 - ✅ Mensajes de error descriptivos
 - ✅ Tests autosuficientes (no requieren seeds)
-```
+````
 
 ---
 
@@ -1502,13 +1509,13 @@ Get detailed information about a stock reservation.
 
 ## 📊 **Métricas de Éxito**
 
-| Métrica | Antes | Después | Meta |
-|---------|-------|---------|------|
-| **Endpoints de Inventory** | 10 | **13** (+3) | ✅ |
-| **Tests E2E de Inventory** | 9/11 | **13/13** | ✅ |
-| **Errores 500 en Reservas** | 2 | **0** | ✅ |
-| **CRUD Completo** | ❌ | ✅ | ✅ |
-| **Portfolio Readiness** | 80% | **100%** | ✅ |
+| Métrica                     | Antes | Después     | Meta |
+| --------------------------- | ----- | ----------- | ---- |
+| **Endpoints de Inventory**  | 10    | **13** (+3) | ✅   |
+| **Tests E2E de Inventory**  | 9/11  | **13/13**   | ✅   |
+| **Errores 500 en Reservas** | 2     | **0**       | ✅   |
+| **CRUD Completo**           | ❌    | ✅          | ✅   |
+| **Portfolio Readiness**     | 80%   | **100%**    | ✅   |
 
 ---
 

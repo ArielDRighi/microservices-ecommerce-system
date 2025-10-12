@@ -21,16 +21,19 @@
 ## 🎯 **Resumen Ejecutivo**
 
 ### **Objetivo**
+
 Verificar que las características diferenciadoras de la arquitectura asíncrona funcionan correctamente:
+
 - ✅ **Non-Blocking Architecture** (202 Accepted)
 - ✅ **Saga Pattern** (Orchestration)
 - ✅ **Outbox Pattern** (Event-Driven)
 - ✅ **Bull Queue System** (Background Processing)
 - ✅ **Idempotency Keys** (Duplicate Prevention)
-- 🔄 **Circuit Breaker Pattern** (Resilience) - *Requiere simulación de fallos*
-- 🔄 **Dead Letter Queue** (DLQ) - *Requiere fallo intencional*
+- 🔄 **Circuit Breaker Pattern** (Resilience) - _Requiere simulación de fallos_
+- 🔄 **Dead Letter Queue** (DLQ) - _Requiere fallo intencional_
 
 ### **Estadísticas Generales**
+
 - **Total de Endpoints Probados**: 33/33 (100%)
 - **Tests Exitosos**: 35/37 (94.6%)
 - **Módulos Cubiertos**: 6 (Auth, Products, Categories, Orders, Inventory, Health)
@@ -43,14 +46,14 @@ Verificar que las características diferenciadoras de la arquitectura asíncrona
 
 ### **1. Auth Module** (6/6 tests) ✅
 
-| # | Endpoint | Método | Resultado | HTTP | Descripción |
-|---|----------|--------|-----------|------|-------------|
-| 1 | `/auth/register` | POST | ✅ SUCCESS | 201 | Usuario registrado correctamente |
-| 2 | `/auth/login` | POST | ✅ SUCCESS | 200 | Login exitoso, JWT devuelto |
-| 3 | `/auth/refresh` | POST | ✅ SUCCESS | 200 | Token refrescado correctamente |
-| 4 | `/auth/profile` | GET | ✅ SUCCESS | 200 | Perfil de usuario obtenido |
-| 5 | `/auth/me` | GET | ✅ SUCCESS | 200 | Información del usuario actual |
-| 6 | `/auth/logout` | POST | ✅ SUCCESS | 200 | Logout exitoso |
+| #   | Endpoint         | Método | Resultado  | HTTP | Descripción                      |
+| --- | ---------------- | ------ | ---------- | ---- | -------------------------------- |
+| 1   | `/auth/register` | POST   | ✅ SUCCESS | 201  | Usuario registrado correctamente |
+| 2   | `/auth/login`    | POST   | ✅ SUCCESS | 200  | Login exitoso, JWT devuelto      |
+| 3   | `/auth/refresh`  | POST   | ✅ SUCCESS | 200  | Token refrescado correctamente   |
+| 4   | `/auth/profile`  | GET    | ✅ SUCCESS | 200  | Perfil de usuario obtenido       |
+| 5   | `/auth/me`       | GET    | ✅ SUCCESS | 200  | Información del usuario actual   |
+| 6   | `/auth/logout`   | POST   | ✅ SUCCESS | 200  | Logout exitoso                   |
 
 **Conclusión**: ✅ **Auth Module funciona correctamente**
 
@@ -58,15 +61,15 @@ Verificar que las características diferenciadoras de la arquitectura asíncrona
 
 ### **2. Products Module** (7/7 tests) ✅
 
-| # | Endpoint | Método | Resultado | HTTP | Descripción |
-|---|----------|--------|-----------|------|-------------|
-| 7 | `/products` | POST | ✅ SUCCESS | 201 | Producto creado correctamente |
-| 8 | `/products` | GET | ✅ SUCCESS | 200 | Lista de productos obtenida |
-| 9 | `/products/:id` | GET | ✅ SUCCESS | 200 | Producto individual obtenido |
-| 10 | `/products/search` | GET | ✅ SUCCESS | 200 | Búsqueda funciona correctamente |
-| 11 | `/products/:id` | PATCH | ✅ SUCCESS | 200 | Producto actualizado |
-| 12 | `/products/:id/deactivate` | PATCH | ✅ SUCCESS | 200 | Producto desactivado |
-| 13 | `/products/:id/activate` | PATCH | ✅ SUCCESS | 200 | Producto activado |
+| #   | Endpoint                   | Método | Resultado  | HTTP | Descripción                     |
+| --- | -------------------------- | ------ | ---------- | ---- | ------------------------------- |
+| 7   | `/products`                | POST   | ✅ SUCCESS | 201  | Producto creado correctamente   |
+| 8   | `/products`                | GET    | ✅ SUCCESS | 200  | Lista de productos obtenida     |
+| 9   | `/products/:id`            | GET    | ✅ SUCCESS | 200  | Producto individual obtenido    |
+| 10  | `/products/search`         | GET    | ✅ SUCCESS | 200  | Búsqueda funciona correctamente |
+| 11  | `/products/:id`            | PATCH  | ✅ SUCCESS | 200  | Producto actualizado            |
+| 12  | `/products/:id/deactivate` | PATCH  | ✅ SUCCESS | 200  | Producto desactivado            |
+| 13  | `/products/:id/activate`   | PATCH  | ✅ SUCCESS | 200  | Producto activado               |
 
 **Conclusión**: ✅ **Products Module funciona correctamente**
 
@@ -74,13 +77,13 @@ Verificar que las características diferenciadoras de la arquitectura asíncrona
 
 ### **3. Categories Module** (5/5 tests) ✅
 
-| # | Endpoint | Método | Resultado | HTTP | Descripción |
-|---|----------|--------|-----------|------|-------------|
-| 14 | `/categories` | POST | ✅ SUCCESS | 201 | Categoría raíz creada |
-| 15 | `/categories` | POST | ✅ SUCCESS | 201 | Subcategoría creada |
-| 16 | `/categories` | GET | ✅ SUCCESS | 200 | Lista de categorías obtenida |
-| 17 | `/categories/tree` | GET | ✅ SUCCESS | 200 | Árbol de categorías obtenido |
-| 18 | `/categories/slug/:slug` | GET | ✅ SUCCESS | 200 | Categoría por slug obtenida |
+| #   | Endpoint                 | Método | Resultado  | HTTP | Descripción                  |
+| --- | ------------------------ | ------ | ---------- | ---- | ---------------------------- |
+| 14  | `/categories`            | POST   | ✅ SUCCESS | 201  | Categoría raíz creada        |
+| 15  | `/categories`            | POST   | ✅ SUCCESS | 201  | Subcategoría creada          |
+| 16  | `/categories`            | GET    | ✅ SUCCESS | 200  | Lista de categorías obtenida |
+| 17  | `/categories/tree`       | GET    | ✅ SUCCESS | 200  | Árbol de categorías obtenido |
+| 18  | `/categories/slug/:slug` | GET    | ✅ SUCCESS | 200  | Categoría por slug obtenida  |
 
 **Conclusión**: ✅ **Categories Module funciona correctamente**
 
@@ -88,12 +91,12 @@ Verificar que las características diferenciadoras de la arquitectura asíncrona
 
 ### **4. Orders Module** (4/4 tests) ✅
 
-| # | Endpoint | Método | Resultado | HTTP | Descripción |
-|---|----------|--------|-----------|------|-------------|
-| 19 | `/orders` | POST | ✅ SUCCESS | **202** | **Orden aceptada (async)** |
-| 20 | `/orders` | GET | ✅ SUCCESS | 200 | Lista de órdenes obtenida |
-| 21 | `/orders/:id` | GET | ✅ SUCCESS | 200 | Orden individual obtenida |
-| 22 | `/orders/:id/status` | GET | ✅ SUCCESS | 200 | Estado de orden obtenido |
+| #   | Endpoint             | Método | Resultado  | HTTP    | Descripción                |
+| --- | -------------------- | ------ | ---------- | ------- | -------------------------- |
+| 19  | `/orders`            | POST   | ✅ SUCCESS | **202** | **Orden aceptada (async)** |
+| 20  | `/orders`            | GET    | ✅ SUCCESS | 200     | Lista de órdenes obtenida  |
+| 21  | `/orders/:id`        | GET    | ✅ SUCCESS | 200     | Orden individual obtenida  |
+| 22  | `/orders/:id/status` | GET    | ✅ SUCCESS | 200     | Estado de orden obtenido   |
 
 **Conclusión**: ✅ **Orders Module funciona correctamente**  
 **Nota Importante**: El endpoint POST devuelve **202 Accepted** (no 201 Created), indicando procesamiento asíncrono.
@@ -102,19 +105,19 @@ Verificar que las características diferenciadoras de la arquitectura asíncrona
 
 ### **5. Inventory Module** (9/11 tests) ⚠️
 
-| # | Endpoint | Método | Resultado | HTTP | Descripción |
-|---|----------|--------|-----------|------|-------------|
-| 23 | `/inventory/check-availability` | POST | ✅ SUCCESS | 200 | Stock disponible verificado |
-| 24 | `/inventory/add-stock` | POST | ✅ SUCCESS | 200 | Stock añadido correctamente |
-| 25 | `/inventory/remove-stock` | POST | ✅ SUCCESS | 200 | Stock removido correctamente |
-| 26 | `/inventory/reserve` | POST | ✅ SUCCESS | 201 | Reserva creada correctamente |
-| 27 | `/inventory/release-reservation` | PUT | ❌ FAILED | 500 | Error en DB (reserva ya liberada) |
-| 28 | `/inventory/fulfill-reservation` | PUT | ❌ FAILED | 500 | Error en DB (estado de reserva) |
-| 29 | `/inventory/product/:id` | GET | ✅ SUCCESS | 200 | Inventario por producto obtenido |
-| 30 | `/inventory` | GET | ✅ SUCCESS | 200 | Lista de inventario obtenida |
-| 31 | `/inventory/low-stock` | GET | ✅ SUCCESS | 200 | Items con bajo stock obtenidos |
-| 32 | `/inventory/out-of-stock` | GET | ✅ SUCCESS | 200 | Items sin stock obtenidos |
-| 33 | `/inventory/stats` | GET | ✅ SUCCESS | 200 | Estadísticas obtenidas |
+| #   | Endpoint                         | Método | Resultado  | HTTP | Descripción                       |
+| --- | -------------------------------- | ------ | ---------- | ---- | --------------------------------- |
+| 23  | `/inventory/check-availability`  | POST   | ✅ SUCCESS | 200  | Stock disponible verificado       |
+| 24  | `/inventory/add-stock`           | POST   | ✅ SUCCESS | 200  | Stock añadido correctamente       |
+| 25  | `/inventory/remove-stock`        | POST   | ✅ SUCCESS | 200  | Stock removido correctamente      |
+| 26  | `/inventory/reserve`             | POST   | ✅ SUCCESS | 201  | Reserva creada correctamente      |
+| 27  | `/inventory/release-reservation` | PUT    | ❌ FAILED  | 500  | Error en DB (reserva ya liberada) |
+| 28  | `/inventory/fulfill-reservation` | PUT    | ❌ FAILED  | 500  | Error en DB (estado de reserva)   |
+| 29  | `/inventory/product/:id`         | GET    | ✅ SUCCESS | 200  | Inventario por producto obtenido  |
+| 30  | `/inventory`                     | GET    | ✅ SUCCESS | 200  | Lista de inventario obtenida      |
+| 31  | `/inventory/low-stock`           | GET    | ✅ SUCCESS | 200  | Items con bajo stock obtenidos    |
+| 32  | `/inventory/out-of-stock`        | GET    | ✅ SUCCESS | 200  | Items sin stock obtenidos         |
+| 33  | `/inventory/stats`               | GET    | ✅ SUCCESS | 200  | Estadísticas obtenidas            |
 
 **Conclusión**: ⚠️ **Inventory Module funciona con advertencias**  
 **Nota**: 2 endpoints fallaron por estado de base de datos (reservas ya procesadas), no por errores en el código.
@@ -136,6 +139,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 ```
 
 **Resultado**:
+
 ```json
 {
   "statusCode": 202,
@@ -150,6 +154,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 ```
 
 ✅ **Validación**:
+
 - HTTP Status: **202 Accepted** (no 201 Created)
 - Order Status: **PENDING** (no CONFIRMED)
 - Respuesta inmediata: **<200ms**
@@ -168,6 +173,7 @@ curl -X GET "http://localhost:3002/api/v1/orders/$ORDER_ID/status" \
 ```
 
 **Resultado**:
+
 ```json
 {
   "statusCode": 200,
@@ -179,6 +185,7 @@ curl -X GET "http://localhost:3002/api/v1/orders/$ORDER_ID/status" \
 ```
 
 ✅ **Validación**:
+
 - Order Status cambió de **PENDING → CONFIRMED**
 - Tiempo de procesamiento: **~2 segundos**
 - Saga ejecutó todos los pasos secuencialmente:
@@ -209,6 +216,7 @@ curl -X GET "http://localhost:3002/api/v1/inventory/product/a21ba620-1020-4611-9
 | Available Stock | 82 | 81 | **-1** (disponible para nuevas órdenes) |
 
 ✅ **Validación**:
+
 - Inventario actualizado correctamente por la saga
 - Reserved Stock incrementó en 1
 - Available Stock decrementó en 1
@@ -228,21 +236,24 @@ curl -X GET "http://localhost:3002/api/v1/inventory/product/a21ba620-1020-4611-9
 ```
 
 **Query SQL ejecutada por OutboxProcessor**:
+
 ```sql
-SELECT * FROM "outbox_events" 
-WHERE ((processed = false AND processed_at IS NULL)) 
+SELECT * FROM "outbox_events"
+WHERE ((processed = false AND processed_at IS NULL))
    OR ((processed = false AND processed_at < '2025-10-12T15:56:39.008Z'))
-ORDER BY created_at ASC, sequence_number ASC 
+ORDER BY created_at ASC, sequence_number ASC
 LIMIT 50
 ```
 
 ✅ **Validación**:
+
 - OutboxProcessor ejecutándose cada **5 segundos** (polling pattern)
 - Query busca eventos con `processed = false`
 - Resultado: **"No pending events to process"**
 - **Interpretación**: Todos los eventos ya fueron procesados y marcados como `processed = true`
 
 **Flujo Completo del Outbox Pattern**:
+
 ```
 1. POST /orders → Orden guardada en DB
    ↓
@@ -274,6 +285,7 @@ curl -X GET "http://localhost:3002/api/v1/admin/queues"
 ```
 
 ✅ **Validación**:
+
 - Bull Board dashboard accesible
 - 4 colas especializadas:
   - `order-processing` ✅
@@ -304,6 +316,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 ```
 
 **Resultado Primera Request**:
+
 ```json
 {
   "statusCode": 202,
@@ -332,6 +345,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 ```
 
 **Resultado Segunda Request**:
+
 ```json
 {
   "statusCode": 202,
@@ -349,16 +363,17 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 
 **Análisis Comparativo**:
 
-| Campo | Primera Request | Segunda Request | ✅ Validación |
-|-------|----------------|-----------------|---------------|
-| **Order ID** | `f632d8a0-b743-4786-a6c8-d992fe83133b` | `f632d8a0-b743-4786-a6c8-d992fe83133b` | **MISMO ID** ✅ |
-| **Status** | `PENDING` | `CONFIRMED` | Devuelve orden original (ya procesada) ✅ |
-| **HTTP Code** | `202` | `202` | Respuesta consistente ✅ |
-| **CreatedAt** | `2025-10-12T16:03:25.645Z` | `2025-10-12T16:03:25.645Z` | **MISMO TIMESTAMP** ✅ |
-| **UpdatedAt** | `2025-10-12T16:03:25.645Z` | `2025-10-12T16:03:28.128Z` | Última actualización ✅ |
-| **Idempotency Key** | `idempotency-test-1760285000` | `idempotency-test-1760285000` | **MISMO KEY** ✅ |
+| Campo               | Primera Request                        | Segunda Request                        | ✅ Validación                             |
+| ------------------- | -------------------------------------- | -------------------------------------- | ----------------------------------------- |
+| **Order ID**        | `f632d8a0-b743-4786-a6c8-d992fe83133b` | `f632d8a0-b743-4786-a6c8-d992fe83133b` | **MISMO ID** ✅                           |
+| **Status**          | `PENDING`                              | `CONFIRMED`                            | Devuelve orden original (ya procesada) ✅ |
+| **HTTP Code**       | `202`                                  | `202`                                  | Respuesta consistente ✅                  |
+| **CreatedAt**       | `2025-10-12T16:03:25.645Z`             | `2025-10-12T16:03:25.645Z`             | **MISMO TIMESTAMP** ✅                    |
+| **UpdatedAt**       | `2025-10-12T16:03:25.645Z`             | `2025-10-12T16:03:28.128Z`             | Última actualización ✅                   |
+| **Idempotency Key** | `idempotency-test-1760285000`          | `idempotency-test-1760285000`          | **MISMO KEY** ✅                          |
 
 ✅ **Validación Crítica**:
+
 - **NO se creó una orden duplicada** ✅
 - Sistema devolvió **la orden original** con su estado actual (`CONFIRMED`)
 - Idempotency key previno duplicación exitosamente
@@ -373,6 +388,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 **Estado**: ⏸️ **No probado (requiere simulación de fallos)**
 
 **Implementación**:
+
 - **Ubicación**: `src/common/utils/circuit-breaker.util.ts`
 - **Estados**: CLOSED → OPEN → HALF_OPEN → CLOSED
 - **Configuración**:
@@ -382,6 +398,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
   - `timeout`: 30s por operación
 
 **Circuit Breakers Implementados**:
+
 1. `paymentCircuitBreaker` - Protege Payment Service
 2. `inventoryCircuitBreaker` - Protege Inventory Service
 3. `notificationCircuitBreaker` - Protege Notification Service
@@ -400,11 +417,13 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 ```
 
 **Beneficio Esperado**:
+
 - **Sin Circuit Breaker**: 30s timeout por orden × 100 órdenes = **50 minutos** de fallos
 - **Con Circuit Breaker**: <1ms rechazo por orden × 100 órdenes = **100ms** de fallos
 - **Mejora**: **29,999x más rápido** en escenario de fallo
 
 **Próximos Pasos**:
+
 - Crear endpoint de testing: `POST /admin/simulate-failure/:service`
 - Implementar feature flag para simular fallos
 - Probar los 3 circuit breakers
@@ -416,6 +435,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 **Estado**: ⏸️ **No probado (requiere fallo intencional)**
 
 **Implementación**:
+
 - Jobs que fallan después de `maxRetries` (3 intentos) van al DLQ
 - DLQ visible en Bull Board: http://localhost:3002/api/v1/admin/queues
 - Configuración en `.env`:
@@ -437,6 +457,7 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 ```
 
 **Próximos Pasos**:
+
 - Verificar DLQ en Bull Board
 - Implementar endpoint para consultar failed jobs
 - Implementar retry manual de jobs en DLQ
@@ -488,14 +509,14 @@ curl -X POST "http://localhost:3002/api/v1/orders" \
 
 ### **📈 Métricas de Calidad**
 
-| Métrica | Valor | Estado |
-|---------|-------|--------|
-| **Cobertura de Código** | 74.69% statements | ✅ GOOD |
-| **Tests Unitarios** | 1033 passing | ✅ EXCELLENT |
-| **Endpoints Probados** | 33/33 (100%) | ✅ COMPLETE |
-| **Tests E2E Exitosos** | 35/37 (94.6%) | ✅ GOOD |
-| **Tiempo de Respuesta API** | <200ms (99th percentile) | ✅ EXCELLENT |
-| **Saga Processing Time** | ~2s (completo) | ✅ ACCEPTABLE |
+| Métrica                     | Valor                    | Estado        |
+| --------------------------- | ------------------------ | ------------- |
+| **Cobertura de Código**     | 74.69% statements        | ✅ GOOD       |
+| **Tests Unitarios**         | 1033 passing             | ✅ EXCELLENT  |
+| **Endpoints Probados**      | 33/33 (100%)             | ✅ COMPLETE   |
+| **Tests E2E Exitosos**      | 35/37 (94.6%)            | ✅ GOOD       |
+| **Tiempo de Respuesta API** | <200ms (99th percentile) | ✅ EXCELLENT  |
+| **Saga Processing Time**    | ~2s (completo)           | ✅ ACCEPTABLE |
 
 ---
 

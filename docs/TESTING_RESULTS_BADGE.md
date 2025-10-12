@@ -52,7 +52,7 @@ graph LR
     C --> D[INVENTORY_FULFILLED]
     D --> E[NOTIFICATION_SENT]
     E --> F[CONFIRMED]
-    
+
     style A fill:#ffa500
     style F fill:#90EE90
 ```
@@ -72,6 +72,7 @@ Order Created → OutboxEvent saved (processed=false)
 ```
 
 **Server Logs**:
+
 ```log
 [12:56:35] [OutboxProcessor] DEBUG No pending events to process
 [12:56:40] [OutboxProcessor] DEBUG No pending events to process
@@ -100,7 +101,7 @@ Dashboard: http://localhost:3002/api/v1/admin/queues
 ### 5️⃣ Idempotency Keys ✅
 
 ```
-Request 1: idempotency-test-1760285000 
+Request 1: idempotency-test-1760285000
 → Order ID: f632d8a0... (PENDING)
 
 Request 2: idempotency-test-1760285000 (DUPLICATE)
@@ -114,14 +115,14 @@ Request 2: idempotency-test-1760285000 (DUPLICATE)
 
 ## 📋 Modules Tested
 
-| Module | Tests | Status | Notes |
-|--------|-------|--------|-------|
-| **Auth** | 6/6 | ✅ | JWT, Login, Register, Logout |
-| **Products** | 7/7 | ✅ | Full CRUD + Search |
-| **Categories** | 5/5 | ✅ | Tree structure, Slug lookup |
-| **Orders** | 4/4 | ✅ | **202 Accepted** (async) |
-| **Inventory** | 9/11 | ⚠️ | 2 failures due to DB state |
-| **Health** | 1/1 | ✅ | Database + Memory checks |
+| Module         | Tests | Status | Notes                        |
+| -------------- | ----- | ------ | ---------------------------- |
+| **Auth**       | 6/6   | ✅     | JWT, Login, Register, Logout |
+| **Products**   | 7/7   | ✅     | Full CRUD + Search           |
+| **Categories** | 5/5   | ✅     | Tree structure, Slug lookup  |
+| **Orders**     | 4/4   | ✅     | **202 Accepted** (async)     |
+| **Inventory**  | 9/11  | ⚠️     | 2 failures due to DB state   |
+| **Health**     | 1/1   | ✅     | Database + Memory checks     |
 
 **Total**: 32/34 endpoints ✅ (94.1%)
 
@@ -130,11 +131,13 @@ Request 2: idempotency-test-1760285000 (DUPLICATE)
 ## 🛡️ Resilience Patterns
 
 ### Circuit Breaker ⏸️
+
 - **Status**: Implemented (not tested with failures)
 - **Config**: 5 failures → OPEN, 3 successes → CLOSED, 60s recovery
 - **Benefit**: 29,999x faster in failure scenarios
 
 ### Dead Letter Queue ⏸️
+
 - **Status**: Implemented (not tested with failures)
 - **Config**: 3 max retries before DLQ
 - **Monitoring**: Bull Board → Failed tab
@@ -143,13 +146,13 @@ Request 2: idempotency-test-1760285000 (DUPLICATE)
 
 ## 📈 Quality Metrics
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Unit Tests** | 1033 passing | ✅ EXCELLENT |
-| **Code Coverage** | 74.69% | ✅ GOOD |
-| **E2E Tests** | 35/37 (94.6%) | ✅ GOOD |
-| **Response Time** | <200ms (p99) | ✅ EXCELLENT |
-| **Saga Processing** | ~2s complete | ✅ ACCEPTABLE |
+| Metric              | Value         | Status        |
+| ------------------- | ------------- | ------------- |
+| **Unit Tests**      | 1033 passing  | ✅ EXCELLENT  |
+| **Code Coverage**   | 74.69%        | ✅ GOOD       |
+| **E2E Tests**       | 35/37 (94.6%) | ✅ GOOD       |
+| **Response Time**   | <200ms (p99)  | ✅ EXCELLENT  |
+| **Saga Processing** | ~2s complete  | ✅ ACCEPTABLE |
 
 ---
 

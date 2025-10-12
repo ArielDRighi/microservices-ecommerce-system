@@ -45,12 +45,13 @@ POST /api/v1/orders
 **Comportamiento Esperado**: Orden procesada por saga en múltiples pasos coordinados
 
 ```
-PENDING → STOCK_VERIFIED → PAYMENT_PROCESSING 
-       → INVENTORY_FULFILLED → NOTIFICATION_SENT 
+PENDING → STOCK_VERIFIED → PAYMENT_PROCESSING
+       → INVENTORY_FULFILLED → NOTIFICATION_SENT
        → CONFIRMED (~2 segundos)
 ```
 
 **Evidencia**:
+
 ```bash
 # T+0ms: Order created with status PENDING
 POST /orders → 202 Accepted
@@ -76,6 +77,7 @@ Order Created → OutboxEvent saved (processed=false)
 ```
 
 **Evidencia (Logs del Servidor)**:
+
 ```log
 [12:56:35] [OutboxProcessor] DEBUG No pending events to process
 [12:56:40] [OutboxProcessor] DEBUG No pending events to process
@@ -100,6 +102,7 @@ Order Created → OutboxEvent saved (processed=false)
 ```
 
 **Evidencia**:
+
 - Bull Board Dashboard accesible: http://localhost:3002/api/v1/admin/queues
 - Jobs procesados exitosamente (orden cambió a CONFIRMED)
 
@@ -156,11 +159,13 @@ After Order (Saga Completed):
 **Estado**: ✅ Implementado | ⏸️ No probado con fallos reales
 
 **Implementación**:
+
 - Ubicación: `src/common/utils/circuit-breaker.util.ts`
 - 3 Circuit Breakers: Payment, Inventory, Notification
 - Configuración: 5 fallos → OPEN, 3 éxitos → CLOSED, 60s recovery
 
 **Beneficio Esperado**:
+
 - Sin Circuit Breaker: 30s timeout × 100 órdenes = **50 minutos** de fallos
 - Con Circuit Breaker: <1ms rechazo × 100 órdenes = **100ms** de fallos
 - **Mejora: 29,999x más rápido** en escenario de fallo
@@ -174,6 +179,7 @@ After Order (Saga Completed):
 **Estado**: ✅ Implementado | ⏸️ No probado con fallos
 
 **Implementación**:
+
 - Jobs que fallan después de 3 retries van al DLQ
 - Visible en Bull Board: http://localhost:3002/api/v1/admin/queues
 - Configuración: `BULL_DEFAULT_ATTEMPTS=3`
@@ -186,14 +192,14 @@ After Order (Saga Completed):
 
 ### **Tests por Módulo**
 
-| Módulo | Tests | Status | HTTP | Notas |
-|--------|-------|--------|------|-------|
-| Auth | 6/6 | ✅ | 200-201 | JWT, Login, Register, Logout |
-| Products | 7/7 | ✅ | 200-201 | CRUD completo + Search |
-| Categories | 5/5 | ✅ | 200-201 | Tree structure, Slug lookup |
-| Orders | 4/4 | ✅ | **202** | **Async processing** |
-| Inventory | 9/11 | ⚠️ | 200-500 | 2 fallos por estado de DB |
-| Health | 1/1 | ✅ | 200 | Database + Memory checks |
+| Módulo     | Tests | Status | HTTP    | Notas                        |
+| ---------- | ----- | ------ | ------- | ---------------------------- |
+| Auth       | 6/6   | ✅     | 200-201 | JWT, Login, Register, Logout |
+| Products   | 7/7   | ✅     | 200-201 | CRUD completo + Search       |
+| Categories | 5/5   | ✅     | 200-201 | Tree structure, Slug lookup  |
+| Orders     | 4/4   | ✅     | **202** | **Async processing**         |
+| Inventory  | 9/11  | ⚠️     | 200-500 | 2 fallos por estado de DB    |
+| Health     | 1/1   | ✅     | 200     | Database + Memory checks     |
 
 **Total**: 32/34 endpoints ✅ (94.1%)
 
@@ -201,14 +207,14 @@ After Order (Saga Completed):
 
 ### **Métricas de Calidad**
 
-| Métrica | Valor | Estado |
-|---------|-------|--------|
-| **Tests Unitarios** | 1033 passing | ✅ EXCELLENT |
-| **Cobertura de Código** | 74.69% | ✅ GOOD |
-| **Endpoints E2E** | 33/33 probados | ✅ COMPLETE |
-| **Tests E2E Exitosos** | 35/37 (94.6%) | ✅ GOOD |
-| **Tiempo de Respuesta** | <200ms (p99) | ✅ EXCELLENT |
-| **Saga Processing** | ~2s completo | ✅ ACCEPTABLE |
+| Métrica                 | Valor          | Estado        |
+| ----------------------- | -------------- | ------------- |
+| **Tests Unitarios**     | 1033 passing   | ✅ EXCELLENT  |
+| **Cobertura de Código** | 74.69%         | ✅ GOOD       |
+| **Endpoints E2E**       | 33/33 probados | ✅ COMPLETE   |
+| **Tests E2E Exitosos**  | 35/37 (94.6%)  | ✅ GOOD       |
+| **Tiempo de Respuesta** | <200ms (p99)   | ✅ EXCELLENT  |
+| **Saga Processing**     | ~2s completo   | ✅ ACCEPTABLE |
 
 ---
 
@@ -269,6 +275,7 @@ After Order (Saga Completed):
 El sistema está **listo para QA exhaustivo** y **performance testing** antes de producción.
 
 **Próximos pasos recomendados**:
+
 1. ✅ Testing de arquitectura asíncrona → **COMPLETADO**
 2. ⏳ Performance testing con carga → **PENDIENTE**
 3. ⏳ Pruebas de resiliencia con fallos → **PENDIENTE**

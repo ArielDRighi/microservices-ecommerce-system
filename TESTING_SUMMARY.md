@@ -43,8 +43,8 @@ POST /orders → 202 Accepted (no 201 Created)
 ### **2. Saga Pattern Orchestration** ✅
 
 ```
-PENDING → STOCK_VERIFIED → PAYMENT_PROCESSING 
-       → INVENTORY_FULFILLED → NOTIFICATION_SENT 
+PENDING → STOCK_VERIFIED → PAYMENT_PROCESSING
+       → INVENTORY_FULFILLED → NOTIFICATION_SENT
        → CONFIRMED (~2s total)
 ```
 
@@ -97,12 +97,14 @@ Request 2: idempotency-test-1760285000 → Order ID: f632d8a0... (CONFIRMED)
 ## 🛡️ **Patrones de Resiliencia**
 
 ### **Circuit Breaker Pattern** ⏸️
+
 - **Status**: Implementado (no probado con fallos)
 - **Ubicación**: `src/common/utils/circuit-breaker.util.ts`
 - **Config**: 5 fallos → OPEN, 3 éxitos → CLOSED, 60s recovery
 - **Beneficio esperado**: 29,999x más rápido en escenario de fallo
 
 ### **Dead Letter Queue (DLQ)** ⏸️
+
 - **Status**: Implementado (no probado con fallos intencionales)
 - **Config**: 3 intentos máximos antes de DLQ
 - **Monitoreo**: Bull Board → Failed tab
@@ -111,14 +113,14 @@ Request 2: idempotency-test-1760285000 → Order ID: f632d8a0... (CONFIRMED)
 
 ## 📋 **Módulos Probados**
 
-| Módulo | Tests | Status | Notas |
-|--------|-------|--------|-------|
-| **Auth** | 6/6 | ✅ | JWT, Login, Register, Logout |
-| **Products** | 7/7 | ✅ | CRUD completo + Search |
-| **Categories** | 5/5 | ✅ | Tree structure, Slug lookup |
-| **Orders** | 4/4 | ✅ | **202 Accepted** (async) |
-| **Inventory** | 9/11 | ⚠️ | 2 fallos por estado de DB |
-| **Health** | 1/1 | ✅ | Database + Memory checks |
+| Módulo         | Tests | Status | Notas                        |
+| -------------- | ----- | ------ | ---------------------------- |
+| **Auth**       | 6/6   | ✅     | JWT, Login, Register, Logout |
+| **Products**   | 7/7   | ✅     | CRUD completo + Search       |
+| **Categories** | 5/5   | ✅     | Tree structure, Slug lookup  |
+| **Orders**     | 4/4   | ✅     | **202 Accepted** (async)     |
+| **Inventory**  | 9/11  | ⚠️     | 2 fallos por estado de DB    |
+| **Health**     | 1/1   | ✅     | Database + Memory checks     |
 
 **Total**: 32/34 endpoints ✅ (2 con problemas de estado de DB, no de código)
 
