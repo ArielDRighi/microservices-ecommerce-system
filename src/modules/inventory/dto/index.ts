@@ -5,3 +5,5 @@ export * from './fulfill-reservation.dto';
 export * from './stock-movement.dto';
 export * from './inventory-response.dto';
 export * from './pagination.dto';
+export * from './create-inventory.dto';
+export * from './reservation-details.dto';
