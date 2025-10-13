@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { DataSource } from 'typeorm';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 import { ReservationHelper } from '../../helpers/reservation.helper';
@@ -9,6 +10,7 @@ import { ReservationHelper } from '../../helpers/reservation.helper';
 describe('Inventory API (E2E)', () => {
   let app: INestApplication;
   let userToken: string;
+  let regularUserToken: string;
   let productId1: string;
 
   beforeAll(async () => {
@@ -22,7 +24,27 @@ describe('Inventory API (E2E)', () => {
   beforeEach(async () => {
     await TestAppHelper.cleanDatabase(app);
 
-    // Create test user
+    // Create admin user
+    const adminTimestamp = Date.now().toString().slice(-6);
+    const adminData = {
+      email: `admin${adminTimestamp}@test.com`,
+      password: 'SecurePass123!',
+      firstName: 'Admin',
+      lastName: 'User',
+    };
+
+    const adminRegisterResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(adminData);
+
+    expect(adminRegisterResponse.status).toBe(201);
+    userToken = ResponseHelper.extractData<{ accessToken: string }>(adminRegisterResponse).accessToken;
+
+    // Assign ADMIN role to admin user
+    const dataSource = app.get(DataSource);
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
+
+    // Create regular user
     const userTimestamp = Date.now().toString().slice(-6);
     const userData = {
       email: `inventory${userTimestamp}@test.com`,
@@ -36,7 +58,7 @@ describe('Inventory API (E2E)', () => {
       .send(userData);
 
     expect(registerResponse.status).toBe(201);
-    userToken = ResponseHelper.extractData<{ accessToken: string }>(registerResponse).accessToken;
+    regularUserToken = ResponseHelper.extractData<{ accessToken: string }>(registerResponse).accessToken;
 
     // Create test products directly (without categories)
     const timestamp = Date.now();
@@ -280,6 +302,38 @@ describe('Inventory API (E2E)', () => {
       expect(response.status).toBe(400);
       expect(response.body.message).toBe('Add stock quantity must be positive');
     });
+
+    it('should return 403 when regular USER tries to add stock', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/inventory/add-stock')
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .send({
+          inventoryId: productId1,
+          movementType: 'RESTOCK',
+          quantity: 25,
+          unitCost: 150,
+          reason: 'E2E test stock addition by regular user',
+          performedBy: 'regular-user',
+        });
+
+      expect(response.status).toBe(403);
+      expect(response.body.message).toContain('does not have access');
+    });
+
+    it('should return 401 when adding stock without authentication', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/inventory/add-stock')
+        .send({
+          inventoryId: productId1,
+          movementType: 'RESTOCK',
+          quantity: 25,
+          unitCost: 150,
+          reason: 'E2E test stock addition without auth',
+          performedBy: 'anonymous',
+        });
+
+      expect(response.status).toBe(401);
+    });
   });
 
   describe('POST /inventory/remove-stock', () => {
@@ -311,6 +365,36 @@ describe('Inventory API (E2E)', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.message).toContain('Inventory not found');
+    });
+
+    it('should return 403 when regular USER tries to remove stock', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/inventory/remove-stock')
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .send({
+          inventoryId: productId1,
+          movementType: 'SALE',
+          quantity: 10,
+          reason: 'E2E test stock removal by regular user',
+          performedBy: 'regular-user',
+        });
+
+      expect(response.status).toBe(403);
+      expect(response.body.message).toContain('does not have access');
+    });
+
+    it('should return 401 when removing stock without authentication', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/inventory/remove-stock')
+        .send({
+          inventoryId: productId1,
+          movementType: 'SALE',
+          quantity: 10,
+          reason: 'E2E test stock removal without auth',
+          performedBy: 'anonymous',
+        });
+
+      expect(response.status).toBe(401);
     });
   });
 
