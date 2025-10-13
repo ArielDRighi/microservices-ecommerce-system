@@ -21,8 +21,13 @@ import {
   ApiQuery,
   ApiBearerAuth,
   ApiBody,
+  ApiForbiddenResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../users/enums/user-role.enum';
 import { Public } from '../../common/decorators/public.decorator';
 import { InventoryService } from './inventory.service';
 import {
@@ -271,10 +276,12 @@ export class InventoryController {
   }
 
   @Post('add-stock')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Add stock',
-    description: 'Add stock to inventory (restock, purchase, adjustment, etc.)',
+    description: 'Add stock to inventory (restock, purchase, adjustment, etc.). Only administrators and warehouse staff can modify inventory stock. Requires ADMIN role.',
   })
   @ApiResponse({
     status: 200,
@@ -283,6 +290,8 @@ export class InventoryController {
   })
   @ApiResponse({ status: 404, description: 'Inventory not found' })
   @ApiResponse({ status: 400, description: 'Invalid stock addition request' })
+  @ApiUnauthorizedResponse({ description: 'Authentication required' })
+  @ApiForbiddenResponse({ description: 'Requires ADMIN role' })
   @ApiBody({ type: StockMovementDto })
   async addStock(@Body(ValidationPipe) movementDto: StockMovementDto): Promise<InventoryStockDto> {
     this.logger.log(`Adding stock: ${JSON.stringify(movementDto)}`);
@@ -290,10 +299,12 @@ export class InventoryController {
   }
 
   @Post('remove-stock')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Remove stock',
-    description: 'Remove stock from inventory (sale, damage, theft, etc.)',
+    description: 'Remove stock from inventory (sale, damage, theft, etc.). Reduce inventory for damage, shrinkage, or other reasons. Requires ADMIN role.',
   })
   @ApiResponse({
     status: 200,
@@ -302,6 +313,8 @@ export class InventoryController {
   })
   @ApiResponse({ status: 404, description: 'Inventory not found' })
   @ApiResponse({ status: 400, description: 'Invalid stock removal request' })
+  @ApiUnauthorizedResponse({ description: 'Authentication required' })
+  @ApiForbiddenResponse({ description: 'Requires ADMIN role' })
   @ApiBody({ type: StockMovementDto })
   async removeStock(
     @Body(ValidationPipe) movementDto: StockMovementDto,

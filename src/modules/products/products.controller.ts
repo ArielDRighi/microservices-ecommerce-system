@@ -25,6 +25,7 @@ import {
   ApiQuery,
   ApiParam,
   ApiBody,
+  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import {
@@ -35,6 +36,9 @@ import {
   PaginatedProductsResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../users/enums/user-role.enum';
 import { CurrentUser } from '../auth/decorators';
 import { User } from '../users/entities/user.entity';
 
@@ -46,11 +50,12 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a new product',
-    description: 'Create a new product (admin only)',
+    description: 'Create a new product. Only administrators can create products in the catalog. Requires ADMIN role.',
   })
   @ApiBody({
     type: CreateProductDto,
@@ -111,6 +116,9 @@ export class ProductsController {
   })
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
+  })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
   })
   async create(
     @Body() createProductDto: CreateProductDto,
@@ -276,11 +284,12 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update product',
-    description: 'Update product information (admin only)',
+    description: 'Update product information. Only administrators can modify products. Price changes are logged for audit. Requires ADMIN role.',
   })
   @ApiParam({
     name: 'id',
@@ -338,6 +347,9 @@ export class ProductsController {
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
   })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
+  })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
@@ -348,12 +360,13 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Soft delete product',
-    description: 'Deactivate product (soft delete) - admin only',
+    description: 'Deactivate product (soft delete). Validates no pending orders exist for this product. Requires ADMIN role.',
   })
   @ApiParam({
     name: 'id',
@@ -370,6 +383,9 @@ export class ProductsController {
   })
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
+  })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
   })
   async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User): Promise<void> {
     this.logger.log(`Soft deleting product: ${id} by user: ${user.email}`);

@@ -48,7 +48,7 @@ export class CreateProductDto {
     description: 'Product price in USD',
     example: 299.99,
     type: Number,
-    minimum: 0.01,
+    minimum: 0.5,
     maximum: 999999.99,
   })
   @IsNumber(
@@ -56,7 +56,7 @@ export class CreateProductDto {
     { message: 'Price must be a valid number with up to 2 decimal places' },
   )
   @IsPositive({ message: 'Price must be greater than 0' })
-  @Min(0.01, { message: 'Price must be at least $0.01' })
+  @Min(0.5, { message: 'Price must be at least $0.50' })
   @Max(999999.99, { message: 'Price must not exceed $999,999.99' })
   price: number;
 
