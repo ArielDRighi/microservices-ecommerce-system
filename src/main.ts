@@ -84,36 +84,13 @@ async function bootstrap() {
     logger.log('✨ Configuring Swagger documentation...');
     const config = new DocumentBuilder()
       .setTitle('E-Commerce Async Resilient System')
-      .setDescription(
-        `
-      Sistema de procesamiento de órdenes asíncrono y resiliente para e-commerce.
-      
-      Implementa patrones avanzados como:
-      - Event Sourcing
-      - CQRS (Command Query Responsibility Segregation)
-      - Outbox Pattern
-      - Saga Pattern
-      - Circuit Breaker Pattern
-      - Retry Pattern con Exponential Backoff
-      
-      Tecnologías utilizadas:
-      - NestJS con TypeScript
-      - PostgreSQL con TypeORM
-      - Redis con Bull Queues
-      - JWT Authentication
-      - Winston Logging
-      - Terminus Health Checks
-    `,
-      )
+      .setDescription('API for async and resilient e-commerce order processing system')
       .setVersion('1.0.0')
       .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development Server')
-      .addServer(`https://api.production.com/${apiPrefix}`, 'Production Server')
-      .setContact(
-        'Sistema E-commerce Async',
-        'https://github.com/tu-usuario/ecommerce-async-resilient-system',
-        'tu-email@ejemplo.com',
+      .addServer(
+        `${configService.get<string>('app.productionUrl')}/${apiPrefix}`,
+        'Production Server',
       )
-      .setLicense('MIT', 'https://opensource.org/licenses/MIT')
       .addBearerAuth(
         {
           type: 'http',
@@ -125,16 +102,6 @@ async function bootstrap() {
         },
         'JWT-auth',
       )
-      .addTag('Authentication', 'Endpoints de autenticación y autorización')
-      .addTag('Users', 'Gestión de usuarios')
-      .addTag('Products', 'Gestión de productos y catálogo')
-      .addTag('Orders', 'Procesamiento de órdenes')
-      .addTag('Inventory', 'Control de inventario')
-      .addTag('Payments', 'Procesamiento de pagos')
-      .addTag('Notifications', 'Sistema de notificaciones')
-      .addTag('Events', 'Event Sourcing y mensajería')
-      .addTag('Health', 'Monitoreo y health checks')
-      .addTag('Categories', 'Gestión de categorías')
       .build();
 
     const document = SwaggerModule.createDocument(app, config, {
@@ -145,15 +112,7 @@ async function bootstrap() {
     SwaggerModule.setup(swaggerPath, app, document, {
       swaggerOptions: {
         persistAuthorization: true,
-        displayRequestDuration: true,
-        docExpansion: 'none',
-        filter: true,
-        showRequestHeaders: true,
-        tagsSorter: 'alpha',
-        operationsSorter: 'alpha',
       },
-      customSiteTitle: 'E-commerce Async System - API Documentation',
-      customCss: '.swagger-ui .topbar { display: none }',
     });
 
     logger.log(`📚 Swagger documentation available at: http://localhost:${port}/${swaggerPath}`);
