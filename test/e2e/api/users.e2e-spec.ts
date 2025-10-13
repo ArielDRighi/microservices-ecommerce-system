@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { DataSource } from 'typeorm';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 
@@ -22,7 +23,7 @@ describe('Users API (E2E)', () => {
   beforeEach(async () => {
     await TestAppHelper.cleanDatabase(app);
 
-    // Create admin user for each test
+    // Create admin user with ADMIN role
     const adminData = {
       email: `admin${Date.now()}@test.com`,
       password: 'AdminPass123!',
@@ -37,7 +38,14 @@ describe('Users API (E2E)', () => {
 
     adminToken = ResponseHelper.extractData(adminRegisterResponse).accessToken;
 
-    // Create regular user for each test
+    // Manually update admin role in database (since registration creates USER by default)
+    const dataSource = app.get(DataSource);
+    await dataSource.query(
+      `UPDATE users SET role = 'ADMIN' WHERE email = $1`,
+      [adminData.email]
+    );
+
+    // Create regular user with USER role (default)
     const regularUserData = {
       email: `user${Date.now()}@test.com`,
       password: 'UserPass123!',
@@ -55,7 +63,7 @@ describe('Users API (E2E)', () => {
   });
 
   describe('GET /users (List with pagination)', () => {
-    it('should list users with pagination', async () => {
+    it('should list users with pagination as ADMIN', async () => {
       const response = await request(app.getHttpServer())
         .get('/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -71,6 +79,18 @@ describe('Users API (E2E)', () => {
       expect(responseData.meta).toHaveProperty('page');
       expect(responseData.meta).toHaveProperty('limit');
       expect(responseData.meta).toHaveProperty('total');
+    });
+
+    it('should return 403 when regular USER tries to list all users', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .query({ page: 1, limit: 10 })
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
+      expect(response.body.message).toContain('role');
     });
 
     it('should filter by status (isActive)', async () => {
@@ -151,7 +171,7 @@ describe('Users API (E2E)', () => {
   });
 
   describe('GET /users/:id (Get user by ID)', () => {
-    it('should get user by valid ID', async () => {
+    it('should get user by valid ID as ADMIN', async () => {
       const response = await request(app.getHttpServer())
         .get(`/users/${regularUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -162,6 +182,16 @@ describe('Users API (E2E)', () => {
       expect(responseData.id).toBe(regularUserId);
       expect(responseData).toHaveProperty('email');
       expect(responseData).not.toHaveProperty('password');
+    });
+
+    it('should return 403 when regular USER tries to get user by ID', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/users/${regularUserId}`)
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
     });
 
     it('should return 404 with non-existent ID', async () => {
@@ -188,7 +218,7 @@ describe('Users API (E2E)', () => {
   });
 
   describe('POST /users (Create user)', () => {
-    it('should create user successfully with valid data', async () => {
+    it('should create user successfully with valid data as ADMIN', async () => {
       const newUserData = {
         email: `newuser${Date.now()}@test.com`,
         passwordHash: 'NewUser123!',
@@ -208,6 +238,25 @@ describe('Users API (E2E)', () => {
       expect(responseData.firstName).toBe(newUserData.firstName);
       expect(responseData.lastName).toBe(newUserData.lastName);
       expect(responseData).not.toHaveProperty('password');
+    });
+
+    it('should return 403 when regular USER tries to create user', async () => {
+      const newUserData = {
+        email: `forbidden${Date.now()}@test.com`,
+        passwordHash: 'ForbiddenPass123!',
+        firstName: 'Forbidden',
+        lastName: 'User',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .send(newUserData)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
+      expect(response.body.message).toContain('role');
     });
 
     it('should return 409 with duplicate email', async () => {
@@ -252,7 +301,7 @@ describe('Users API (E2E)', () => {
   });
 
   describe('PATCH /users/:id (Update user)', () => {
-    it('should update user successfully', async () => {
+    it('should update user successfully as ADMIN', async () => {
       const updateData = {
         firstName: 'Updated',
         lastName: 'Name',
@@ -270,6 +319,22 @@ describe('Users API (E2E)', () => {
       expect(responseData.id).toBe(regularUserId);
     });
 
+    it('should return 403 when regular USER tries to update another user', async () => {
+      const updateData = {
+        firstName: 'Forbidden',
+        lastName: 'Update',
+      };
+
+      const response = await request(app.getHttpServer())
+        .patch(`/users/${regularUserId}`)
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .send(updateData)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
+    });
+
     it('should return 404 with non-existent ID', async () => {
       const nonExistentId = '123e4567-e89b-12d3-a456-426614174000';
 
@@ -284,7 +349,7 @@ describe('Users API (E2E)', () => {
   });
 
   describe('DELETE /users/:id (Soft delete)', () => {
-    it('should mark user as deleted (soft delete)', async () => {
+    it('should mark user as deleted (soft delete) as ADMIN', async () => {
       // Create user to delete
       const userData = {
         email: `todelete${Date.now()}@test.com`,
@@ -315,6 +380,33 @@ describe('Users API (E2E)', () => {
 
       const userResponseData = ResponseHelper.extractData(getUserResponse);
       expect(userResponseData.isActive).toBe(false);
+    });
+
+    it('should return 403 when regular USER tries to delete user', async () => {
+      // Create user to attempt deletion
+      const userData = {
+        email: `forbiddendelete${Date.now()}@test.com`,
+        passwordHash: 'ForbiddenDelete123!',
+        firstName: 'Forbidden',
+        lastName: 'Delete',
+      };
+
+      const createResponse = await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(userData)
+        .expect(201);
+
+      const userId = ResponseHelper.extractData(createResponse).id;
+
+      // Attempt delete as regular user
+      const response = await request(app.getHttpServer())
+        .delete(`/users/${userId}`)
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
     });
 
     it('should not appear in default user listings after soft delete', async () => {
@@ -387,7 +479,7 @@ describe('Users API (E2E)', () => {
   });
 
   describe('PATCH /users/:id/activate (Activate user)', () => {
-    it('should activate deactivated user', async () => {
+    it('should activate deactivated user as ADMIN', async () => {
       // Create and deactivate user
       const userData = {
         email: `activate${Date.now()}@test.com`,
@@ -420,6 +512,39 @@ describe('Users API (E2E)', () => {
       expect(activateData).toHaveProperty('id');
       expect(activateData.id).toBe(userId);
       expect(activateData.isActive).toBe(true);
+    });
+
+    it('should return 403 when regular USER tries to activate user', async () => {
+      // Create and deactivate user
+      const userData = {
+        email: `forbiddenactivate${Date.now()}@test.com`,
+        passwordHash: 'ForbiddenActivate123!',
+        firstName: 'Forbidden',
+        lastName: 'Activate',
+      };
+
+      const createResponse = await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(userData)
+        .expect(201);
+
+      const userId = ResponseHelper.extractData(createResponse).id;
+
+      // Deactivate as admin
+      await request(app.getHttpServer())
+        .delete(`/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(204);
+
+      // Attempt activate as regular user
+      const response = await request(app.getHttpServer())
+        .patch(`/users/${userId}/activate`)
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
     });
 
     it('should return 404 with non-existent ID', async () => {

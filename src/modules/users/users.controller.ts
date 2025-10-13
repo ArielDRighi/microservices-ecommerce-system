@@ -23,6 +23,7 @@ import {
   ApiNotFoundResponse,
   ApiConflictResponse,
   ApiQuery,
+  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import {
@@ -33,12 +34,15 @@ import {
   PaginatedUsersResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from './enums/user-role.enum';
 import { CurrentUser } from '../auth/decorators';
 import { User } from './entities/user.entity';
 
 @ApiTags('Users')
 @Controller('users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
@@ -46,9 +50,10 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Create a new user',
-    description: 'Create a new user account (admin only)',
+    description: 'Create a new user account. Requires ADMIN role.',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -64,6 +69,9 @@ export class UsersController {
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
   })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
+  })
   async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     this.logger.log(`Creating new user: ${createUserDto.email}`);
     const user = await this.usersService.create(createUserDto);
@@ -73,9 +81,10 @@ export class UsersController {
   }
 
   @Get()
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get all users with pagination and filters',
-    description: 'Retrieve a paginated list of users with optional filtering and sorting',
+    description: 'Retrieve a paginated list of users with optional filtering and sorting. Requires ADMIN role.',
   })
   @ApiQuery({
     name: 'search',
@@ -121,6 +130,9 @@ export class UsersController {
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
   })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
+  })
   async findAll(@Query() queryDto: UserQueryDto): Promise<PaginatedUsersResponseDto> {
     this.logger.log(`Fetching users with filters: ${JSON.stringify(queryDto)}`);
     return this.usersService.findAll(queryDto);
@@ -145,9 +157,10 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get user by ID',
-    description: 'Retrieve a specific user by their ID',
+    description: 'Retrieve a specific user by their ID. Requires ADMIN role.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -160,15 +173,19 @@ export class UsersController {
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
   })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
+  })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<UserResponseDto> {
     this.logger.log(`Fetching user by ID: ${id}`);
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Update user',
-    description: 'Update user information',
+    description: 'Update user information. Requires ADMIN role.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -184,6 +201,9 @@ export class UsersController {
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
   })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
+  })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -193,10 +213,11 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Soft delete user',
-    description: 'Deactivate user account (soft delete)',
+    description: 'Deactivate user account (soft delete). Requires ADMIN role.',
   })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
@@ -208,15 +229,19 @@ export class UsersController {
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
   })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
+  })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     this.logger.log(`Soft deleting user: ${id}`);
     return this.usersService.remove(id);
   }
 
   @Patch(':id/activate')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Activate user',
-    description: 'Activate a deactivated user account',
+    description: 'Activate a deactivated user account. Requires ADMIN role.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -228,6 +253,9 @@ export class UsersController {
   })
   @ApiUnauthorizedResponse({
     description: 'Authentication required',
+  })
+  @ApiForbiddenResponse({
+    description: 'Requires ADMIN role',
   })
   async activate(@Param('id', ParseUUIDPipe) id: string): Promise<UserResponseDto> {
     this.logger.log(`Activating user: ${id}`);
