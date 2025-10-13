@@ -4,6 +4,7 @@ import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { InventoryService } from './inventory.service';
 import { Inventory, InventoryMovement } from './entities/inventory.entity';
 import { InventoryReservation } from './entities/inventory-reservation.entity';
+import { Product } from '../products/entities/product.entity';
 import {
   mockInventory,
   mockInventoryRepository,
@@ -31,6 +32,12 @@ describe('InventoryService - Statistics', () => {
         {
           provide: getRepositoryToken(InventoryReservation),
           useValue: mockReservationRepository(),
+        },
+        {
+          provide: getRepositoryToken(Product),
+          useValue: {
+            findOne: jest.fn(),
+          },
         },
         {
           provide: EntityManager,

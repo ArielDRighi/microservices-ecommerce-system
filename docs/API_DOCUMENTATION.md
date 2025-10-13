@@ -1086,19 +1086,218 @@ Get order status only (lightweight polling endpoint).
 
 ### Endpoints
 
-| Method | Endpoint                         | Auth   | Description              |
-| ------ | -------------------------------- | ------ | ------------------------ |
-| POST   | `/inventory/check-availability`  | ❌     | Check stock availability |
-| POST   | `/inventory/reserve`             | ✅ JWT | Reserve stock            |
-| PUT    | `/inventory/release-reservation` | ✅ JWT | Release reservation      |
-| PUT    | `/inventory/fulfill-reservation` | ✅ JWT | Fulfill reservation      |
-| POST   | `/inventory/add-stock`           | ✅ JWT | Add stock (restock)      |
-| POST   | `/inventory/remove-stock`        | ✅ JWT | Remove stock             |
-| GET    | `/inventory/product/:productId`  | ❌     | Get inventory by product |
-| GET    | `/inventory`                     | ❌     | Get inventory list       |
-| GET    | `/inventory/low-stock`           | ❌     | Get low stock items      |
-| GET    | `/inventory/out-of-stock`        | ❌     | Get out of stock         |
-| GET    | `/inventory/stats`               | ❌     | Get inventory statistics |
+| Method | Endpoint                             | Auth   | Description                 |
+| ------ | ------------------------------------ | ------ | --------------------------- |
+| POST   | `/inventory` **✨ NEW**              | ✅ JWT | **Create inventory record** |
+| GET    | `/inventory/reservations/:id` **✨** | ✅ JWT | **Get reservation details** |
+| POST   | `/inventory/check-availability`      | ❌     | Check stock availability    |
+| POST   | `/inventory/reserve`                 | ✅ JWT | Reserve stock               |
+| PUT    | `/inventory/release-reservation`     | ✅ JWT | Release reservation         |
+| PUT    | `/inventory/fulfill-reservation`     | ✅ JWT | Fulfill reservation         |
+| POST   | `/inventory/add-stock`               | ✅ JWT | Add stock (restock)         |
+| POST   | `/inventory/remove-stock`            | ✅ JWT | Remove stock                |
+| GET    | `/inventory/product/:productId`      | ❌     | Get inventory by product    |
+| GET    | `/inventory`                         | ❌     | Get inventory list          |
+| GET    | `/inventory/low-stock`               | ❌     | Get low stock items         |
+| GET    | `/inventory/out-of-stock`            | ❌     | Get out of stock            |
+| GET    | `/inventory/stats`                   | ❌     | Get inventory statistics    |
+
+---
+
+### POST `/inventory` ✨ **NEW**
+
+**Create initial inventory record for a product.**
+
+This endpoint allows creating inventory via API instead of requiring database seeds. The product must exist before creating inventory. If inventory already exists for the product at the specified location, a `409 Conflict` error is returned.
+
+**Authentication**: JWT Bearer Token (Required)
+
+**Request Body**:
+
+```json
+{
+  "productId": "a21ba620-1020-4611-9b54-200811f2448f",
+  "sku": "LAP-GAMING-001",
+  "location": "MAIN_WAREHOUSE",
+  "initialStock": 100,
+  "minimumStock": 10,
+  "maximumStock": 1000,
+  "reorderPoint": 20,
+  "reorderQuantity": 50,
+  "notes": "Initial inventory for gaming laptop line"
+}
+```
+
+**Request Body Parameters**:
+
+| Field           | Type   | Required | Description                            | Default         |
+| --------------- | ------ | -------- | -------------------------------------- | --------------- |
+| productId       | string | ✅       | UUID of the product                    | -               |
+| sku             | string | ✅       | Product SKU for reference              | -               |
+| location        | string | ❌       | Warehouse or storage location          | MAIN_WAREHOUSE  |
+| initialStock    | number | ✅       | Initial stock quantity (≥ 0)           | -               |
+| minimumStock    | number | ❌       | Minimum stock level before reorder     | 10              |
+| maximumStock    | number | ❌       | Maximum stock capacity                 | initialStock×10 |
+| reorderPoint    | number | ❌       | Stock level to trigger reorder         | minimumStock+10 |
+| reorderQuantity | number | ❌       | Quantity to reorder when reached point | initialStock    |
+| notes           | string | ❌       | Additional notes                       | -               |
+
+**Success Response**: `201 Created`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "productId": "a21ba620-1020-4611-9b54-200811f2448f",
+  "sku": "LAP-GAMING-001",
+  "location": "MAIN_WAREHOUSE",
+  "physicalStock": 100,
+  "reservedStock": 0,
+  "availableStock": 100,
+  "minimumStock": 10,
+  "maximumStock": 1000,
+  "reorderPoint": 20,
+  "reorderQuantity": 50,
+  "status": "IN_STOCK",
+  "isActive": true,
+  "lastRestockAt": "2025-10-12T10:30:00.000Z",
+  "createdAt": "2025-10-12T10:30:00.000Z",
+  "updatedAt": "2025-10-12T10:30:00.000Z"
+}
+```
+
+**Error Responses**:
+
+**404 Not Found** - Product doesn't exist:
+
+```json
+{
+  "statusCode": 404,
+  "message": "Product with ID a21ba620-1020-4611-9b54-200811f2448f not found. Cannot create inventory for non-existent product.",
+  "error": "Not Found"
+}
+```
+
+**409 Conflict** - Inventory already exists:
+
+```json
+{
+  "statusCode": 409,
+  "message": "Inventory already exists for product a21ba620-1020-4611-9b54-200811f2448f at location MAIN_WAREHOUSE. Use POST /inventory/add-stock to add stock to existing inventory.",
+  "error": "Conflict"
+}
+```
+
+**400 Bad Request** - Validation error:
+
+```json
+{
+  "statusCode": 400,
+  "message": ["initialStock must be a positive number", "productId must be a UUID"],
+  "error": "Bad Request"
+}
+```
+
+**Example cURL**:
+
+```bash
+curl -X POST "http://localhost:3000/api/v1/inventory" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "a21ba620-1020-4611-9b54-200811f2448f",
+    "sku": "LAP-GAMING-001",
+    "initialStock": 100,
+    "minimumStock": 10,
+    "reorderPoint": 20
+  }'
+```
+
+---
+
+### GET `/inventory/reservations/:id` ✨ **NEW**
+
+**Get detailed information about a stock reservation.**
+
+Use this endpoint to check the current status of a reservation, including whether it's still valid, expired, or has been released/fulfilled. This is useful before attempting to release or fulfill a reservation.
+
+**Authentication**: JWT Bearer Token (Required)
+
+**Path Parameters**:
+
+| Parameter | Type   | Description    | Example               |
+| --------- | ------ | -------------- | --------------------- |
+| id        | string | Reservation ID | res-1760285000-abc123 |
+
+**Success Response**: `200 OK`
+
+```json
+{
+  "reservationId": "res-1760285000-abc123",
+  "productId": "a21ba620-1020-4611-9b54-200811f2448f",
+  "inventoryId": "550e8400-e29b-41d4-a716-446655440000",
+  "quantity": 5,
+  "location": "MAIN_WAREHOUSE",
+  "status": "ACTIVE",
+  "expiresAt": "2025-10-12T17:30:00.000Z",
+  "ttlSeconds": 1800,
+  "isExpired": false,
+  "canBeReleased": true,
+  "canBeFulfilled": true,
+  "createdAt": "2025-10-12T16:00:00.000Z",
+  "orderId": "ord-123456",
+  "reason": "Order checkout"
+}
+```
+
+**Response Fields**:
+
+| Field          | Type    | Description                                    |
+| -------------- | ------- | ---------------------------------------------- |
+| reservationId  | string  | Unique reservation identifier                  |
+| productId      | string  | UUID of reserved product                       |
+| inventoryId    | string  | UUID of inventory record                       |
+| quantity       | number  | Reserved quantity                              |
+| location       | string  | Warehouse location                             |
+| status         | string  | ACTIVE, RELEASED, FULFILLED, or EXPIRED        |
+| expiresAt      | string  | ISO 8601 expiration timestamp                  |
+| ttlSeconds     | number  | Seconds until expiration (negative if expired) |
+| isExpired      | boolean | Whether reservation has expired                |
+| canBeReleased  | boolean | Whether reservation can be released            |
+| canBeFulfilled | boolean | Whether reservation can be fulfilled           |
+| createdAt      | string  | ISO 8601 creation timestamp                    |
+| orderId        | string  | Associated order ID (if any)                   |
+| reason         | string  | Reservation reason                             |
+
+**Reservation Statuses**:
+
+- `ACTIVE`: Reservation is active and valid
+- `RELEASED`: Stock returned to available inventory
+- `FULFILLED`: Order completed, stock deducted
+- `EXPIRED`: Reservation expired (auto-released by system)
+
+**Error Response**: `404 Not Found`
+
+```json
+{
+  "statusCode": 404,
+  "message": "Reservation with ID res-nonexistent not found.",
+  "error": "Not Found"
+}
+```
+
+**Example cURL**:
+
+```bash
+curl -X GET "http://localhost:3000/api/v1/inventory/reservations/res-1760285000-abc123" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Use Cases**:
+
+1. **Pre-checkout validation**: Check if reservation is still valid before completing order
+2. **Order status page**: Display reservation expiration countdown to user
+3. **Admin dashboard**: Monitor active reservations and their status
+4. **Error recovery**: Verify reservation state after failed operations
 
 ---
 

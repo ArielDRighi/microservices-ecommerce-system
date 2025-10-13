@@ -8,8 +8,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { Inventory, InventoryMovement } from './entities/inventory.entity';
-import { InventoryReservation } from './entities/inventory-reservation.entity';
+import { InventoryReservation, ReservationStatus } from './entities/inventory-reservation.entity';
 import { InventoryMovementType } from './enums/inventory-movement-type.enum';
+import { Product } from '../products/entities/product.entity';
 import {
   CheckStockDto,
   ReserveStockDto,
@@ -21,6 +22,8 @@ import {
   ReservationResponseDto,
   InventoryQueryDto,
   PaginatedResponseDto,
+  CreateInventoryDto,
+  ReservationDetailsDto,
 } from './dto';
 
 @Injectable()
@@ -34,8 +37,151 @@ export class InventoryService {
     private readonly movementRepository: Repository<InventoryMovement>,
     @InjectRepository(InventoryReservation)
     private readonly reservationRepository: Repository<InventoryReservation>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
     private readonly entityManager: EntityManager,
   ) {}
+
+  /**
+   * Create initial inventory record for a product
+   * @param dto - Inventory creation data
+   * @returns Created inventory record
+   * @throws NotFoundException if product doesn't exist
+   * @throws ConflictException if inventory already exists
+   */
+  async createInventory(dto: CreateInventoryDto): Promise<InventoryResponseDto> {
+    this.logger.log(`Creating inventory for product ${dto.productId}`);
+
+    // 1. Verify product exists
+    const product = await this.productRepository.findOne({
+      where: { id: dto.productId },
+      relations: ['category'],
+    });
+
+    if (!product) {
+      throw new NotFoundException(
+        `Product with ID ${dto.productId} not found. Cannot create inventory for non-existent product.`,
+      );
+    }
+
+    // 2. Check if inventory already exists for this product + location
+    const location = dto.location || 'MAIN_WAREHOUSE';
+    const existingInventory = await this.inventoryRepository.findOne({
+      where: {
+        productId: dto.productId,
+        location: location,
+      },
+    });
+
+    if (existingInventory) {
+      throw new ConflictException(
+        `Inventory already exists for product ${dto.productId} at location ${location}. ` +
+          `Use POST /inventory/add-stock to add stock to existing inventory.`,
+      );
+    }
+
+    // 3. Create inventory record
+    const inventory = this.inventoryRepository.create({
+      productId: dto.productId,
+      sku: dto.sku,
+      location: location,
+      currentStock: dto.initialStock,
+      reservedStock: 0,
+      minimumStock: dto.minimumStock ?? 10,
+      maximumStock: dto.maximumStock ?? dto.initialStock * 10,
+      reorderPoint: dto.reorderPoint ?? (dto.minimumStock ?? 10) + 10,
+      reorderQuantity: dto.reorderQuantity ?? dto.initialStock,
+      isActive: true,
+      autoReorderEnabled: false,
+      notes: dto.notes,
+      lastRestockAt: new Date(),
+    });
+
+    const savedInventory = await this.inventoryRepository.save(inventory);
+
+    // 4. Create initial stock movement (RESTOCK)
+    await this.createStockMovement({
+      inventoryId: savedInventory.id,
+      movementType: InventoryMovementType.RESTOCK,
+      quantity: dto.initialStock,
+      stockBefore: 0,
+      stockAfter: dto.initialStock,
+      reason: dto.notes || 'Initial inventory creation',
+      performedBy: 'system',
+    });
+
+    this.logger.log(
+      `✅ Inventory created successfully: ${savedInventory.id} (${dto.initialStock} units)`,
+    );
+
+    // 5. Map to response DTO
+    return {
+      id: savedInventory.id,
+      productId: product.id,
+      physicalStock: savedInventory.currentStock,
+      reservedStock: savedInventory.reservedStock,
+      availableStock: savedInventory.availableStock,
+      minimumStock: savedInventory.minimumStock,
+      maximumStock: savedInventory.maximumStock || 0,
+      reorderPoint: savedInventory.reorderPoint || 0,
+      location: savedInventory.location,
+      status: this.getStockStatus(savedInventory),
+      product: {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        category: product.category ? (await product.category).name : undefined,
+      },
+      movementsCount: 1, // Initial movement just created
+      createdAt: savedInventory.createdAt,
+      updatedAt: savedInventory.updatedAt,
+    };
+  }
+
+  /**
+   * Get detailed information about a reservation
+   * @param reservationId - Reservation identifier
+   * @returns Reservation details with status and expiration info
+   * @throws NotFoundException if reservation doesn't exist
+   */
+  async getReservationDetails(reservationId: string): Promise<ReservationDetailsDto> {
+    this.logger.log(`Fetching details for reservation ${reservationId}`);
+
+    const reservation = await this.reservationRepository.findOne({
+      where: { reservationId },
+      relations: ['inventory'],
+    });
+
+    if (!reservation) {
+      throw new NotFoundException(`Reservation with ID ${reservationId} not found.`);
+    }
+
+    const now = new Date();
+    const ttlSeconds = Math.floor((reservation.expiresAt.getTime() - now.getTime()) / 1000);
+    const isExpired = ttlSeconds < 0;
+
+    // Determine if reservation can be released or fulfilled
+    const canBeReleased = reservation.status === ReservationStatus.ACTIVE && !isExpired;
+
+    const canBeFulfilled = reservation.status === ReservationStatus.ACTIVE && !isExpired;
+
+    return {
+      reservationId: reservation.reservationId,
+      productId: reservation.productId,
+      inventoryId: reservation.inventoryId,
+      quantity: reservation.quantity,
+      status: reservation.status,
+      expiresAt: reservation.expiresAt,
+      ttlSeconds,
+      isExpired,
+      canBeReleased,
+      canBeFulfilled,
+      createdAt: reservation.createdAt,
+      orderId: reservation.referenceId,
+      reason: reservation.reason,
+      location: reservation.location,
+    };
+  }
 
   /**
    * Check stock availability for a product
@@ -167,6 +313,21 @@ export class InventoryService {
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + ttlMinutes);
 
+      // Create reservation record in database
+      const reservation = this.reservationRepository.create({
+        reservationId,
+        productId,
+        inventoryId: inventory.id,
+        quantity,
+        location,
+        status: ReservationStatus.ACTIVE,
+        referenceId,
+        reason,
+        expiresAt,
+      });
+
+      await manager.save(reservation);
+
       this.logger.debug(`Stock reserved successfully: ${quantity} units for ${ttlMinutes} minutes`);
 
       // TODO: Implement Redis TTL for auto-release
@@ -191,7 +352,11 @@ export class InventoryService {
   }
 
   /**
-   * Release a reservation back to available stock
+   * Release a reservation back to available stock (IMPROVED)
+   * @param releaseDto - Release reservation data
+   * @returns Updated inventory stock info
+   * @throws NotFoundException if reservation doesn't exist
+   * @throws BadRequestException if reservation cannot be released
    */
   async releaseReservation(releaseDto: ReleaseReservationDto): Promise<InventoryStockDto> {
     const { productId, quantity, reservationId, location = 'MAIN_WAREHOUSE', reason } = releaseDto;
@@ -199,12 +364,42 @@ export class InventoryService {
     this.logger.debug(`Releasing reservation: ${reservationId} for product ${productId}`);
 
     return await this.entityManager.transaction(async (manager) => {
+      // 1. Find reservation first to validate status
+      const reservation = await manager.findOne(InventoryReservation, {
+        where: { reservationId },
+        relations: ['inventory'],
+      });
+
+      if (!reservation) {
+        throw new NotFoundException(
+          `Reservation ${reservationId} not found. It may have been already released or expired.`,
+        );
+      }
+
+      // 2. Validate reservation status
+      if (reservation.status !== ReservationStatus.ACTIVE) {
+        throw new BadRequestException(
+          `Cannot release reservation in status ${reservation.status}. ` +
+            `Only ACTIVE reservations can be released. ` +
+            `Current status: ${reservation.status}`,
+        );
+      }
+
+      // 3. Check if expired
+      const now = new Date();
+      if (reservation.expiresAt < now) {
+        throw new BadRequestException(
+          `Reservation ${reservationId} has already expired at ${reservation.expiresAt.toISOString()}. ` +
+            `Expired reservations are automatically released by the system.`,
+        );
+      }
+
+      // 4. Get inventory with lock (no relations to avoid LEFT JOIN + FOR UPDATE error)
       const inventory = await manager.findOne(Inventory, {
         where: {
           productId,
           location,
         },
-        relations: ['product'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -214,6 +409,7 @@ export class InventoryService {
         );
       }
 
+      // 5. Release stock (decrement reserved, keep current stock the same)
       const beforeStock = inventory.currentStock;
       try {
         inventory.releaseReservedStock(quantity);
@@ -224,7 +420,11 @@ export class InventoryService {
         );
       }
 
-      // Create movement record
+      // 6. Update reservation status
+      reservation.status = ReservationStatus.RELEASED;
+      await manager.save(reservation);
+
+      // 7. Create movement record
       const movement = this.movementRepository.create({
         inventoryId: inventory.id,
         movementType: InventoryMovementType.RELEASE_RESERVATION,
@@ -233,7 +433,7 @@ export class InventoryService {
         stockAfter: inventory.currentStock,
         referenceId: reservationId,
         referenceType: 'RESERVATION_RELEASE',
-        reason: reason || 'Reservation released',
+        reason: reason || `Released reservation ${reservationId}`,
         performedBy: this.getCurrentUser(),
       });
 
@@ -242,14 +442,20 @@ export class InventoryService {
       // TODO: Remove from Redis
       // await this.redisService.removeReservation(reservationId);
 
-      this.logger.debug(`Reservation released successfully: ${quantity} units`);
+      this.logger.debug(
+        `✅ Reservation ${reservationId} released: ${quantity} units returned to available stock`,
+      );
 
       return this.mapToStockDto(inventory);
     });
   }
 
   /**
-   * Fulfill a reservation (convert to actual sale/usage)
+   * Fulfill a reservation (convert to actual sale/usage) - IMPROVED
+   * @param fulfillDto - Fulfill reservation data
+   * @returns Updated inventory stock info
+   * @throws NotFoundException if reservation doesn't exist
+   * @throws BadRequestException if reservation cannot be fulfilled
    */
   async fulfillReservation(fulfillDto: FulfillReservationDto): Promise<InventoryStockDto> {
     const {
@@ -264,12 +470,42 @@ export class InventoryService {
     this.logger.debug(`Fulfilling reservation: ${reservationId} for order ${orderId}`);
 
     return await this.entityManager.transaction(async (manager) => {
+      // 1. Find reservation first to validate status
+      const reservation = await manager.findOne(InventoryReservation, {
+        where: { reservationId },
+        relations: ['inventory'],
+      });
+
+      if (!reservation) {
+        throw new NotFoundException(
+          `Reservation ${reservationId} not found. It may have been already fulfilled or expired.`,
+        );
+      }
+
+      // 2. Validate reservation status
+      if (reservation.status !== ReservationStatus.ACTIVE) {
+        throw new BadRequestException(
+          `Cannot fulfill reservation in status ${reservation.status}. ` +
+            `Only ACTIVE reservations can be fulfilled. ` +
+            `Current status: ${reservation.status}`,
+        );
+      }
+
+      // 3. Check if expired
+      const now = new Date();
+      if (reservation.expiresAt < now) {
+        throw new BadRequestException(
+          `Reservation ${reservationId} has already expired at ${reservation.expiresAt.toISOString()}. ` +
+            `Cannot fulfill expired reservations.`,
+        );
+      }
+
+      // 4. Get inventory with lock (no relations to avoid LEFT JOIN + FOR UPDATE error)
       const inventory = await manager.findOne(Inventory, {
         where: {
           productId,
           location,
         },
-        relations: ['product'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -279,6 +515,7 @@ export class InventoryService {
         );
       }
 
+      // 5. Fulfill reservation (decrement both reserved and current stock)
       const beforeStock = inventory.currentStock;
       try {
         inventory.fulfillReservation(quantity);
@@ -289,7 +526,12 @@ export class InventoryService {
         );
       }
 
-      // Create movement record
+      // 6. Update reservation status
+      reservation.status = ReservationStatus.FULFILLED;
+      reservation.referenceId = orderId;
+      await manager.save(reservation);
+
+      // 7. Create movement record
       const movement = this.movementRepository.create({
         inventoryId: inventory.id,
         movementType: InventoryMovementType.SALE,
@@ -298,7 +540,7 @@ export class InventoryService {
         stockAfter: inventory.currentStock,
         referenceId: orderId,
         referenceType: 'ORDER',
-        reason: notes || `Order fulfillment: ${orderId}`,
+        reason: notes || `Fulfilled reservation ${reservationId} for order ${orderId}`,
         performedBy: this.getCurrentUser(),
       });
 
@@ -308,7 +550,7 @@ export class InventoryService {
       // await this.redisService.removeReservation(reservationId);
 
       this.logger.debug(
-        `Reservation fulfilled successfully: ${quantity} units for order ${orderId}`,
+        `✅ Reservation ${reservationId} fulfilled: ${quantity} units sold for order ${orderId}`,
       );
 
       return this.mapToStockDto(inventory);
@@ -690,6 +932,36 @@ export class InventoryService {
         OUT_OF_STOCK: outOfStockCount,
       },
     };
+  }
+
+  /**
+   * Helper method to create stock movement record
+   * @private
+   */
+  private async createStockMovement(data: {
+    inventoryId: string;
+    movementType: InventoryMovementType;
+    quantity: number;
+    stockBefore: number;
+    stockAfter: number;
+    reason?: string;
+    performedBy?: string;
+    referenceId?: string;
+    referenceType?: string;
+  }): Promise<void> {
+    const movement = this.movementRepository.create({
+      inventoryId: data.inventoryId,
+      movementType: data.movementType,
+      quantity: data.quantity,
+      stockBefore: data.stockBefore,
+      stockAfter: data.stockAfter,
+      reason: data.reason,
+      performedBy: data.performedBy || 'system',
+      referenceId: data.referenceId,
+      referenceType: data.referenceType,
+    });
+
+    await this.movementRepository.save(movement);
   }
 
   /**

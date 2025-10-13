@@ -5,10 +5,13 @@
     <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/ecommerce-async-resilient-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/tests-1033%20passed%20(102%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
+    <img src="https://img.shields.io/badge/tests-1059%20passed%20(104%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/coverage-74.66%25%20(threshold%2070%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
+    <img src="https://img.shields.io/badge/coverage-75.31%25%20(threshold%2070%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/e2e-233%2F234%20(99.6%25)-brightgreen?style=for-the-badge" alt="E2E Tests"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/queues-4%20specialized-blue?style=for-the-badge" alt="Queue System"/>
@@ -91,10 +94,12 @@ Este enfoque demuestra un compromiso con la planificación estratégica, la gest
 - **Monitoreo con Prometheus:** Métricas de negocio y sistema expuestas en /metrics para scraping.
 - **Bull Board Dashboard:** UI web en /api/v1/admin/queues para monitoreo en tiempo real de colas y jobs.
 - **Logging Estructurado con Winston:** Logs en formato JSON con correlation IDs, rotation diaria, levels configurables.
-- **Sistema de Testing Exhaustivo:** 103 tests unitarios + 14 suites E2E, cobertura 20% (meta 80%), configuración Jest profesional.
+- **Sistema de Testing Exhaustivo:** 1033 tests unitarios + 14 suites E2E, cobertura 74.69%, configuración Jest profesional.
 - **Contenerización Completa:** Docker multi-stage builds, docker-compose para dev/test/prod, healthchecks configurados.
 - **Pipeline CI/CD con GitHub Actions:** Linting, testing, security scanning, build validation automatizado.
 - **Documentación API con Swagger:** OpenAPI completo con ejemplos, schemas detallados, endpoints documentados.
+
+➡️ **[📊 Ver Resultados de Testing Completos](./TESTING_SUMMARY.md)** - 35/37 tests E2E exitosos (94.6%), arquitectura asíncrona 100% verificada
 
 ---
 
@@ -555,29 +560,31 @@ Una vez ejecutada la aplicación, la documentación interactiva Swagger está di
 
 ### 📡 Endpoints Principales
 
-| Módulo         | Método | Endpoint                               | Descripción                 | Auth   |
-| -------------- | ------ | -------------------------------------- | --------------------------- | ------ |
-| **Auth**       | `POST` | `/api/v1/auth/register`                | Registro de usuario         | ❌     |
-| **Auth**       | `POST` | `/api/v1/auth/login`                   | Login                       | ❌     |
-| **Auth**       | `GET`  | `/api/v1/auth/profile`                 | Perfil usuario              | ✅ JWT |
-| **Users**      | `GET`  | `/api/v1/users`                        | Listar usuarios             | ✅ JWT |
-| **Users**      | `GET`  | `/api/v1/users/:id`                    | Obtener usuario             | ✅ JWT |
-| **Products**   | `GET`  | `/api/v1/products`                     | Listar productos            | ❌     |
-| **Products**   | `GET`  | `/api/v1/products/search`              | Buscar productos            | ❌     |
-| **Products**   | `POST` | `/api/v1/products`                     | Crear producto              | ✅ JWT |
-| **Categories** | `GET`  | `/api/v1/categories`                   | Listar categorías           | ❌     |
-| **Categories** | `GET`  | `/api/v1/categories/tree`              | Árbol de categorías         | ❌     |
-| **Orders**     | `POST` | `/api/v1/orders`                       | **Crear orden (202 Async)** | ✅ JWT |
-| **Orders**     | `GET`  | `/api/v1/orders`                       | Listar órdenes              | ✅ JWT |
-| **Orders**     | `GET`  | `/api/v1/orders/:id/status`            | Estado de orden             | ✅ JWT |
-| **Inventory**  | `POST` | `/api/v1/inventory/check-availability` | Verificar stock             | ❌     |
-| **Inventory**  | `POST` | `/api/v1/inventory/reserve`            | Reservar stock              | ✅ JWT |
-| **Inventory**  | `GET`  | `/api/v1/inventory/low-stock`          | Items con bajo stock        | ❌     |
-| **Health**     | `GET`  | `/api/v1/health`                       | Health check general        | ❌     |
-| **Health**     | `GET`  | `/api/v1/health/ready`                 | Readiness probe (k8s)       | ❌     |
-| **Health**     | `GET`  | `/api/v1/health/detailed`              | Estado detallado            | ❌     |
-| **Metrics**    | `GET`  | `/api/v1/metrics`                      | Prometheus metrics          | ❌     |
-| **Queues**     | `GET`  | `/api/v1/admin/queues`                 | Bull Board Dashboard        | ❌     |
+| Módulo         | Método | Endpoint                                    | Descripción                 | Auth   |
+| -------------- | ------ | ------------------------------------------- | --------------------------- | ------ |
+| **Auth**       | `POST` | `/api/v1/auth/register`                     | Registro de usuario         | ❌     |
+| **Auth**       | `POST` | `/api/v1/auth/login`                        | Login                       | ❌     |
+| **Auth**       | `GET`  | `/api/v1/auth/profile`                      | Perfil usuario              | ✅ JWT |
+| **Users**      | `GET`  | `/api/v1/users`                             | Listar usuarios             | ✅ JWT |
+| **Users**      | `GET`  | `/api/v1/users/:id`                         | Obtener usuario             | ✅ JWT |
+| **Products**   | `GET`  | `/api/v1/products`                          | Listar productos            | ❌     |
+| **Products**   | `GET`  | `/api/v1/products/search`                   | Buscar productos            | ❌     |
+| **Products**   | `POST` | `/api/v1/products`                          | Crear producto              | ✅ JWT |
+| **Categories** | `GET`  | `/api/v1/categories`                        | Listar categorías           | ❌     |
+| **Categories** | `GET`  | `/api/v1/categories/tree`                   | Árbol de categorías         | ❌     |
+| **Orders**     | `POST` | `/api/v1/orders`                            | **Crear orden (202 Async)** | ✅ JWT |
+| **Orders**     | `GET`  | `/api/v1/orders`                            | Listar órdenes              | ✅ JWT |
+| **Orders**     | `GET`  | `/api/v1/orders/:id/status`                 | Estado de orden             | ✅ JWT |
+| **Inventory**  | `POST` | `/api/v1/inventory` **✨**                  | **Crear inventario (NEW)**  | ✅ JWT |
+| **Inventory**  | `GET`  | `/api/v1/inventory/reservations/:id` **✨** | **Detalles reserva (NEW)**  | ✅ JWT |
+| **Inventory**  | `POST` | `/api/v1/inventory/check-availability`      | Verificar stock             | ❌     |
+| **Inventory**  | `POST` | `/api/v1/inventory/reserve`                 | Reservar stock              | ✅ JWT |
+| **Inventory**  | `GET`  | `/api/v1/inventory/low-stock`               | Items con bajo stock        | ❌     |
+| **Health**     | `GET`  | `/api/v1/health`                            | Health check general        | ❌     |
+| **Health**     | `GET`  | `/api/v1/health/ready`                      | Readiness probe (k8s)       | ❌     |
+| **Health**     | `GET`  | `/api/v1/health/detailed`                   | Estado detallado            | ❌     |
+| **Metrics**    | `GET`  | `/api/v1/metrics`                           | Prometheus metrics          | ❌     |
+| **Queues**     | `GET`  | `/api/v1/admin/queues`                      | Bull Board Dashboard        | ❌     |
 
 > 💡 **Tip**: Usa Swagger UI para testing interactivo con ejemplos de request/response para cada endpoint.
 

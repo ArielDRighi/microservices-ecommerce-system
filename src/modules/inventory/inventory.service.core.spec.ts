@@ -5,6 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { Inventory, InventoryMovement } from './entities/inventory.entity';
 import { InventoryReservation } from './entities/inventory-reservation.entity';
+import { Product } from '../products/entities/product.entity';
 import {
   mockInventory,
   createCheckStockDto,
@@ -35,6 +36,12 @@ describe('InventoryService - Core Functionality', () => {
         {
           provide: getRepositoryToken(InventoryReservation),
           useValue: mockReservationRepository(),
+        },
+        {
+          provide: getRepositoryToken(Product),
+          useValue: {
+            findOne: jest.fn(),
+          },
         },
         {
           provide: EntityManager,
