@@ -74,7 +74,51 @@ async function bootstrap() {
     logger.warn('⚠️  Could not setup Bull Board dashboard:', (error as Error).message);
   }
 
-  // Global prefix
+  // Swagger Documentation - Setup BEFORE global prefix to avoid path conflicts
+  const swaggerEnabled = configService.get<boolean>('app.swagger.enabled', true);
+
+  // Force enable Swagger in development
+  const forceEnabled = environment === 'development' || swaggerEnabled;
+
+  if (forceEnabled) {
+    logger.log('✨ Configuring Swagger documentation...');
+    const config = new DocumentBuilder()
+      .setTitle('E-Commerce Async Resilient System')
+      .setDescription('API for async and resilient e-commerce order processing system')
+      .setVersion('1.0.0')
+      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development Server')
+      .addServer(
+        `${configService.get<string>('app.productionUrl')}/${apiPrefix}`,
+        'Production Server',
+      )
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+    });
+
+    const swaggerPath = configService.get<string>('app.swagger.path', 'api/docs');
+    SwaggerModule.setup(swaggerPath, app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+
+    logger.log(`📚 Swagger documentation available at: http://localhost:${port}/${swaggerPath}`);
+  }
+
+  // Global prefix - Applied AFTER Swagger setup
   app.setGlobalPrefix(apiPrefix);
 
   // API Versioning - Disabled for now to simplify routing
@@ -102,79 +146,6 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger Documentation
-  if (configService.get<boolean>('app.swagger.enabled', true)) {
-    const config = new DocumentBuilder()
-      .setTitle('E-Commerce Async Resilient System')
-      .setDescription(
-        `
-        Sistema de procesamiento de órdenes asíncrono y resiliente para e-commerce.
-        
-        Implementa patrones avanzados como:
-        - Event Sourcing
-        - CQRS (Command Query Responsibility Segregation)
-        - Outbox Pattern
-        - Saga Pattern
-        - Circuit Breaker Pattern
-        - Retry Pattern con Exponential Backoff
-        
-        Tecnologías utilizadas:
-        - NestJS con TypeScript
-        - PostgreSQL con TypeORM
-        - Redis con Bull Queues
-        - JWT Authentication
-        - Winston Logging
-        - Terminus Health Checks
-      `,
-      )
-      .setVersion('1.0.0')
-      .setContact(
-        'Sistema E-commerce Async',
-        'https://github.com/tu-usuario/ecommerce-async-resilient-system',
-        'tu-email@ejemplo.com',
-      )
-      .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          name: 'JWT',
-          description: 'Enter JWT token',
-          in: 'header',
-        },
-        'JWT-auth',
-      )
-      .addTag('Authentication', 'Endpoints de autenticación y autorización')
-      .addTag('Users', 'Gestión de usuarios')
-      .addTag('Products', 'Gestión de productos y catálogo')
-      .addTag('Orders', 'Procesamiento de órdenes')
-      .addTag('Inventory', 'Control de inventario')
-      .addTag('Payments', 'Procesamiento de pagos')
-      .addTag('Notifications', 'Sistema de notificaciones')
-      .addTag('Events', 'Event Sourcing y mensajería')
-      .addTag('Health', 'Monitoreo y health checks')
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config, {
-      operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
-    });
-
-    const swaggerPath = configService.get<string>('app.swagger.path', 'api/docs');
-    SwaggerModule.setup(swaggerPath, app, document, {
-      swaggerOptions: {
-        persistAuthorization: true,
-        displayRequestDuration: true,
-        docExpansion: 'none',
-        filter: true,
-        showRequestHeaders: true,
-      },
-      customSiteTitle: 'E-commerce Async System - API Documentation',
-    });
-
-    logger.log(`📚 Swagger documentation available at: http://localhost:${port}/${swaggerPath}`);
-  }
-
   // Graceful shutdown
   process.on('SIGTERM', async () => {
     logger.log('SIGTERM received, shutting down gracefully...');
@@ -195,7 +166,7 @@ async function bootstrap() {
   logger.log(`🌍 Environment: ${environment}`);
   logger.log(`📡 API Prefix: /${apiPrefix}`);
   logger.log(`🛡️  Authentication: JWT with Bearer token`);
-  logger.log(`� Health Check: http://localhost:${port}/health`);
+  logger.log(`❤️  Health Check: http://localhost:${port}/${apiPrefix}/health`);
 
   if (environment === 'development') {
     logger.log(`🔧 Development mode enabled`);

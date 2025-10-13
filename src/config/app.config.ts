@@ -14,6 +14,7 @@ export const appConfig = registerAs('app', () => ({
     enabled: process.env['ENABLE_SWAGGER'] !== 'false',
     path: process.env['SWAGGER_PATH'] || 'api/docs',
   },
+  productionUrl: process.env['PRODUCTION_URL'] || 'https://api.production.com',
   security: {
     helmet: {
       enabled: process.env['HELMET_ENABLED'] !== 'false',

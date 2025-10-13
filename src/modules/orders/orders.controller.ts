@@ -27,7 +27,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
  * Orders Controller
  * Handles order creation and retrieval
  */
-@ApiTags('orders')
+@ApiTags('Orders')
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
