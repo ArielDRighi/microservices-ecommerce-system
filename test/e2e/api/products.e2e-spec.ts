@@ -27,17 +27,25 @@ describe('Products API (E2E)', () => {
       lastName: 'User',
     };
 
-    const adminResponse = await request(app.getHttpServer())
-      .post('/auth/register')
-      .send(adminData)
-      .expect(201);
-
-    adminToken = ResponseHelper.extractData<{ accessToken: string }>(adminResponse).accessToken;
+    await request(app.getHttpServer()).post('/auth/register').send(adminData).expect(201);
 
     // Manually update admin role in database
     const { DataSource } = await import('typeorm');
     const dataSource = app.get(DataSource);
     await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
+
+    // Login again to get token with updated role
+    const adminLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: adminData.email,
+        password: adminData.password,
+      })
+      .expect(200);
+
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(
+      adminLoginResponse,
+    ).accessToken;
 
     // Create regular user with USER role (default)
     const regularUserData = {

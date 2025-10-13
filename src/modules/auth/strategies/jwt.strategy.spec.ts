@@ -88,6 +88,7 @@ describe('JwtStrategy', () => {
       email: 'test@example.com',
       firstName: 'John',
       lastName: 'Doe',
+      role: UserRole.USER,
       type: 'access',
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600,

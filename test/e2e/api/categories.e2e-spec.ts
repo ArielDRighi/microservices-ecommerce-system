@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { DataSource } from 'typeorm';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 
@@ -20,7 +21,7 @@ describe('Categories API (E2E)', () => {
   beforeEach(async () => {
     await TestAppHelper.cleanDatabase(app);
 
-    // Create admin user for protected endpoints
+    // Create admin user
     const adminData = {
       email: `admin${Date.now()}@test.com`,
       password: 'AdminPass123!@',
@@ -28,12 +29,19 @@ describe('Categories API (E2E)', () => {
       lastName: 'User',
     };
 
-    const adminResponse = await request(app.getHttpServer())
-      .post('/auth/register')
-      .send(adminData)
-      .expect(201);
+    await request(app.getHttpServer()).post('/auth/register').send(adminData).expect(201);
 
-    adminToken = ResponseHelper.extractData<{ accessToken: string }>(adminResponse).accessToken;
+    // Update user role to ADMIN in database
+    const dataSource = app.get(DataSource);
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
+
+    // Login to get token with ADMIN role
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: adminData.email, password: adminData.password })
+      .expect(200);
+
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(loginResponse).accessToken;
   });
 
   describe('GET /categories (List with pagination)', () => {
@@ -773,6 +781,214 @@ describe('Categories API (E2E)', () => {
       const data = ResponseHelper.extractData<any>(response);
       expect(data.id).toBe(categoryId);
       expect(data.isActive).toBe(false);
+    });
+  });
+
+  describe('Authorization - RBAC Protection (Admin Only)', () => {
+    let userToken: string;
+    let testCategoryId: string;
+
+    beforeEach(async () => {
+      // Create a normal user (USER role)
+      const userData = {
+        email: `user${Date.now()}@test.com`,
+        password: 'UserPass123!@',
+        firstName: 'Normal',
+        lastName: 'User',
+      };
+
+      const userResponse = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send(userData)
+        .expect(201);
+
+      userToken = ResponseHelper.extractData<{ accessToken: string }>(userResponse).accessToken;
+
+      // Create a test category as admin for modification tests
+      const categoryRes = await request(app.getHttpServer())
+        .post('/categories')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: `Auth Test ${Date.now()}`,
+          description: 'Category for authorization tests',
+        })
+        .expect(201);
+
+      testCategoryId = ResponseHelper.extractData<{ id: string }>(categoryRes).id;
+    });
+
+    describe('POST /categories - Create (Admin Only)', () => {
+      it('should deny access to normal users (403)', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/categories')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({
+            name: `Unauthorized Category ${Date.now()}`,
+            description: 'Should fail',
+          })
+          .expect(403);
+
+        expect(response.body.statusCode).toBe(403);
+        expect(response.body.message).toContain('does not have access');
+      });
+
+      it('should allow access to admin users (201)', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/categories')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: `Admin Category ${Date.now()}`,
+            description: 'Should succeed',
+          })
+          .expect(201);
+
+        const data = ResponseHelper.extractData<any>(response);
+        expect(data).toHaveProperty('id');
+        expect(data).toHaveProperty('name');
+      });
+    });
+
+    describe('PUT /categories/:id - Update (Admin Only)', () => {
+      it('should deny access to normal users (403)', async () => {
+        const response = await request(app.getHttpServer())
+          .put(`/categories/${testCategoryId}`)
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({
+            name: 'Unauthorized Update',
+            description: 'Should fail',
+          })
+          .expect(403);
+
+        expect(response.body.statusCode).toBe(403);
+        expect(response.body.message).toContain('does not have access');
+      });
+
+      it('should allow access to admin users (200)', async () => {
+        const response = await request(app.getHttpServer())
+          .put(`/categories/${testCategoryId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: `Updated by Admin ${Date.now()}`,
+            description: 'Successfully updated',
+          })
+          .expect(200);
+
+        const data = ResponseHelper.extractData<any>(response);
+        expect(data.id).toBe(testCategoryId);
+      });
+    });
+
+    describe('PATCH /categories/:id/activate - Activate (Admin Only)', () => {
+      beforeEach(async () => {
+        // Deactivate first
+        await request(app.getHttpServer())
+          .patch(`/categories/${testCategoryId}/deactivate`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+      });
+
+      it('should deny access to normal users (403)', async () => {
+        const response = await request(app.getHttpServer())
+          .patch(`/categories/${testCategoryId}/activate`)
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(403);
+
+        expect(response.body.statusCode).toBe(403);
+        expect(response.body.message).toContain('does not have access');
+      });
+
+      it('should allow access to admin users (200)', async () => {
+        const response = await request(app.getHttpServer())
+          .patch(`/categories/${testCategoryId}/activate`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        const data = ResponseHelper.extractData<any>(response);
+        expect(data.isActive).toBe(true);
+      });
+    });
+
+    describe('PATCH /categories/:id/deactivate - Deactivate (Admin Only)', () => {
+      it('should deny access to normal users (403)', async () => {
+        const response = await request(app.getHttpServer())
+          .patch(`/categories/${testCategoryId}/deactivate`)
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(403);
+
+        expect(response.body.statusCode).toBe(403);
+        expect(response.body.message).toContain('does not have access');
+      });
+
+      it('should allow access to admin users (200)', async () => {
+        const response = await request(app.getHttpServer())
+          .patch(`/categories/${testCategoryId}/deactivate`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(200);
+
+        const data = ResponseHelper.extractData<any>(response);
+        expect(data.isActive).toBe(false);
+      });
+    });
+
+    describe('DELETE /categories/:id - Delete (Admin Only)', () => {
+      let categoryToDeleteId: string;
+
+      beforeEach(async () => {
+        // Create a fresh category for deletion test
+        const response = await request(app.getHttpServer())
+          .post('/categories')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: `Delete Auth Test ${Date.now()}`,
+            description: 'Category for delete authorization test',
+          })
+          .expect(201);
+
+        categoryToDeleteId = ResponseHelper.extractData<{ id: string }>(response).id;
+      });
+
+      it('should deny access to normal users (403)', async () => {
+        const response = await request(app.getHttpServer())
+          .delete(`/categories/${categoryToDeleteId}`)
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(403);
+
+        expect(response.body.statusCode).toBe(403);
+        expect(response.body.message).toContain('does not have access');
+      });
+
+      it('should allow access to admin users (204)', async () => {
+        await request(app.getHttpServer())
+          .delete(`/categories/${categoryToDeleteId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .expect(204);
+
+        // Verify deletion
+        await request(app.getHttpServer()).get(`/categories/${categoryToDeleteId}`).expect(404);
+      });
+    });
+
+    describe('Public endpoints (should remain accessible)', () => {
+      it('GET /categories should be accessible without authentication', async () => {
+        const response = await request(app.getHttpServer()).get('/categories').expect(200);
+
+        expect(response.body).toHaveProperty('data');
+      });
+
+      it('GET /categories/:id should be accessible without authentication', async () => {
+        const response = await request(app.getHttpServer())
+          .get(`/categories/${testCategoryId}`)
+          .expect(200);
+
+        const data = ResponseHelper.extractData<any>(response);
+        expect(data.id).toBe(testCategoryId);
+      });
+
+      it('GET /categories/tree should be accessible without authentication', async () => {
+        const response = await request(app.getHttpServer()).get('/categories/tree').expect(200);
+
+        expect(response.body).toHaveProperty('data');
+      });
     });
   });
 });

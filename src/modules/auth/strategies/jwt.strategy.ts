@@ -4,12 +4,14 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
+import { UserRole } from '../../users/enums/user-role.enum';
 
 export interface JwtPayload {
   sub: string; // user id
   email: string;
   firstName: string;
   lastName: string;
+  role: UserRole;
   iat?: number;
   exp?: number;
   type: 'access' | 'refresh';

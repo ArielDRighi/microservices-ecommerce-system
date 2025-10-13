@@ -152,17 +152,32 @@ describe('Customer Journey (E2E)', () => {
       const timestamp = Date.now();
 
       // Setup: Create admin user to create products
-      const adminRegisterRes = await request(app.getHttpServer())
+      const adminEmail = `admin-${timestamp}@test.com`;
+      await request(app.getHttpServer())
         .post('/auth/register')
         .send({
-          email: `admin-${timestamp}@test.com`,
+          email: adminEmail,
           password: 'Admin123!',
           firstName: 'Admin',
           lastName: 'User',
         })
         .expect(201);
 
-      const adminData = ResponseHelper.extractData<any>(adminRegisterRes);
+      // Update user role to ADMIN in database
+      const { DataSource } = await import('typeorm');
+      const dataSource = app.get(DataSource);
+      await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminEmail]);
+
+      // Login to get token with updated role
+      const adminLoginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          email: adminEmail,
+          password: 'Admin123!',
+        })
+        .expect(200);
+
+      const adminData = ResponseHelper.extractData<any>(adminLoginRes);
       const adminToken = adminData.accessToken;
 
       // Create a product (minimal required fields)
