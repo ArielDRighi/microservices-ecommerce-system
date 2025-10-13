@@ -76,8 +76,6 @@ async function bootstrap() {
 
   // Swagger Documentation - Setup BEFORE global prefix to avoid path conflicts
   const swaggerEnabled = configService.get<boolean>('app.swagger.enabled', true);
-  const swaggerEnvVar = process.env['ENABLE_SWAGGER'];
-  logger.debug(`Swagger config value: ${swaggerEnabled}, ENV var: ${swaggerEnvVar}`);
 
   // Force enable Swagger in development
   const forceEnabled = environment === 'development' || swaggerEnabled;
