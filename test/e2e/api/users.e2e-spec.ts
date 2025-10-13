@@ -40,10 +40,7 @@ describe('Users API (E2E)', () => {
 
     // Manually update admin role in database (since registration creates USER by default)
     const dataSource = app.get(DataSource);
-    await dataSource.query(
-      `UPDATE users SET role = 'ADMIN' WHERE email = $1`,
-      [adminData.email]
-    );
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
 
     // Create regular user with USER role (default)
     const regularUserData = {

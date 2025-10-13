@@ -84,7 +84,8 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Get all users with pagination and filters',
-    description: 'Retrieve a paginated list of users with optional filtering and sorting. Requires ADMIN role.',
+    description:
+      'Retrieve a paginated list of users with optional filtering and sorting. Requires ADMIN role.',
   })
   @ApiQuery({
     name: 'search',
