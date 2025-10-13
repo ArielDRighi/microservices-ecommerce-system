@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { UsersService } from '../users.service';
 import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto';
+import { UserRole } from '../enums/user-role.enum';
 
 /**
  * Factory to create a mock User entity for testing
@@ -16,6 +17,7 @@ export const createMockUser = (overrides: Partial<User> = {}): User => {
     lastName: 'Doe',
     passwordHash: '$2b$10$hashedpassword',
     isActive: true,
+    role: UserRole.USER,
     phoneNumber: '+1234567890',
     dateOfBirth: new Date('1990-01-01'),
     language: 'en',
