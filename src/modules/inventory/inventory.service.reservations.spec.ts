@@ -116,7 +116,7 @@ describe('InventoryService - Reservations', () => {
       expect(result.status).toBe('ACTIVE');
       expect(inventoryWithMethods.reserveStock).toHaveBeenCalledWith(20, 'Reservation: RES-123');
       expect(mockEntityManager.findOne).toHaveBeenCalledTimes(2);
-      expect(mockEntityManager.save).toHaveBeenCalledTimes(3); // inventory + reservation + movement
+      expect(mockEntityManager.save).toHaveBeenCalledTimes(3); // inventory + movement + reservation
     });
 
     it('should throw NotFoundException when inventory not found', async () => {

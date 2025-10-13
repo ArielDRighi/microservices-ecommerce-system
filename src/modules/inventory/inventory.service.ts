@@ -96,7 +96,8 @@ export class InventoryService {
       minimumStock: dto.minimumStock ?? DEFAULT_MINIMUM_STOCK,
       maximumStock: dto.maximumStock ?? dto.initialStock * DEFAULT_MAXIMUM_STOCK_MULTIPLIER,
       reorderPoint:
-        dto.reorderPoint ?? (dto.minimumStock ?? DEFAULT_MINIMUM_STOCK) + DEFAULT_REORDER_POINT_OFFSET,
+        dto.reorderPoint ??
+        (dto.minimumStock ?? DEFAULT_MINIMUM_STOCK) + DEFAULT_REORDER_POINT_OFFSET,
       reorderQuantity: dto.reorderQuantity ?? dto.initialStock,
       isActive: true,
       autoReorderEnabled: false,

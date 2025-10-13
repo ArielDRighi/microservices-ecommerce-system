@@ -1206,7 +1206,7 @@ describe('Inventory API (E2E)', () => {
       const reservationId1 = ReservationHelper.generateReservationId();
       const reservationId2 = ReservationHelper.generateReservationId();
       const reservationId3 = ReservationHelper.generateReservationId();
-      
+
       const reservations = await Promise.all([
         request(app.getHttpServer())
           .post('/inventory/reserve')
