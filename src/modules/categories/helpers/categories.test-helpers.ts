@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CategoriesService } from '../categories.service';
 import { Category } from '../entities/category.entity';
+import { Product } from '../../products/entities/product.entity';
 import { CreateCategoryDto, UpdateCategoryDto } from '../dto';
 
 /**
@@ -101,9 +102,24 @@ export function createMockQueryBuilder() {
 }
 
 /**
+ * Creates a mock Product Repository with common methods
+ */
+export function createMockProductRepository() {
+  return {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    count: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+}
+
+/**
  * Sets up the Categories test module with mocks
  */
-export async function setupCategoriesTestModule(mockRepository: Record<string, unknown>) {
+export async function setupCategoriesTestModule(
+  mockRepository: Record<string, unknown>,
+  mockProductRepository?: Record<string, unknown>,
+) {
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       CategoriesService,
@@ -111,13 +127,18 @@ export async function setupCategoriesTestModule(mockRepository: Record<string, u
         provide: getRepositoryToken(Category),
         useValue: mockRepository,
       },
+      {
+        provide: getRepositoryToken(Product),
+        useValue: mockProductRepository || createMockProductRepository(),
+      },
     ],
   }).compile();
 
   const service = module.get<CategoriesService>(CategoriesService);
   const repository = module.get<Repository<Category>>(getRepositoryToken(Category));
+  const productRepository = module.get<Repository<Product>>(getRepositoryToken(Product));
 
-  return { service, repository, module };
+  return { service, repository, productRepository, module };
 }
 
 /**

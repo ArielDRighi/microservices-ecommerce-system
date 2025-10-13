@@ -1,32 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CategoriesService } from './categories.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/category.entity';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   createMockCategory,
   createMockCategoryRepository,
+  createMockProductRepository,
   createMockQueryBuilder,
+  setupCategoriesTestModule,
 } from './helpers/categories.test-helpers';
 
 describe('CategoriesService - Hierarchy & Tree Operations', () => {
-  let service: CategoriesService;
+  let service: any;
   let mockRepository: ReturnType<typeof createMockCategoryRepository>;
+  let mockProductRepository: ReturnType<typeof createMockProductRepository>;
 
   beforeEach(async () => {
     mockRepository = createMockCategoryRepository();
+    mockProductRepository = createMockProductRepository();
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CategoriesService,
-        {
-          provide: getRepositoryToken(Category),
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    service = module.get<CategoriesService>(CategoriesService);
+    const testModule = await setupCategoriesTestModule(mockRepository, mockProductRepository);
+    service = testModule.service;
   });
 
   afterEach(() => {
@@ -378,7 +369,7 @@ describe('CategoriesService - Hierarchy & Tree Operations', () => {
       const result = await service['findDescendants']('parent');
 
       expect(result).toHaveLength(3);
-      expect(result.map((c) => c.id)).toEqual(['c1', 'c2', 'gc1']);
+      expect(result.map((c: any) => c.id)).toEqual(['c1', 'c2', 'gc1']);
     });
 
     it('should respect maxDepth parameter', async () => {

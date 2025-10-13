@@ -1,32 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CategoriesService } from './categories.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/category.entity';
 import { ConflictException } from '@nestjs/common';
 import {
   createMockCategory,
   createMockCategoryRepository,
+  createMockProductRepository,
   createMockQueryBuilder,
+  setupCategoriesTestModule,
 } from './helpers/categories.test-helpers';
 
 describe('CategoriesService - Utilities & Helpers', () => {
-  let service: CategoriesService;
+  let service: any;
   let mockRepository: ReturnType<typeof createMockCategoryRepository>;
+  let mockProductRepository: ReturnType<typeof createMockProductRepository>;
 
   beforeEach(async () => {
     mockRepository = createMockCategoryRepository();
+    mockProductRepository = createMockProductRepository();
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CategoriesService,
-        {
-          provide: getRepositoryToken(Category),
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    service = module.get<CategoriesService>(CategoriesService);
+    const testModule = await setupCategoriesTestModule(mockRepository, mockProductRepository);
+    service = testModule.service;
   });
 
   afterEach(() => {

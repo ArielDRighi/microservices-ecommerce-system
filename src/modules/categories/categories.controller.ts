@@ -29,6 +29,9 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../users/enums/user-role.enum';
 import { CategoriesService } from './categories.service';
 import {
   CreateCategoryDto,
@@ -45,12 +48,14 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Create a new category',
-    description: 'Creates a new category. Only admin users can create categories.',
+    summary: 'Create a new category (Admin only)',
+    description:
+      'Creates a new category. Only administrators can create categories in the catalog.',
   })
   @ApiBody({
     type: CreateCategoryDto,
@@ -86,7 +91,7 @@ export class CategoriesController {
     type: CategoryResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized - JWT token required' })
-  @ApiForbiddenResponse({ description: 'Forbidden - Admin access required' })
+  @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   @ApiBadRequestResponse({ description: 'Invalid input data' })
   @ApiConflictResponse({ description: 'Category with this slug or name already exists' })
   async create(@Body() createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
@@ -234,11 +239,12 @@ export class CategoriesController {
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Update category',
-    description: 'Updates a category. Only admin users can update categories.',
+    summary: 'Update category (Admin only)',
+    description: 'Updates a category. Only administrators can update categories.',
   })
   @ApiParam({
     name: 'id',
@@ -271,7 +277,7 @@ export class CategoriesController {
     type: CategoryResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized - JWT token required' })
-  @ApiForbiddenResponse({ description: 'Forbidden - Admin access required' })
+  @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   @ApiNotFoundResponse({ description: 'Category not found' })
   @ApiBadRequestResponse({ description: 'Invalid input data or circular hierarchy' })
   @ApiConflictResponse({ description: 'Category with this slug or name already exists' })
@@ -283,11 +289,12 @@ export class CategoriesController {
   }
 
   @Patch(':id/activate')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Activate category',
-    description: 'Activates a category. Only admin users can activate categories.',
+    summary: 'Activate category (Admin only)',
+    description: 'Activates a category. Only administrators can activate categories.',
   })
   @ApiParam({
     name: 'id',
@@ -300,7 +307,7 @@ export class CategoriesController {
     type: CategoryResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized - JWT token required' })
-  @ApiForbiddenResponse({ description: 'Forbidden - Admin access required' })
+  @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   @ApiNotFoundResponse({ description: 'Category not found' })
   @ApiBadRequestResponse({ description: 'Failed to activate category' })
   async activate(@Param('id', ParseUUIDPipe) id: string): Promise<CategoryResponseDto> {
@@ -308,11 +315,12 @@ export class CategoriesController {
   }
 
   @Patch(':id/deactivate')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Deactivate category',
-    description: 'Deactivates a category. Only admin users can deactivate categories.',
+    summary: 'Deactivate category (Admin only)',
+    description: 'Deactivates a category. Only administrators can deactivate categories.',
   })
   @ApiParam({
     name: 'id',
@@ -325,7 +333,7 @@ export class CategoriesController {
     type: CategoryResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized - JWT token required' })
-  @ApiForbiddenResponse({ description: 'Forbidden - Admin access required' })
+  @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   @ApiNotFoundResponse({ description: 'Category not found' })
   @ApiBadRequestResponse({ description: 'Failed to deactivate category' })
   async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<CategoryResponseDto> {
@@ -333,13 +341,14 @@ export class CategoriesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete category',
+    summary: 'Delete category (Admin only)',
     description:
-      'Soft deletes a category. Only admin users can delete categories. Categories with children or products cannot be deleted.',
+      'Soft deletes a category. Only administrators can delete categories. Categories with children or products cannot be deleted.',
   })
   @ApiParam({
     name: 'id',
@@ -351,7 +360,7 @@ export class CategoriesController {
     description: 'Category deleted successfully',
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized - JWT token required' })
-  @ApiForbiddenResponse({ description: 'Forbidden - Admin access required' })
+  @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   @ApiNotFoundResponse({ description: 'Category not found' })
   @ApiBadRequestResponse({ description: 'Cannot delete category with children or products' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {

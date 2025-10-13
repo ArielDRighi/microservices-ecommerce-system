@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, IsNull } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Category } from './entities/category.entity';
+import { Product } from '../products/entities/product.entity';
 import {
   CreateCategoryDto,
   UpdateCategoryDto,
@@ -25,6 +26,8 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
@@ -305,11 +308,19 @@ export class CategoriesService {
         );
       }
 
-      // TODO: Check if category has products when Product entity is integrated
-      // const productCount = await this.getProductCount(id);
-      // if (productCount > 0) {
-      //   throw new BadRequestException('Cannot delete category that contains products. Move products first.');
-      // }
+      // Check if category has active products (not soft-deleted)
+      const productCount = await this.productRepository.count({
+        where: {
+          categoryId: id,
+          deletedAt: IsNull(),
+        },
+      });
+
+      if (productCount > 0) {
+        throw new BadRequestException(
+          `Cannot delete category with ${productCount} product(s). Please reassign or delete products first.`,
+        );
+      }
 
       // Soft delete the category
       await this.categoryRepository.softDelete(id);

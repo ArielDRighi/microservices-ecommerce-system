@@ -1,33 +1,24 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CategoriesService } from './categories.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/category.entity';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { UpdateResult } from 'typeorm';
 import {
   createMockCategory,
   createMockCategoryRepository,
+  createMockProductRepository,
+  setupCategoriesTestModule,
 } from './helpers/categories.test-helpers';
 import { UpdateCategoryDto } from './dto';
 
 describe('CategoriesService - Updates & Status Changes', () => {
-  let service: CategoriesService;
+  let service: any;
   let mockRepository: ReturnType<typeof createMockCategoryRepository>;
+  let mockProductRepository: ReturnType<typeof createMockProductRepository>;
 
   beforeEach(async () => {
     mockRepository = createMockCategoryRepository();
+    mockProductRepository = createMockProductRepository();
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CategoriesService,
-        {
-          provide: getRepositoryToken(Category),
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    service = module.get<CategoriesService>(CategoriesService);
+    const testModule = await setupCategoriesTestModule(mockRepository, mockProductRepository);
+    service = testModule.service;
   });
 
   afterEach(() => {
@@ -157,6 +148,7 @@ describe('CategoriesService - Updates & Status Changes', () => {
 
       jest.spyOn(service as any, 'findById').mockResolvedValue(category);
       mockRepository.count.mockResolvedValue(0); // No children
+      mockProductRepository.count.mockResolvedValue(0); // No products
       mockRepository.softDelete.mockResolvedValue({ affected: 1, raw: {} } as any);
 
       await service.remove('cat-123');
@@ -180,17 +172,32 @@ describe('CategoriesService - Updates & Status Changes', () => {
       expect(mockRepository.softDelete).not.toHaveBeenCalled();
     });
 
-    it('should check for children before deletion', async () => {
+    it('should throw BadRequestException if category has products', async () => {
+      const category = createMockCategory({ id: 'cat-123' });
+
+      jest.spyOn(service as any, 'findById').mockResolvedValue(category);
+      mockRepository.count.mockResolvedValue(0); // No children
+      mockProductRepository.count.mockResolvedValue(5); // Has 5 products
+
+      await expect(service.remove('cat-123')).rejects.toThrow(BadRequestException);
+      expect(mockRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('should check for children and products before deletion', async () => {
       const category = createMockCategory({ id: 'cat-123' });
 
       jest.spyOn(service as any, 'findById').mockResolvedValue(category);
       mockRepository.count.mockResolvedValue(0);
+      mockProductRepository.count.mockResolvedValue(0);
       mockRepository.softDelete.mockResolvedValue({ affected: 1, raw: {} } as any);
 
       await service.remove('cat-123');
 
       expect(mockRepository.count).toHaveBeenCalledWith({
         where: { parentId: 'cat-123', deletedAt: expect.anything() },
+      });
+      expect(mockProductRepository.count).toHaveBeenCalledWith({
+        where: { categoryId: 'cat-123', deletedAt: expect.anything() },
       });
     });
 
@@ -199,6 +206,7 @@ describe('CategoriesService - Updates & Status Changes', () => {
 
       jest.spyOn(service as any, 'findById').mockResolvedValue(category);
       mockRepository.count.mockResolvedValue(0);
+      mockProductRepository.count.mockResolvedValue(0);
       mockRepository.softDelete.mockRejectedValue(new Error('Database error'));
 
       await expect(service.remove('cat-123')).rejects.toThrow(BadRequestException);
