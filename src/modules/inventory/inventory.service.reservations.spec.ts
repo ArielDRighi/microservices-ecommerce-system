@@ -16,6 +16,7 @@ import {
 describe('InventoryService - Reservations', () => {
   let service: InventoryService;
   let movementRepository: ReturnType<typeof mockMovementRepository>;
+  let reservationRepository: ReturnType<typeof mockReservationRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -52,6 +53,7 @@ describe('InventoryService - Reservations', () => {
 
     service = module.get<InventoryService>(InventoryService);
     movementRepository = module.get(getRepositoryToken(InventoryMovement));
+    reservationRepository = module.get(getRepositoryToken(InventoryReservation));
   });
 
   describe('reserveStock', () => {
@@ -90,6 +92,16 @@ describe('InventoryService - Reservations', () => {
         quantity: -20,
       } as unknown as InventoryMovement);
 
+      reservationRepository.create.mockReturnValue({
+        id: 'reservation-uuid',
+        reservationId: 'RES-123',
+        productId: mockInventory.productId,
+        inventoryId: mockInventory.id,
+        quantity: 20,
+        location: 'MAIN_WAREHOUSE',
+        status: 'ACTIVE',
+      } as unknown as InventoryReservation);
+
       const transactionCallback = jest.fn(async (callback) => callback(mockEntityManager));
       const entityManager = service['entityManager'];
       entityManager.transaction = transactionCallback;
@@ -104,7 +116,7 @@ describe('InventoryService - Reservations', () => {
       expect(result.status).toBe('ACTIVE');
       expect(inventoryWithMethods.reserveStock).toHaveBeenCalledWith(20, 'Reservation: RES-123');
       expect(mockEntityManager.findOne).toHaveBeenCalledTimes(2);
-      expect(mockEntityManager.save).toHaveBeenCalledTimes(2);
+      expect(mockEntityManager.save).toHaveBeenCalledTimes(3); // inventory + reservation + movement
     });
 
     it('should throw NotFoundException when inventory not found', async () => {

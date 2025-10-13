@@ -313,6 +313,21 @@ export class InventoryService {
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + ttlMinutes);
 
+      // Create reservation record in database
+      const reservation = this.reservationRepository.create({
+        reservationId,
+        productId,
+        inventoryId: inventory.id,
+        quantity,
+        location,
+        status: ReservationStatus.ACTIVE,
+        referenceId,
+        reason,
+        expiresAt,
+      });
+
+      await manager.save(reservation);
+
       this.logger.debug(`Stock reserved successfully: ${quantity} units for ${ttlMinutes} minutes`);
 
       // TODO: Implement Redis TTL for auto-release
@@ -379,13 +394,12 @@ export class InventoryService {
         );
       }
 
-      // 4. Get inventory with lock
+      // 4. Get inventory with lock (no relations to avoid LEFT JOIN + FOR UPDATE error)
       const inventory = await manager.findOne(Inventory, {
         where: {
           productId,
           location,
         },
-        relations: ['product'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -486,13 +500,12 @@ export class InventoryService {
         );
       }
 
-      // 4. Get inventory with lock
+      // 4. Get inventory with lock (no relations to avoid LEFT JOIN + FOR UPDATE error)
       const inventory = await manager.findOne(Inventory, {
         where: {
           productId,
           location,
         },
-        relations: ['product'],
         lock: { mode: 'pessimistic_write' },
       });
 

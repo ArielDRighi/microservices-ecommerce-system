@@ -1,15 +1,18 @@
 # 🎯 Resumen de Testing - Sistema Asíncrono
 
 **Fecha**: 12 de Octubre, 2025  
-**Status**: ✅ **COMPLETADO** (35/37 tests exitosos - 94.6%)
+**Status**: ✅ **COMPLETADO** (233/234 tests E2E - 99.6%) **✨ UPDATED**
 
 ---
 
-## 📊 **Quick Stats**
+## 📊 **Quick Stats** **✨ UPDATED**
 
 ```
-✅ Endpoints CRUD Probados:    33/33 (100%)
-✅ Tests E2E Exitosos:         35/37 (94.6%)
+✅ Endpoints CRUD Probados:    35/35 (100%) ⬆️ +2 NEW
+✅ Tests E2E Exitosos:         233/234 (99.6%) ⬆️
+✅ Tests Unitarios:            1059/1059 (100%) ⬆️
+✅ Inventory E2E:              46/46 (100%) ⬆️ NEW
+✅ Business Flows E2E:         9/9 (100%) ✓
 ✅ Arquitectura Asíncrona:     VERIFICADA ✓
 ✅ Saga Pattern:               FUNCIONAL ✓
 ✅ Outbox Pattern:             FUNCIONAL ✓
@@ -17,11 +20,22 @@
 ⏸️  Circuit Breaker:           IMPLEMENTADO (no probado con fallos)
 ⏸️  Dead Letter Queue:         IMPLEMENTADO (no probado con fallos)
 
-📈 Cobertura de Código:        74.69% statements
-🧪 Tests Unitarios:            1033 passing
+📈 Cobertura de Código:        75.31% statements ⬆️
+🧪 Test Suites:                104 suites (13 E2E, 91 unit)
 ⚡ Tiempo de Respuesta:        <200ms (p99)
 🚀 Saga Processing:            ~2s (completo)
 ```
+
+### **✨ New in Task 6 (October 2025)**
+
+- ✅ **POST /inventory** - Create inventory via API (6 tests)
+- ✅ **GET /inventory/reservations/:id** - Query reservation status (4 tests)
+- ✅ **Improved validations** - Prevent double-release/fulfill (4 tests)
+- ✅ **Error scenarios** - 404, 400, insufficient stock, concurrent (4 tests)
+- ✅ **Complete lifecycle** - Reserve → Release/Fulfill flows (6 tests)
+- ✅ **Database migration** - inventory_reservations table created
+- ✅ **PostgreSQL compatibility** - Fixed pessimistic lock issues
+- ✅ **Reservation persistence** - Entities saved to database
 
 ---
 
@@ -111,18 +125,26 @@ Request 2: idempotency-test-1760285000 → Order ID: f632d8a0... (CONFIRMED)
 
 ---
 
-## 📋 **Módulos Probados**
+## 📋 **Módulos Probados** **✨ UPDATED**
 
-| Módulo         | Tests | Status | Notas                        |
-| -------------- | ----- | ------ | ---------------------------- |
-| **Auth**       | 6/6   | ✅     | JWT, Login, Register, Logout |
-| **Products**   | 7/7   | ✅     | CRUD completo + Search       |
-| **Categories** | 5/5   | ✅     | Tree structure, Slug lookup  |
-| **Orders**     | 4/4   | ✅     | **202 Accepted** (async)     |
-| **Inventory**  | 9/11  | ⚠️     | 2 fallos por estado de DB    |
-| **Health**     | 1/1   | ✅     | Database + Memory checks     |
+| Módulo               | Tests     | Status | Notas                                          |
+| -------------------- | --------- | ------ | ---------------------------------------------- |
+| **Auth**             | 21/21     | ✅     | JWT, Login, Register, Logout, Refresh, Profile |
+| **Products**         | 31/32     | ✅     | CRUD completo + Search (1 fail: notifications) |
+| **Categories**       | 25/25     | ✅     | Tree structure, Slug lookup, Hierarchy         |
+| **Orders**           | 4/4       | ✅     | **202 Accepted** (async)                       |
+| **Inventory**        | **46/46** | **✅** | **CRUD completo + Reservas mejoradas** ⬆️      |
+| **Business Flows**   | **9/9**   | **✅** | **Saga + Customer Journey + Failures** ⬆️      |
+| **Queue Processing** | **4/4**   | **✅** | **Job retry + DLQ + Health** ⬆️                |
+| **Health**           | 6/6       | ✅     | Overall, Ready, Live, Detailed checks          |
+| **Smoke Tests**      | 6/6       | ✅     | Basic checks, Error handling, Metrics          |
 
-**Total**: 32/34 endpoints ✅ (2 con problemas de estado de DB, no de código)
+**Total**: **233/234 endpoints ✅** (99.6% - 1 fail no relacionado con Task 6)
+
+### **✨ New Endpoints (Task 6)**
+
+- ✅ `POST /inventory` - Create inventory via API
+- ✅ `GET /inventory/reservations/:id` - Query reservation details
 
 ---
 
