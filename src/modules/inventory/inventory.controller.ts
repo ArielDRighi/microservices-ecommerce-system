@@ -281,7 +281,8 @@ export class InventoryController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Add stock',
-    description: 'Add stock to inventory (restock, purchase, adjustment, etc.). Only administrators and warehouse staff can modify inventory stock. Requires ADMIN role.',
+    description:
+      'Add stock to inventory (restock, purchase, adjustment, etc.). Only administrators and warehouse staff can modify inventory stock. Requires ADMIN role.',
   })
   @ApiResponse({
     status: 200,
@@ -304,7 +305,8 @@ export class InventoryController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Remove stock',
-    description: 'Remove stock from inventory (sale, damage, theft, etc.). Reduce inventory for damage, shrinkage, or other reasons. Requires ADMIN role.',
+    description:
+      'Remove stock from inventory (sale, damage, theft, etc.). Reduce inventory for damage, shrinkage, or other reasons. Requires ADMIN role.',
   })
   @ApiResponse({
     status: 200,

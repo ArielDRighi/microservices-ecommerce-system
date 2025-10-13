@@ -55,7 +55,8 @@ export class ProductsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a new product',
-    description: 'Create a new product. Only administrators can create products in the catalog. Requires ADMIN role.',
+    description:
+      'Create a new product. Only administrators can create products in the catalog. Requires ADMIN role.',
   })
   @ApiBody({
     type: CreateProductDto,
@@ -289,7 +290,8 @@ export class ProductsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update product',
-    description: 'Update product information. Only administrators can modify products. Price changes are logged for audit. Requires ADMIN role.',
+    description:
+      'Update product information. Only administrators can modify products. Price changes are logged for audit. Requires ADMIN role.',
   })
   @ApiParam({
     name: 'id',
@@ -366,7 +368,8 @@ export class ProductsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Soft delete product',
-    description: 'Deactivate product (soft delete). Validates no pending orders exist for this product. Requires ADMIN role.',
+    description:
+      'Deactivate product (soft delete). Validates no pending orders exist for this product. Requires ADMIN role.',
   })
   @ApiParam({
     name: 'id',

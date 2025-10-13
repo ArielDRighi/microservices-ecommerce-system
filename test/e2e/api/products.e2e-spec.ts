@@ -1,6 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { DataSource } from 'typeorm';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
 

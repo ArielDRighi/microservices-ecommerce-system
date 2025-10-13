@@ -38,7 +38,9 @@ describe('Inventory API (E2E)', () => {
       .send(adminData);
 
     expect(adminRegisterResponse.status).toBe(201);
-    userToken = ResponseHelper.extractData<{ accessToken: string }>(adminRegisterResponse).accessToken;
+    userToken = ResponseHelper.extractData<{ accessToken: string }>(
+      adminRegisterResponse,
+    ).accessToken;
 
     // Assign ADMIN role to admin user
     const dataSource = app.get(DataSource);
@@ -58,7 +60,9 @@ describe('Inventory API (E2E)', () => {
       .send(userData);
 
     expect(registerResponse.status).toBe(201);
-    regularUserToken = ResponseHelper.extractData<{ accessToken: string }>(registerResponse).accessToken;
+    regularUserToken = ResponseHelper.extractData<{ accessToken: string }>(
+      registerResponse,
+    ).accessToken;
 
     // Create test products directly (without categories)
     const timestamp = Date.now();
@@ -321,16 +325,14 @@ describe('Inventory API (E2E)', () => {
     });
 
     it('should return 401 when adding stock without authentication', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/inventory/add-stock')
-        .send({
-          inventoryId: productId1,
-          movementType: 'RESTOCK',
-          quantity: 25,
-          unitCost: 150,
-          reason: 'E2E test stock addition without auth',
-          performedBy: 'anonymous',
-        });
+      const response = await request(app.getHttpServer()).post('/inventory/add-stock').send({
+        inventoryId: productId1,
+        movementType: 'RESTOCK',
+        quantity: 25,
+        unitCost: 150,
+        reason: 'E2E test stock addition without auth',
+        performedBy: 'anonymous',
+      });
 
       expect(response.status).toBe(401);
     });
@@ -384,15 +386,13 @@ describe('Inventory API (E2E)', () => {
     });
 
     it('should return 401 when removing stock without authentication', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/inventory/remove-stock')
-        .send({
-          inventoryId: productId1,
-          movementType: 'SALE',
-          quantity: 10,
-          reason: 'E2E test stock removal without auth',
-          performedBy: 'anonymous',
-        });
+      const response = await request(app.getHttpServer()).post('/inventory/remove-stock').send({
+        inventoryId: productId1,
+        movementType: 'SALE',
+        quantity: 10,
+        reason: 'E2E test stock removal without auth',
+        performedBy: 'anonymous',
+      });
 
       expect(response.status).toBe(401);
     });
