@@ -1,8 +1,8 @@
 /**
  * User Role Enum
- * 
+ *
  * Defines the available roles in the system for Role-Based Access Control (RBAC).
- * 
+ *
  * @enum {string}
  */
 export enum UserRole {
