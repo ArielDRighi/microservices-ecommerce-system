@@ -8,14 +8,15 @@
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Listar Productos con Paginación (GET /products)
-- [ ] ✅ 2. Buscar Productos (GET /products/search)
-- [ ] ✅ 3. Obtener Producto por ID (GET /products/:id)
-- [ ] ✅ 4. Crear Producto (POST /products) [Auth Required]
-- [ ] ✅ 5. Actualizar Producto (PATCH /products/:id) [Auth Required]
-- [ ] ✅ 6. Activar Producto (PATCH /products/:id/activate) [Auth Required]
-- [ ] ✅ 7. Desactivar Producto (PATCH /products/:id/deactivate) [Auth Required]
-- [ ] ✅ 8. Eliminar Producto (DELETE /products/:id) [Auth Required]
+- [ ] 1️⃣ Crear Producto (POST /products) [Auth Required] - **EMPEZAR AQUÍ**
+- [ ] 2️⃣ Listar Productos con Paginación (GET /products)
+- [ ] 3️⃣ Buscar Productos (GET /products/search)
+- [ ] 4️⃣ Actualizar Producto (PATCH /products/:id) [Auth Required]
+- [ ] 5️⃣ Activar Producto (PATCH /products/:id/activate) [Auth Required]
+- [ ] 6️⃣ Desactivar Producto (PATCH /products/:id/deactivate) [Auth Required]
+- [ ] 7️⃣ Eliminar Producto (DELETE /products/:id) [Auth Required]
+
+**IMPORTANTE:** Comenzar con la creación de productos (Test 1) para tener datos con los que trabajar en los tests siguientes.
 
 ---
 
@@ -29,7 +30,326 @@ export PRODUCT_ID=""
 
 ---
 
-## 1️⃣ Listar Productos con Paginación y Filtros
+## 🔑 Prerequisitos
+
+Antes de comenzar, asegúrate de tener un token JWT válido:
+
+```bash
+# Hacer login para obtener token
+export TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test.user@example.com",
+    "password": "Test123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "Token obtenido: $TOKEN"
+```
+
+---
+
+## 1️⃣ Crear Producto (Requiere Autenticación) - **EMPEZAR AQUÍ**
+
+**NOTA:** Es necesario crear productos primero para poder probar los demás endpoints.
+
+### ✅ Test 1.1: Crear producto exitosamente
+
+**Endpoint:** `POST /products`  
+**Autenticación:** Bearer Token (JWT) - Admin required
+
+**Request Body:**
+
+```json
+{
+  "name": "Test Product",
+  "description": "This is a test product for API testing",
+  "sku": "TEST-PROD-001",
+  "price": 149.99,
+  "brand": "TestBrand",
+  "weight": 2.5,
+  "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+  "tags": ["test", "electronics", "new"],
+  "attributes": {
+    "color": "Blue",
+    "material": "Metal",
+    "warranty": "2 years"
+  },
+  "costPrice": 100.0,
+  "compareAtPrice": 199.99,
+  "isActive": true,
+  "trackInventory": true,
+  "minimumStock": 5
+}
+```
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Product",
+    "description": "This is a test product for API testing",
+    "sku": "TEST-PROD-001",
+    "price": 149.99,
+    "brand": "TestBrand",
+    "weight": 2.5,
+    "images": ["https://example.com/image1.jpg"],
+    "tags": ["test", "electronics"],
+    "costPrice": 100.00,
+    "compareAtPrice": 199.99,
+    "trackInventory": true,
+    "minimumStock": 10
+  }' | jq '.'
+```
+
+**Respuesta Esperada (201 Created):**
+
+```json
+{
+  "statusCode": 201,
+  "message": "Created successfully",
+  "data": {
+    "id": "new-uuid-here",
+    "name": "Test Product",
+    "description": "This is a test product for API testing",
+    "sku": "TEST-PROD-001",
+    "price": "149.99",
+    "brand": "TestBrand",
+    "isActive": true,
+    "createdAt": "2025-10-13T...",
+    "updatedAt": "2025-10-13T..."
+  }
+}
+```
+
+**Guardar ID del producto creado:**
+
+```bash
+export PRODUCT_ID=$(curl -s -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Product",
+    "description": "Test description",
+    "sku": "TEST-'$(date +%s)'",
+    "price": 149.99,
+    "brand": "TestBrand"
+  }' | jq -r '.data.id')
+
+echo "Product ID: $PRODUCT_ID"
+```
+
+**Checklist:**
+
+- [ ] Status code es 201
+- [ ] Respuesta contiene el producto creado con ID
+- [ ] `isActive` es `true` por defecto
+- [ ] Todos los campos enviados están presentes
+
+---
+
+### ✅ Test 1.2: Crear varios productos para pruebas
+
+```bash
+# Producto 1: Samsung Galaxy S24
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Samsung Galaxy S24",
+    "description": "Latest Samsung flagship smartphone",
+    "sku": "SAMSUNG-S24-001",
+    "price": 999.99,
+    "brand": "Samsung",
+    "tags": ["smartphone", "android", "5G"],
+    "compareAtPrice": 1199.99
+  }'
+
+# Producto 2: iPhone 15 Pro
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "iPhone 15 Pro",
+    "description": "Apple flagship smartphone",
+    "sku": "APPLE-IP15PRO-001",
+    "price": 1099.99,
+    "brand": "Apple",
+    "tags": ["smartphone", "ios", "5G"]
+  }'
+
+# Producto 3: MacBook Pro 14
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "MacBook Pro 14",
+    "description": "Professional laptop with M3 chip",
+    "sku": "APPLE-MBP14-001",
+    "price": 1999.99,
+    "brand": "Apple",
+    "tags": ["laptop", "macOS", "professional"]
+  }'
+
+# Producto 4: Dell XPS 15
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Dell XPS 15",
+    "description": "High-performance Windows laptop",
+    "sku": "DELL-XPS15-001",
+    "price": 1499.99,
+    "brand": "Dell",
+    "tags": ["laptop", "windows", "professional"]
+  }'
+
+# Producto 5: Sony WH-1000XM5
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sony WH-1000XM5",
+    "description": "Premium noise-cancelling headphones",
+    "sku": "SONY-WH1000XM5-001",
+    "price": 399.99,
+    "brand": "Sony",
+    "tags": ["headphones", "audio", "wireless"],
+    "costPrice": 200.00,
+    "compareAtPrice": 449.99
+  }'
+```
+
+**Checklist:**
+
+- [ ] Todos los productos creados exitosamente
+- [ ] Cada producto tiene un ID único
+- [ ] SKUs son únicos
+
+---
+
+### ❌ Test 1.3: Crear producto sin autenticación (401 Unauthorized)
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/products" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Product",
+    "sku": "TEST-001",
+    "price": 149.99,
+    "brand": "TestBrand"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (401 Unauthorized):**
+
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 401
+- [ ] Requiere autenticación
+
+---
+
+### ❌ Test 1.4: Crear producto con SKU duplicado (409 Conflict)
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Duplicate SKU Product",
+    "sku": "TEST-PROD-001",
+    "price": 149.99,
+    "brand": "TestBrand"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (409 Conflict):**
+
+```json
+{
+  "statusCode": 409,
+  "message": "Product with this SKU already exists",
+  "error": "Conflict"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 409
+- [ ] Mensaje indica SKU duplicado
+
+---
+
+### ❌ Test 1.5: Crear producto con datos inválidos (400 Bad Request)
+
+**Comando curl:**
+
+```bash
+# Precio negativo
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Invalid Product",
+    "sku": "INVALID-001",
+    "price": -50,
+    "brand": "TestBrand"
+  }' | jq '.'
+
+# Campos requeridos faltantes
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Incomplete Product"
+  }' | jq '.'
+
+# SKU con formato inválido (debe ser uppercase y solo A-Z, 0-9, -, _)
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Invalid SKU Product",
+    "sku": "test-invalid-sku",
+    "price": 99.99,
+    "brand": "TestBrand"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (400 Bad Request):**
+
+```json
+{
+  "statusCode": 400,
+  "message": ["price must be a positive number", "sku is required"],
+  "error": "Bad Request"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 400
+- [ ] Mensaje detalla validaciones fallidas
+- [ ] SKU debe ser uppercase y formato válido
+
+---
+
+## 2️⃣ Listar Productos con Paginación y Filtros
 
 ### ✅ Test 1.1: Listar todos los productos (sin filtros)
 
@@ -411,219 +731,7 @@ curl -X GET "$BASE_URL/products/invalid-id" | jq '.'
 
 ---
 
-## 4️⃣ Crear Producto (Requiere Autenticación)
-
-### ✅ Test 4.1: Crear producto exitosamente
-
-**Endpoint:** `POST /products`  
-**Autenticación:** Bearer Token (JWT) - Admin required
-
-**Request Body:**
-
-```json
-{
-  "name": "Test Product",
-  "description": "This is a test product for API testing",
-  "sku": "TEST-PROD-001",
-  "price": 149.99,
-  "discountPrice": 129.99,
-  "brand": "TestBrand",
-  "stockQuantity": 50,
-  "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
-  "tags": ["test", "electronics", "new"],
-  "weight": 2.5,
-  "dimensions": {
-    "length": 15,
-    "width": 10,
-    "height": 5
-  },
-  "specifications": {
-    "color": "Blue",
-    "material": "Metal",
-    "warranty": "2 years"
-  },
-  "isFeatured": false,
-  "metadata": {
-    "supplier": "Test Supplier Inc"
-  }
-}
-```
-
-**Comando curl:**
-
-```bash
-curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Product",
-    "description": "This is a test product for API testing",
-    "sku": "TEST-PROD-001",
-    "price": 149.99,
-    "brand": "TestBrand",
-    "stockQuantity": 50,
-    "images": ["https://example.com/image1.jpg"],
-    "tags": ["test", "electronics"],
-    "weight": 2.5,
-    "dimensions": {
-      "length": 15,
-      "width": 10,
-      "height": 5
-    }
-  }' | jq '.'
-```
-
-**Respuesta Esperada (201 Created):**
-
-```json
-{
-  "id": "new-uuid-here",
-  "name": "Test Product",
-  "description": "This is a test product for API testing",
-  "sku": "TEST-PROD-001",
-  "price": 149.99,
-  "brand": "TestBrand",
-  "isActive": true,
-  "createdAt": "2025-10-11T...",
-  "updatedAt": "2025-10-11T..."
-}
-```
-
-**Guardar ID del producto creado:**
-
-```bash
-export PRODUCT_ID=$(curl -s -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Product",
-    "description": "Test description",
-    "sku": "TEST-'$(date +%s)'",
-    "price": 149.99,
-    "brand": "TestBrand",
-    "stockQuantity": 50
-  }' | jq -r '.id')
-
-echo "Product ID: $PRODUCT_ID"
-```
-
-**Checklist:**
-
-- [ ] Status code es 201
-- [ ] Respuesta contiene el producto creado con ID
-- [ ] `isActive` es `true` por defecto
-- [ ] Todos los campos enviados están presentes
-
----
-
-### ❌ Test 4.2: Crear producto sin autenticación (401 Unauthorized)
-
-**Comando curl:**
-
-```bash
-curl -X POST "$BASE_URL/products" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Product",
-    "sku": "TEST-001",
-    "price": 149.99,
-    "brand": "TestBrand"
-  }' | jq '.'
-```
-
-**Respuesta Esperada (401 Unauthorized):**
-
-```json
-{
-  "statusCode": 401,
-  "message": "Unauthorized",
-  "error": "Unauthorized"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 401
-- [ ] Requiere autenticación
-
----
-
-### ❌ Test 4.3: Crear producto con SKU duplicado (409 Conflict)
-
-**Comando curl:**
-
-```bash
-curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Duplicate SKU Product",
-    "sku": "TEST-PROD-001",
-    "price": 149.99,
-    "brand": "TestBrand"
-  }' | jq '.'
-```
-
-**Respuesta Esperada (409 Conflict):**
-
-```json
-{
-  "statusCode": 409,
-  "message": "Product with this SKU already exists",
-  "error": "Conflict"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 409
-- [ ] Mensaje indica SKU duplicado
-
----
-
-### ❌ Test 4.4: Crear producto con datos inválidos (400 Bad Request)
-
-**Comando curl:**
-
-```bash
-# Precio negativo
-curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Invalid Product",
-    "sku": "INVALID-001",
-    "price": -50,
-    "brand": "TestBrand"
-  }' | jq '.'
-
-# Campos requeridos faltantes
-curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Incomplete Product"
-  }' | jq '.'
-```
-
-**Respuesta Esperada (400 Bad Request):**
-
-```json
-{
-  "statusCode": 400,
-  "message": ["price must be a positive number", "sku is required", "brand is required"],
-  "error": "Bad Request"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 400
-- [ ] Mensaje detalla validaciones fallidas
-
----
-
-## 5️⃣ Actualizar Producto
+## 4️⃣ Actualizar Producto
 
 ### ✅ Test 5.1: Actualizar producto exitosamente
 
@@ -732,7 +840,7 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
 
 ---
 
-## 6️⃣ Activar Producto
+## 5️⃣ Activar Producto
 
 ### ✅ Test 6.1: Activar producto desactivado
 
@@ -764,7 +872,7 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
 
 ---
 
-## 7️⃣ Desactivar Producto
+## 6️⃣ Desactivar Producto
 
 ### ✅ Test 7.1: Desactivar producto activo
 
@@ -797,7 +905,7 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
 
 ---
 
-## 8️⃣ Eliminar Producto (Soft Delete)
+## 7️⃣ Eliminar Producto (Soft Delete)
 
 ### ✅ Test 8.1: Eliminar producto exitosamente
 
@@ -881,11 +989,10 @@ CREATE_RESPONSE=$(curl -s -X POST "$BASE_URL/products" \
     \"description\": \"Test description\",
     \"sku\": \"$SKU\",
     \"price\": 149.99,
-    \"brand\": \"TestBrand\",
-    \"stockQuantity\": 50
+    \"brand\": \"TestBrand\"
   }")
 
-PRODUCT_ID=$(echo $CREATE_RESPONSE | jq -r '.id')
+PRODUCT_ID=$(echo $CREATE_RESPONSE | jq -r '.data.id')
 
 if [ "$PRODUCT_ID" != "null" ]; then
   echo "✅ Producto creado: $PRODUCT_ID"
@@ -957,21 +1064,25 @@ echo "=== ✅ Testing completado ==="
 
 ### Campos Requeridos para Crear Producto
 
-- `name` (string, min: 3 chars)
-- `sku` (string, único)
-- `price` (number, > 0)
-- `brand` (string)
+- `name` (string, min: 2 chars, max: 255 chars)
+- `sku` (string, único, min: 3 chars, max: 100 chars, uppercase, formato: `[A-Z0-9\-_]+`)
+- `price` (number, > 0.01, max: 999999.99, 2 decimales)
 
 ### Campos Opcionales
 
-- `description`
-- `discountPrice`
-- `stockQuantity` (default: 0)
-- `images` (array)
-- `tags` (array)
-- `weight`, `dimensions`, `specifications`
-- `isFeatured` (default: false)
-- `metadata` (object)
+- `description` (string, max: 2000 chars)
+- `brand` (string, max: 50 chars)
+- `weight` (number, max: 999.999 kg, 3 decimales)
+- `attributes` (object - cualquier metadato del producto)
+- `images` (array de URLs, max: 10 items)
+- `tags` (array de strings, max: 20 items, se convierten a lowercase)
+- `costPrice` (number, >= 0, max: 999999.99, 2 decimales)
+- `compareAtPrice` (number, > 0.01, max: 999999.99, 2 decimales)
+- `isActive` (boolean, default: true)
+- `trackInventory` (boolean, default: true)
+- `minimumStock` (number, >= 0, max: 999999)
+
+**NOTA:** Para gestionar el stock real del producto, se debe usar el módulo de Inventario
 
 ### Filtros Disponibles en GET /products
 

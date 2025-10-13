@@ -8,19 +8,20 @@
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Verificar Disponibilidad (POST /inventory/check-availability) [Public]
-- [ ] ✅ 2. Reservar Stock (POST /inventory/reserve) [Auth Required]
-- [ ] ✅ 3. Liberar Reserva (PUT /inventory/release-reservation) [Auth Required]
-- [ ] ✅ 4. Confirmar Reserva (PUT /inventory/fulfill-reservation) [Auth Required]
-- [ ] ✅ 5. Agregar Stock (POST /inventory/add-stock) [Auth Required - ADMIN]
-- [ ] ✅ 6. Remover Stock (POST /inventory/remove-stock) [Auth Required - ADMIN]
-- [ ] ✅ 7. Obtener Inventario por Producto (GET /inventory/product/:productId) [Public]
-- [ ] ✅ 8. Listar Todo el Inventario (GET /inventory) [Public]
-- [ ] ✅ 9. Productos con Stock Bajo (GET /inventory/low-stock) [Public]
-- [ ] ✅ 10. Productos Sin Stock (GET /inventory/out-of-stock) [Public]
-- [ ] ✅ 11. Estadísticas de Inventario (GET /inventory/stats) [Auth Required]
-- [ ] ✅ 12. Reservas con TTL (Time To Live)
-- [ ] ✅ 13. Movimientos de Stock (Audit Trail)
+- [ ] 1️⃣ **Crear Inventario Inicial** (POST /inventory) [Auth Required] - **EMPEZAR AQUÍ**
+- [ ] 2️⃣ Agregar Stock (POST /inventory/add-stock) [Auth Required]
+- [ ] 3️⃣ Obtener Inventario por Producto (GET /inventory/product/:productId) [Public]
+- [ ] 4️⃣ Listar Todo el Inventario (GET /inventory) [Public]
+- [ ] 5️⃣ Verificar Disponibilidad (POST /inventory/check-availability) [Public]
+- [ ] 6️⃣ Reservar Stock (POST /inventory/reserve) [Auth Required]
+- [ ] 7️⃣ Liberar Reserva (PUT /inventory/release-reservation) [Auth Required]
+- [ ] 8️⃣ Confirmar Reserva (PUT /inventory/fulfill-reservation) [Auth Required]
+- [ ] 9️⃣ Remover Stock (POST /inventory/remove-stock) [Auth Required]
+- [ ] 🔟 Productos con Stock Bajo (GET /inventory/low-stock) [Public]
+- [ ] 1️⃣1️⃣ Productos Sin Stock (GET /inventory/out-of-stock) [Public]
+- [ ] 1️⃣2️⃣ Estadísticas de Inventario (GET /inventory/stats) [Auth Required]
+
+**IMPORTANTE:** Debes crear inventario inicial para los productos antes de poder crear órdenes.
 
 ---
 
@@ -59,7 +60,252 @@ El sistema de inventario implementa **reservas con TTL (Time To Live)**:
 
 ---
 
-## 1️⃣ Verificar Disponibilidad
+## 1️⃣ Crear Inventario Inicial - **EMPEZAR AQUÍ**
+
+**IMPORTANTE:** Antes de poder hacer órdenes, necesitas crear registros de inventario para los productos.
+
+### ✅ Test 1.1: Crear inventario inicial para producto
+
+**Endpoint:** `POST /inventory`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `201 Created`
+
+**Request Body (mínimo):**
+
+```json
+{
+  "productId": "a5585341-86ff-4849-8558-678a8af7c444",
+  "sku": "SAMSUNG-S24-001",
+  "initialStock": 100
+}
+```
+
+**Request Body (completo):**
+
+```json
+{
+  "productId": "a5585341-86ff-4849-8558-678a8af7c444",
+  "sku": "SAMSUNG-S24-001",
+  "location": "MAIN_WAREHOUSE",
+  "initialStock": 100,
+  "minimumStock": 10,
+  "maximumStock": 1000,
+  "reorderPoint": 20,
+  "reorderQuantity": 50,
+  "notes": "Initial inventory for Samsung Galaxy S24"
+}
+```
+
+**Campos requeridos:**
+
+- `productId` (UUID): ID del producto
+- `sku` (string): SKU del producto (debe coincidir con el SKU en Products)
+- `initialStock` (integer >= 0): Stock inicial
+
+**Campos opcionales:**
+
+- `location` (string): Ubicación/almacén (default: "MAIN_WAREHOUSE")
+- `minimumStock` (integer >= 0): Stock mínimo antes de alerta (default: 5)
+- `maximumStock` (integer >= 0): Capacidad máxima
+- `reorderPoint` (integer >= 0): Punto de reorden
+- `reorderQuantity` (integer >= 1): Cantidad a reordenar
+- `notes` (string): Notas adicionales
+
+**Preparar datos de productos existentes:**
+
+```bash
+# Ya tenemos productos creados en el módulo anterior
+# Samsung Galaxy S24
+export PRODUCT_ID_1="a5585341-86ff-4849-8558-678a8af7c444"
+export SKU_1="SAMSUNG-S24-001"
+
+# MacBook Pro
+export PRODUCT_ID_2="82fe0c9a-72c0-4720-8da5-f81e96532348"
+export SKU_2="APPLE-MBP14-M3-001"
+
+# Dell XPS 15
+export PRODUCT_ID_3="ffb6aad4-8615-42b8-b51d-fb87a1992278"
+export SKU_3="DELL-XPS15-001"
+
+# Sony WH-1000XM5
+export PRODUCT_ID_4="1fd92456-65aa-42a7-9f14-9394e6516b3f"
+export SKU_4="SONY-WH1000XM5-001"
+```
+
+**Comandos curl para crear inventario de los 4 productos:**
+
+```bash
+# 1. Samsung Galaxy S24 - 100 unidades
+curl -X POST "$BASE_URL/inventory" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "a5585341-86ff-4849-8558-678a8af7c444",
+    "sku": "SAMSUNG-S24-001",
+    "initialStock": 100,
+    "minimumStock": 10,
+    "reorderPoint": 20
+  }'
+
+# 2. MacBook Pro - 50 unidades
+curl -X POST "$BASE_URL/inventory" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "82fe0c9a-72c0-4720-8da5-f81e96532348",
+    "sku": "APPLE-MBP14-M3-001",
+    "initialStock": 50,
+    "minimumStock": 5,
+    "reorderPoint": 10
+  }'
+
+# 3. Dell XPS 15 - 75 unidades
+curl -X POST "$BASE_URL/inventory" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "ffb6aad4-8615-42b8-b51d-fb87a1992278",
+    "sku": "DELL-XPS15-001",
+    "initialStock": 75,
+    "minimumStock": 8,
+    "reorderPoint": 15
+  }'
+
+# 4. Sony WH-1000XM5 - 200 unidades
+curl -X POST "$BASE_URL/inventory" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "1fd92456-65aa-42a7-9f14-9394e6516b3f",
+    "sku": "SONY-WH1000XM5-001",
+    "initialStock": 200,
+    "minimumStock": 20,
+    "reorderPoint": 40
+  }'
+```
+
+**Respuesta Esperada (201 Created):**
+
+```json
+{
+  "statusCode": 201,
+  "message": "Created successfully",
+  "data": {
+    "id": "inventory-uuid",
+    "productId": "a5585341-86ff-4849-8558-678a8af7c444",
+    "sku": "SAMSUNG-S24-001",
+    "location": "MAIN_WAREHOUSE",
+    "quantityAvailable": 100,
+    "quantityReserved": 0,
+    "quantityPhysical": 100,
+    "minimumStock": 10,
+    "reorderPoint": 20,
+    "createdAt": "2025-10-13T...",
+    "updatedAt": "2025-10-13T..."
+  }
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 201
+- [ ] Respuesta contiene el inventario creado con ID
+- [ ] `quantityAvailable` = `initialStock`
+- [ ] `quantityReserved` = 0
+- [ ] `quantityPhysical` = `initialStock`
+- [ ] Inventario creado para los 4 productos
+
+---
+
+## 2️⃣ Agregar Stock (a inventario existente)
+
+### ✅ Test 2.1: Agregar stock exitosamente
+
+**Endpoint:** `POST /inventory/add-stock`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `200 OK`
+
+**NOTA:** Este endpoint requiere el `inventoryId`, no el `productId`. Primero debes obtener el inventoryId.
+
+**Request Body:**
+
+```json
+{
+  "inventoryId": "inventory-uuid-here",
+  "movementType": "RESTOCK",
+  "quantity": 50,
+  "unitCost": 800.0,
+  "referenceId": "PO-12345",
+  "referenceType": "PURCHASE_ORDER",
+  "reason": "Stock replenishment from supplier",
+  "performedBy": "admin@example.com"
+}
+```
+
+**Campos requeridos:**
+
+- `inventoryId` (UUID): ID del registro de inventario (obtener con GET /inventory/product/:productId)
+- `movementType` (enum): Tipo de movimiento - valores: RESTOCK, SALE, RETURN, ADJUSTMENT, DAMAGE, THEFT, TRANSFER
+- `quantity` (integer): Cantidad a agregar (positivo)
+
+**Campos opcionales:**
+
+- `unitCost` (decimal): Costo unitario
+- `referenceId` (string): ID de referencia (orden, compra, etc.)
+- `referenceType` (string): Tipo de referencia
+- `reason` (string): Razón del movimiento
+- `performedBy` (string): Usuario que realizó el movimiento
+
+**Comando curl:**
+
+```bash
+# Primero obtener el inventory ID del Samsung
+export INVENTORY_ID=$(curl -s -X GET "$BASE_URL/inventory/product/a5585341-86ff-4849-8558-678a8af7c444" \
+  -H "Authorization: Bearer $TOKEN" | grep -oP '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "Inventory ID: $INVENTORY_ID"
+
+# Agregar 50 unidades más
+curl -X POST "$BASE_URL/inventory/add-stock" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"inventoryId\": \"$INVENTORY_ID\",
+    \"movementType\": \"RESTOCK\",
+    \"quantity\": 50,
+    \"reason\": \"Stock replenishment\",
+    \"referenceId\": \"PO-$(date +%s)\"
+  }"
+```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "inventory-uuid",
+    "productId": "product-uuid",
+    "quantityAvailable": 150,
+    "quantityReserved": 0,
+    "quantityPhysical": 150,
+    "previousQuantity": 100,
+    "newQuantity": 150
+  }
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 200
+- [ ] Stock incrementado correctamente
+- [ ] `quantityPhysical` aumentó en la cantidad especificada
+- [ ] Movimiento registrado en audit trail
+
+---
+
+## 3️⃣ Obtener Inventario por Producto
 
 ### ✅ Test 1.1: Verificar stock disponible
 

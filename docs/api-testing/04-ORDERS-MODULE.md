@@ -55,33 +55,31 @@ Las órdenes se procesan **asíncronamente** mediante:
   "items": [
     {
       "productId": "uuid-product-1",
-      "quantity": 2,
-      "price": 99.99
+      "quantity": 2
     },
     {
       "productId": "uuid-product-2",
-      "quantity": 1,
-      "price": 149.99
+      "quantity": 1
     }
   ],
-  "shippingAddress": {
-    "street": "123 Main St",
-    "city": "Buenos Aires",
-    "state": "CABA",
-    "postalCode": "1000",
-    "country": "Argentina"
-  },
-  "paymentMethod": "CREDIT_CARD",
   "idempotencyKey": "order-2025-10-11-001"
 }
 ```
 
+**Campos requeridos:**
+- `items` (array): Array de items con `productId` (UUID) y `quantity` (integer >= 1)
+- `idempotencyKey` (string, opcional): Clave para prevenir órdenes duplicadas. Si no se provee, se genera automáticamente
+
 **Preparar productos para la orden:**
 
 ```bash
-# Obtener IDs de productos existentes
-export PRODUCT_ID_1=$(curl -s -X GET "$BASE_URL/products?limit=1" | jq -r '.data[0].id')
-export PRODUCT_ID_2=$(curl -s -X GET "$BASE_URL/products?limit=2" | jq -r '.data[1].id')
+# Obtener IDs de productos existentes de la lista actual
+# Ya tenemos algunos productos creados en el test anterior
+curl -X GET "$BASE_URL/products" | head -50
+
+# Guardar IDs manualmente (ejemplo con los productos que creamos):
+export PRODUCT_ID_1="a5585341-86ff-4849-8558-678a8af7c444"  # Samsung Galaxy S24
+export PRODUCT_ID_2="82fe0c9a-72c0-4720-8da5-f81e96532348"  # MacBook Pro
 
 echo "Product 1: $PRODUCT_ID_1"
 echo "Product 2: $PRODUCT_ID_2"
@@ -100,25 +98,15 @@ curl -X POST "$BASE_URL/orders" \
     \"items\": [
       {
         \"productId\": \"$PRODUCT_ID_1\",
-        \"quantity\": 2,
-        \"price\": 99.99
+        \"quantity\": 2
       },
       {
         \"productId\": \"$PRODUCT_ID_2\",
-        \"quantity\": 1,
-        \"price\": 149.99
+        \"quantity\": 1
       }
     ],
-    \"shippingAddress\": {
-      \"street\": \"123 Main St\",
-      \"city\": \"Buenos Aires\",
-      \"state\": \"CABA\",
-      \"postalCode\": \"1000\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
     \"idempotencyKey\": \"$IDEMPOTENCY_KEY\"
-  }" | jq '.'
+  }"
 ```
 
 **Respuesta Esperada (202 Accepted):**
@@ -167,29 +155,8 @@ curl -X POST "$BASE_URL/orders" \
 **Guardar Order ID:**
 
 ```bash
-export ORDER_ID=$(curl -s -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [
-      {
-        \"productId\": \"$PRODUCT_ID_1\",
-        \"quantity\": 1,
-        \"price\": 99.99
-      }
-    ],
-    \"shippingAddress\": {
-      \"street\": \"Test St\",
-      \"city\": \"Test City\",
-      \"state\": \"TC\",
-      \"postalCode\": \"12345\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
-    \"idempotencyKey\": \"test-$(date +%s)\"
-  }" | jq -r '.id')
-
-echo "Order ID: $ORDER_ID"
+# Nota: Extraer el ID de la respuesta JSON manualmente o parseando con grep/sed
+# Ejemplo después de crear una orden, copiar el ID de la respuesta
 ```
 
 **Checklist:**

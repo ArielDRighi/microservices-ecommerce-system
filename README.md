@@ -969,4 +969,156 @@ Este proyecto forma parte de mi portfolio profesional demostrando expertise en:
 
 ---
 
+## 🔧 Troubleshooting - Problemas Comunes
+
+### Problema: Las tablas no se crean automáticamente
+
+**Síntomas:**
+
+- La aplicación inicia correctamente
+- Los endpoints responden pero los datos no persisten
+- Errores de "table does not exist" en la base de datos
+
+**Causa:** El archivo `.env` tiene `RUN_MIGRATIONS=false`
+
+**Solución:**
+
+```bash
+# 1. Editar .env
+RUN_MIGRATIONS=true
+
+# 2. Reiniciar la aplicación
+# Las migraciones se ejecutarán automáticamente al iniciar
+```
+
+### Problema: Conflicto de puertos de PostgreSQL
+
+**Síntomas:**
+
+- Docker muestra error al iniciar PostgreSQL
+- Puerto 5432 ya está en uso
+- La aplicación no puede conectarse a la base de datos
+
+**Causa:** Otro contenedor o servicio PostgreSQL ya usa el puerto 5432
+
+**Solución:**
+
+```bash
+# Opción 1: Detener otros contenedores PostgreSQL
+docker ps | grep postgres
+docker stop <container-id>
+
+# Opción 2: Cambiar el puerto en docker-compose.yml
+services:
+  postgres:
+    ports:
+      - '5433:5432'  # Usar puerto 5433 externamente
+
+# Luego actualizar .env
+DATABASE_PORT=5433
+```
+
+### Problema: Los datos se pierden al reiniciar
+
+**Síntomas:**
+
+- Los productos/órdenes creados desaparecen después de reiniciar
+- Los tests pasan pero los datos no persisten
+
+**Causa:** La aplicación usa bases de datos en memoria o contenedor incorrecto
+
+**Solución:**
+
+```bash
+# 1. Verificar que las tablas existen
+docker exec ecommerce-postgres psql -U postgres -d ecommerce_async -c "\dt"
+
+# 2. Si no hay tablas, verificar que RUN_MIGRATIONS=true
+# 3. Verificar el puerto correcto en .env coincide con docker-compose.yml
+# 4. Reiniciar la aplicación para que corra las migraciones
+```
+
+### Problema: Las órdenes siempre se cancelan
+
+**Síntomas:**
+
+- POST /orders retorna 202 Accepted
+- Pero el estado de la orden es siempre "CANCELLED"
+- No hay eventos en outbox_events
+
+**Causa:** Sin persistencia en base de datos, el Saga Pattern no puede procesar órdenes
+
+**Solución:**
+
+```bash
+# 1. Asegurar que las tablas existen (ver problema anterior)
+# 2. Verificar que hay inventario para los productos:
+curl -X POST "$BASE_URL/inventory" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "product-uuid",
+    "sku": "PRODUCT-SKU",
+    "initialStock": 100
+  }'
+
+# 3. Verificar que OutboxProcessor está corriendo (revisar logs)
+```
+
+### Problema: Error "Cannot GET /health"
+
+**Síntoma:** Endpoint /health retorna 404
+
+**Causa:** Falta el prefijo de la API
+
+**Solución:**
+
+```bash
+# ❌ Incorrecto
+curl http://localhost:3002/health
+
+# ✅ Correcto
+curl http://localhost:3002/api/v1/health
+```
+
+### Verificación Rápida del Sistema
+
+Ejecuta este script para verificar que todo está configurado correctamente:
+
+```bash
+#!/bin/bash
+echo "🔍 Verificando configuración del sistema..."
+
+# 1. Verificar que Docker está corriendo
+echo "1️⃣ Verificando Docker..."
+docker ps | grep ecommerce-postgres && echo "✅ PostgreSQL corriendo" || echo "❌ PostgreSQL NO está corriendo"
+docker ps | grep ecommerce-redis && echo "✅ Redis corriendo" || echo "❌ Redis NO está corriendo"
+
+# 2. Verificar conexión a la base de datos
+echo "2️⃣ Verificando conexión a PostgreSQL..."
+docker exec ecommerce-postgres psql -U postgres -d ecommerce_async -c "SELECT version();" > /dev/null 2>&1 \
+  && echo "✅ Conexión a PostgreSQL exitosa" \
+  || echo "❌ No se puede conectar a PostgreSQL"
+
+# 3. Verificar que las tablas existen
+echo "3️⃣ Verificando tablas..."
+TABLES=$(docker exec ecommerce-postgres psql -U postgres -d ecommerce_async -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';")
+if [ "$TABLES" -gt 5 ]; then
+  echo "✅ Tablas creadas correctamente ($TABLES tablas)"
+else
+  echo "⚠️  Solo $TABLES tablas encontradas. Verifica RUN_MIGRATIONS=true"
+fi
+
+# 4. Verificar que la aplicación responde
+echo "4️⃣ Verificando aplicación..."
+curl -s http://localhost:3002/api/v1/health > /dev/null 2>&1 \
+  && echo "✅ Aplicación respondiendo correctamente" \
+  || echo "❌ Aplicación no responde"
+
+echo ""
+echo "✨ Verificación completada!"
+```
+
+---
+
 **Proyecto 2 de 3** del Portfolio Profesional | **Última actualización**: Octubre 2025
