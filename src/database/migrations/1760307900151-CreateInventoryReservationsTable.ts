@@ -40,7 +40,6 @@ export class CreateInventoryReservationsTable1760307900151 implements MigrationI
         ALTER TABLE "inventory_reservations" 
         ADD CONSTRAINT "UQ_inventory_reservations_reservation_id" UNIQUE ("reservation_id");
       EXCEPTION
-        WHEN duplicate_table THEN null;
         WHEN duplicate_object THEN null;
       END $$;
     `);
