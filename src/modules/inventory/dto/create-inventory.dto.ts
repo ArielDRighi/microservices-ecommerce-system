@@ -1,6 +1,10 @@
 import { IsUUID, IsString, IsInt, IsOptional, Min, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { ParseInt } from '../../../common/decorators/parse-int.decorator';
+import {
+  DEFAULT_MINIMUM_STOCK,
+  DEFAULT_WAREHOUSE_LOCATION,
+} from '../constants/inventory.constants';
 
 export class CreateInventoryDto {
   @ApiProperty({
@@ -21,8 +25,8 @@ export class CreateInventoryDto {
 
   @ApiPropertyOptional({
     description: 'Warehouse or storage location',
-    example: 'MAIN_WAREHOUSE',
-    default: 'MAIN_WAREHOUSE',
+    example: DEFAULT_WAREHOUSE_LOCATION,
+    default: DEFAULT_WAREHOUSE_LOCATION,
     maxLength: 100,
   })
   @IsOptional()
@@ -35,21 +39,21 @@ export class CreateInventoryDto {
     example: 100,
     minimum: 0,
   })
+  @ParseInt()
   @IsInt({ message: 'Initial stock must be an integer' })
   @Min(0, { message: 'Initial stock must be at least 0' })
-  @Transform(({ value }) => parseInt(value, 10))
   initialStock!: number;
 
   @ApiPropertyOptional({
     description: 'Minimum stock level before reorder alert',
-    example: 10,
+    example: DEFAULT_MINIMUM_STOCK,
     minimum: 0,
-    default: 10,
+    default: DEFAULT_MINIMUM_STOCK,
   })
   @IsOptional()
+  @ParseInt()
   @IsInt({ message: 'Minimum stock must be an integer' })
   @Min(0, { message: 'Minimum stock must be at least 0' })
-  @Transform(({ value }) => parseInt(value, 10))
   minimumStock?: number;
 
   @ApiPropertyOptional({
@@ -58,9 +62,9 @@ export class CreateInventoryDto {
     minimum: 0,
   })
   @IsOptional()
+  @ParseInt()
   @IsInt({ message: 'Maximum stock must be an integer' })
   @Min(0, { message: 'Maximum stock must be at least 0' })
-  @Transform(({ value }) => parseInt(value, 10))
   maximumStock?: number;
 
   @ApiPropertyOptional({
@@ -69,9 +73,9 @@ export class CreateInventoryDto {
     minimum: 0,
   })
   @IsOptional()
+  @ParseInt()
   @IsInt({ message: 'Reorder point must be an integer' })
   @Min(0, { message: 'Reorder point must be at least 0' })
-  @Transform(({ value }) => parseInt(value, 10))
   reorderPoint?: number;
 
   @ApiPropertyOptional({
@@ -80,9 +84,9 @@ export class CreateInventoryDto {
     minimum: 1,
   })
   @IsOptional()
+  @ParseInt()
   @IsInt({ message: 'Reorder quantity must be an integer' })
   @Min(1, { message: 'Reorder quantity must be at least 1' })
-  @Transform(({ value }) => parseInt(value, 10))
   reorderQuantity?: number;
 
   @ApiPropertyOptional({

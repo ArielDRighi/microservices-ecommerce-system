@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ResponseHelper } from '../../helpers/response.helper';
+import { ReservationHelper } from '../../helpers/reservation.helper';
 
 // Helper to extract data from response
 
@@ -700,7 +701,7 @@ describe('Inventory API (E2E)', () => {
       testInventoryId = ResponseHelper.extractData<{ id: string }>(inventoryResponse).id;
 
       // Create a reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -832,7 +833,7 @@ describe('Inventory API (E2E)', () => {
 
     it('should complete full reservation lifecycle (reserve -> check -> release)', async () => {
       // Step 1: Create reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -886,7 +887,7 @@ describe('Inventory API (E2E)', () => {
 
     it('should complete full reservation lifecycle (reserve -> check -> fulfill)', async () => {
       // Step 1: Create reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -939,7 +940,7 @@ describe('Inventory API (E2E)', () => {
 
     it('should NOT allow releasing already released reservation (improved validation)', async () => {
       // Create and release reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -986,7 +987,7 @@ describe('Inventory API (E2E)', () => {
 
     it('should NOT allow fulfilling already fulfilled reservation (improved validation)', async () => {
       // Create and fulfill reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -1037,7 +1038,7 @@ describe('Inventory API (E2E)', () => {
 
     it('should NOT allow releasing fulfilled reservation', async () => {
       // Create and fulfill reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -1082,7 +1083,7 @@ describe('Inventory API (E2E)', () => {
 
     it('should NOT allow fulfilling released reservation', async () => {
       // Create and release reservation
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const reserveResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -1157,7 +1158,7 @@ describe('Inventory API (E2E)', () => {
     });
 
     it('should handle insufficient stock for reservation', async () => {
-      const uniqueReservationId = `res-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const uniqueReservationId = ReservationHelper.generateReservationId();
       const response = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
@@ -1202,6 +1203,10 @@ describe('Inventory API (E2E)', () => {
 
     it('should handle multiple concurrent reservations correctly', async () => {
       // Create 3 reservations in parallel
+      const reservationId1 = ReservationHelper.generateReservationId();
+      const reservationId2 = ReservationHelper.generateReservationId();
+      const reservationId3 = ReservationHelper.generateReservationId();
+      
       const reservations = await Promise.all([
         request(app.getHttpServer())
           .post('/inventory/reserve')
@@ -1209,7 +1214,7 @@ describe('Inventory API (E2E)', () => {
           .send({
             productId: testProductId,
             quantity: 5,
-            reservationId: `res-${Date.now()}-1-${Math.random().toString(36).substring(7)}`,
+            reservationId: reservationId1,
             ttlMinutes: 60,
           }),
         request(app.getHttpServer())
@@ -1218,7 +1223,7 @@ describe('Inventory API (E2E)', () => {
           .send({
             productId: testProductId,
             quantity: 5,
-            reservationId: `res-${Date.now()}-2-${Math.random().toString(36).substring(7)}`,
+            reservationId: reservationId2,
             ttlMinutes: 60,
           }),
         request(app.getHttpServer())
@@ -1227,7 +1232,7 @@ describe('Inventory API (E2E)', () => {
           .send({
             productId: testProductId,
             quantity: 5,
-            reservationId: `res-${Date.now()}-3-${Math.random().toString(36).substring(7)}`,
+            reservationId: reservationId3,
             ttlMinutes: 60,
           }),
       ]);
@@ -1238,13 +1243,14 @@ describe('Inventory API (E2E)', () => {
       expect(reservations[2].status).toBe(201);
 
       // Fourth should fail (would need 20, only 5 left)
+      const reservationId4 = ReservationHelper.generateReservationId();
       const fourthReservation = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
           productId: testProductId,
           quantity: 10,
-          reservationId: `res-${Date.now()}-4-${Math.random().toString(36).substring(7)}`,
+          reservationId: reservationId4,
           ttlMinutes: 60,
         });
 

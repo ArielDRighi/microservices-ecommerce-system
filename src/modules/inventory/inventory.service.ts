@@ -25,6 +25,12 @@ import {
   CreateInventoryDto,
   ReservationDetailsDto,
 } from './dto';
+import {
+  DEFAULT_MINIMUM_STOCK,
+  DEFAULT_REORDER_POINT_OFFSET,
+  DEFAULT_MAXIMUM_STOCK_MULTIPLIER,
+  DEFAULT_WAREHOUSE_LOCATION,
+} from './constants/inventory.constants';
 
 @Injectable()
 export class InventoryService {
@@ -65,7 +71,7 @@ export class InventoryService {
     }
 
     // 2. Check if inventory already exists for this product + location
-    const location = dto.location || 'MAIN_WAREHOUSE';
+    const location = dto.location || DEFAULT_WAREHOUSE_LOCATION;
     const existingInventory = await this.inventoryRepository.findOne({
       where: {
         productId: dto.productId,
@@ -87,9 +93,10 @@ export class InventoryService {
       location: location,
       currentStock: dto.initialStock,
       reservedStock: 0,
-      minimumStock: dto.minimumStock ?? 10,
-      maximumStock: dto.maximumStock ?? dto.initialStock * 10,
-      reorderPoint: dto.reorderPoint ?? (dto.minimumStock ?? 10) + 10,
+      minimumStock: dto.minimumStock ?? DEFAULT_MINIMUM_STOCK,
+      maximumStock: dto.maximumStock ?? dto.initialStock * DEFAULT_MAXIMUM_STOCK_MULTIPLIER,
+      reorderPoint:
+        dto.reorderPoint ?? (dto.minimumStock ?? DEFAULT_MINIMUM_STOCK) + DEFAULT_REORDER_POINT_OFFSET,
       reorderQuantity: dto.reorderQuantity ?? dto.initialStock,
       isActive: true,
       autoReorderEnabled: false,
@@ -115,6 +122,9 @@ export class InventoryService {
     );
 
     // 5. Map to response DTO
+    // Category already loaded via relations in findOne query
+    const categoryName = product.category ? product.category.name : undefined;
+
     return {
       id: savedInventory.id,
       productId: product.id,
@@ -130,7 +140,7 @@ export class InventoryService {
         id: product.id,
         name: product.name,
         sku: product.sku,
-        category: product.category ? (await product.category).name : undefined,
+        category: categoryName,
       },
       movementsCount: 1, // Initial movement just created
       createdAt: savedInventory.createdAt,
@@ -725,6 +735,10 @@ export class InventoryService {
       where: { inventoryId: inventory.id },
     });
 
+    // Load category if not already loaded
+    const category = product.category ? await product.category : null;
+    const categoryName = category ? category.name : undefined;
+
     return {
       id: inventory.id,
       productId: product.id,
@@ -740,7 +754,7 @@ export class InventoryService {
         id: product.id,
         name: product.name,
         sku: product.sku,
-        category: product.category ? (await product.category).name : undefined,
+        category: categoryName,
       },
       movementsCount,
       createdAt: inventory.createdAt,
@@ -830,6 +844,10 @@ export class InventoryService {
     const items = await Promise.all(
       inventories.map(async (inventory) => {
         const product = await inventory.product;
+        // Load category if not already loaded
+        const category = product.category ? await product.category : null;
+        const categoryName = category ? category.name : undefined;
+
         return {
           id: inventory.id,
           productId: product.id,
@@ -845,7 +863,7 @@ export class InventoryService {
             id: product.id,
             name: product.name,
             sku: product.sku,
-            category: product.category ? (await product.category).name : undefined,
+            category: categoryName,
           },
           createdAt: inventory.createdAt,
           updatedAt: inventory.updatedAt,
