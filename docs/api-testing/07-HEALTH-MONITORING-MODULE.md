@@ -503,6 +503,7 @@ BULL_BOARD_PASSWORD=your-secure-password-here
 ```
 
 **⚠️ Seguridad:**
+
 - Basic Auth implementado para prevenir acceso no autorizado
 - Credenciales configurables por entorno
 - Sin credenciales = error 401 Unauthorized
@@ -539,6 +540,7 @@ http://localhost:3000/admin/queues
 ```
 
 El navegador solicitará credenciales automáticamente (popup de Basic Auth):
+
 - **Username:** `admin` (o valor configurado en `BULL_BOARD_USERNAME`)
 - **Password:** tu password configurado en `BULL_BOARD_PASSWORD`
 
@@ -743,7 +745,7 @@ fi
 if [ ! -z "$BULL_BOARD_USERNAME" ] && [ ! -z "$BULL_BOARD_PASSWORD" ]; then
   BULL_AUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/admin/queues" \
     --user "$BULL_BOARD_USERNAME:$BULL_BOARD_PASSWORD")
-  
+
   if [ "$BULL_AUTH" == "200" ]; then
     echo "✅ Bull Board accessible with credentials (HTTP 200)"
   else
@@ -857,12 +859,14 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 ### 🔐 Seguridad Bull Board
 
 **Basic Authentication:**
+
 - Protege dashboard de queues sensible
 - Credenciales configurables por entorno (`BULL_BOARD_USERNAME`, `BULL_BOARD_PASSWORD`)
 - Sin credenciales válidas = 401 Unauthorized
 - Navegadores muestran popup de autenticación automáticamente
 
 **Recomendaciones:**
+
 - Usar contraseñas fuertes (16+ caracteres)
 - Cambiar credenciales por defecto en producción
 - Rotar passwords periódicamente

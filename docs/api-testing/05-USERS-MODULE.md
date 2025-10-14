@@ -41,6 +41,7 @@ export ADMIN_TOKEN="admin-jwt-token-here"    # Token de administrador (role: ADM
 ### Endpoints por Nivel de Acceso
 
 #### 🔴 Solo ADMIN (Bearer Token con role ADMIN)
+
 - `POST /users` - Crear usuario
 - `GET /users` - Listar todos los usuarios
 - `GET /users/:id` - Ver cualquier usuario
@@ -49,6 +50,7 @@ export ADMIN_TOKEN="admin-jwt-token-here"    # Token de administrador (role: ADM
 - `PATCH /users/:id/activate` - Activar usuario
 
 #### 🟢 Usuario Autenticado (Cualquier role)
+
 - `GET /users/profile` - Ver propio perfil
 
 ### Obtener Token de ADMIN

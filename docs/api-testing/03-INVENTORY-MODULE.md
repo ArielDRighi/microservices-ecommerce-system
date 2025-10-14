@@ -10,20 +10,20 @@
 
 Este módulo implementa control de acceso basado en roles:
 
-| Endpoint | Método | Acceso | Descripción |
-|----------|--------|--------|-------------|
-| `/inventory` | POST | **🔴 ADMIN Only** | Crear inventario inicial |
-| `/inventory/add-stock` | POST | **🔴 ADMIN Only** | Agregar stock |
-| `/inventory/remove-stock` | POST | **🔴 ADMIN Only** | Remover stock |
-| `/inventory/product/:productId` | GET | 🟢 Público | Obtener inventario |
-| `/inventory` | GET | 🟢 Público | Listar inventario |
-| `/inventory/check-availability` | POST | 🟢 Público | Verificar disponibilidad |
-| `/inventory/reserve` | POST | 🟡 Auth Required | Reservar stock |
-| `/inventory/release-reservation` | PUT | 🟡 Auth Required | Liberar reserva |
-| `/inventory/fulfill-reservation` | PUT | 🟡 Auth Required | Confirmar reserva |
-| `/inventory/low-stock` | GET | 🟢 Público | Stock bajo |
-| `/inventory/out-of-stock` | GET | 🟢 Público | Sin stock |
-| `/inventory/stats` | GET | 🟡 Auth Required | Estadísticas |
+| Endpoint                         | Método | Acceso            | Descripción              |
+| -------------------------------- | ------ | ----------------- | ------------------------ |
+| `/inventory`                     | POST   | **🔴 ADMIN Only** | Crear inventario inicial |
+| `/inventory/add-stock`           | POST   | **🔴 ADMIN Only** | Agregar stock            |
+| `/inventory/remove-stock`        | POST   | **🔴 ADMIN Only** | Remover stock            |
+| `/inventory/product/:productId`  | GET    | 🟢 Público        | Obtener inventario       |
+| `/inventory`                     | GET    | 🟢 Público        | Listar inventario        |
+| `/inventory/check-availability`  | POST   | 🟢 Público        | Verificar disponibilidad |
+| `/inventory/reserve`             | POST   | 🟡 Auth Required  | Reservar stock           |
+| `/inventory/release-reservation` | PUT    | 🟡 Auth Required  | Liberar reserva          |
+| `/inventory/fulfill-reservation` | PUT    | 🟡 Auth Required  | Confirmar reserva        |
+| `/inventory/low-stock`           | GET    | 🟢 Público        | Stock bajo               |
+| `/inventory/out-of-stock`        | GET    | 🟢 Público        | Sin stock                |
+| `/inventory/stats`               | GET    | 🟡 Auth Required  | Estadísticas             |
 
 ### Roles Disponibles
 
@@ -1418,22 +1418,26 @@ Reserved Quantity = Sum of active reservations
 ### Control de Acceso (RBAC)
 
 **Operaciones ADMIN Only:**
+
 - Crear inventario inicial (`POST /inventory`)
 - Agregar stock (`POST /inventory/add-stock`)
 - Remover stock (`POST /inventory/remove-stock`)
 
 **Operaciones Auth Required (USER/ADMIN):**
+
 - Reservar stock (`POST /inventory/reserve`)
 - Liberar reserva (`PUT /inventory/release-reservation`)
 - Confirmar reserva (`PUT /inventory/fulfill-reservation`)
 - Ver estadísticas (`GET /inventory/stats`)
 
 **Operaciones Públicas:**
+
 - Ver inventario
 - Verificar disponibilidad
 - Ver stock bajo/sin stock
 
 **Respuestas de Autorización:**
+
 - **403 Forbidden**: Usuario autenticado sin rol ADMIN
 - **401 Unauthorized**: Sin autenticación
 

@@ -209,7 +209,7 @@ export class UsersService {
       // Prevent admin from deleting themselves
       if (user.role === UserRole.ADMIN) {
         throw new ForbiddenException(
-          'Admin users cannot be deleted. Please transfer admin role first or contact support.',
+          'Admin users cannot be deleted. Please contact support for assistance.',
         );
       }
 

@@ -13,27 +13,30 @@ Este sistema implementa **Role-Based Access Control (RBAC)** con dos roles princ
 
 ### Roles del Sistema
 
-| Rol | Descripción | Acceso |
-|-----|-------------|--------|
-| **ADMIN** | Administrador del sistema | Acceso completo: crear, modificar, eliminar recursos |
-| **USER** | Usuario estándar | Lectura + operaciones propias (órdenes, reservas) |
-| **Público** | Sin autenticación | Solo lectura en endpoints públicos |
+| Rol         | Descripción               | Acceso                                               |
+| ----------- | ------------------------- | ---------------------------------------------------- |
+| **ADMIN**   | Administrador del sistema | Acceso completo: crear, modificar, eliminar recursos |
+| **USER**    | Usuario estándar          | Lectura + operaciones propias (órdenes, reservas)    |
+| **Público** | Sin autenticación         | Solo lectura en endpoints públicos                   |
 
 ### Operaciones por Rol
 
 **🔴 ADMIN Only:**
+
 - Crear/modificar/eliminar productos
 - Crear/modificar/eliminar categorías
 - Crear/agregar/remover inventario
 - Gestionar usuarios (CRUD)
 
 **🟡 Auth Required (USER/ADMIN):**
+
 - Crear órdenes
 - Ver perfil propio
 - Reservar/liberar stock
 - Ver estadísticas de inventario
 
 **🟢 Público (sin auth):**
+
 - Listar productos y categorías
 - Ver detalles de productos
 - Buscar en catálogo
@@ -64,19 +67,21 @@ echo "User Token: $USER_TOKEN"
 
 ### Códigos de Error de Autorización
 
-| Código | Significado | Cuándo ocurre |
-|--------|-------------|---------------|
-| **401 Unauthorized** | Sin autenticación | No se envió token JWT o es inválido |
-| **403 Forbidden** | Sin permisos | Usuario autenticado pero sin rol requerido (ej: USER intentando operación ADMIN) |
+| Código               | Significado       | Cuándo ocurre                                                                    |
+| -------------------- | ----------------- | -------------------------------------------------------------------------------- |
+| **401 Unauthorized** | Sin autenticación | No se envió token JWT o es inválido                                              |
+| **403 Forbidden**    | Sin permisos      | Usuario autenticado pero sin rol requerido (ej: USER intentando operación ADMIN) |
 
 ### Seguridad Adicional
 
 **Rate Limiting:**
+
 - Login: 5 requests/minuto
 - Register: 3 requests/hora
 - General: 10 requests/minuto
 
 **Bull Board Dashboard:**
+
 - Protegido con Basic Authentication
 - Credenciales: `BULL_BOARD_USERNAME` y `BULL_BOARD_PASSWORD` (env vars)
 - Sin credenciales válidas = 401 Unauthorized
@@ -140,16 +145,16 @@ echo "User Token: $USER_TOKEN"
 
 ## 📊 Resumen Ejecutivo
 
-| Módulo     | Endpoints | Tests    | RBAC | Seguridad | Prioridad | Complejidad |
-| ---------- | --------- | -------- | ---- | --------- | --------- | ----------- |
-| Auth       | 6         | 25+      | ✅   | Rate Limiting | 🔴 Alta   | Media       |
-| Products   | 8         | 35+      | ✅   | ADMIN Only (CUD) | 🔴 Alta   | Media       |
-| Orders     | 4         | 15+      | ✅   | Auth Required | 🔴 Alta   | Alta        |
-| Users      | 6         | 35+      | ✅   | ADMIN Only | 🟡 Media  | Media       |
-| Categories | 11        | 40+      | ✅   | ADMIN Only (CUD) | 🟡 Media  | Alta        |
-| Inventory  | 16        | 45+      | ✅   | ADMIN (stock ops) | 🔴 Alta   | Muy Alta    |
-| Health     | 6         | 5+       | ✅   | Bull Board Auth | 🟢 Baja   | Baja        |
-| **TOTAL**  | **57**    | **200+** | **✅** | **Completado** | -         | -           |
+| Módulo     | Endpoints | Tests    | RBAC   | Seguridad         | Prioridad | Complejidad |
+| ---------- | --------- | -------- | ------ | ----------------- | --------- | ----------- |
+| Auth       | 6         | 25+      | ✅     | Rate Limiting     | 🔴 Alta   | Media       |
+| Products   | 8         | 35+      | ✅     | ADMIN Only (CUD)  | 🔴 Alta   | Media       |
+| Orders     | 4         | 15+      | ✅     | Auth Required     | 🔴 Alta   | Alta        |
+| Users      | 6         | 35+      | ✅     | ADMIN Only        | 🟡 Media  | Media       |
+| Categories | 11        | 40+      | ✅     | ADMIN Only (CUD)  | 🟡 Media  | Alta        |
+| Inventory  | 16        | 45+      | ✅     | ADMIN (stock ops) | 🔴 Alta   | Muy Alta    |
+| Health     | 6         | 5+       | ✅     | Bull Board Auth   | 🟢 Baja   | Baja        |
+| **TOTAL**  | **57**    | **200+** | **✅** | **Completado**    | -         | -           |
 
 ---
 
@@ -476,30 +481,30 @@ Cada módulo sigue esta estructura:
 
 ### Códigos de Estado HTTP
 
-| Código | Significado           | Uso                                 |
-| ------ | --------------------- | ----------------------------------- |
-| 200    | OK                    | GET exitoso, operación completada   |
-| 201    | Created               | POST exitoso, recurso creado        |
-| 202    | Accepted              | Procesamiento asíncrono iniciado    |
-| 204    | No Content            | DELETE exitoso, sin body            |
-| 400    | Bad Request           | Validación fallida, datos inválidos |
-| **401**    | **Unauthorized**          | **Sin autenticación, token inválido/ausente**      |
-| **403**    | **Forbidden**             | **Autenticado pero sin permisos (ej: USER intentando operación ADMIN)** |
-| 404    | Not Found             | Recurso no encontrado               |
-| 409    | Conflict              | Conflicto (e.g., email duplicado)   |
-| 422    | Unprocessable Entity  | Lógica de negocio inválida          |
-| **429**    | **Too Many Requests**     | **Rate limit excedido** |
-| 500    | Internal Server Error | Error del servidor                  |
-| 503    | Service Unavailable   | Servicio no disponible              |
+| Código  | Significado           | Uso                                                                     |
+| ------- | --------------------- | ----------------------------------------------------------------------- |
+| 200     | OK                    | GET exitoso, operación completada                                       |
+| 201     | Created               | POST exitoso, recurso creado                                            |
+| 202     | Accepted              | Procesamiento asíncrono iniciado                                        |
+| 204     | No Content            | DELETE exitoso, sin body                                                |
+| 400     | Bad Request           | Validación fallida, datos inválidos                                     |
+| **401** | **Unauthorized**      | **Sin autenticación, token inválido/ausente**                           |
+| **403** | **Forbidden**         | **Autenticado pero sin permisos (ej: USER intentando operación ADMIN)** |
+| 404     | Not Found             | Recurso no encontrado                                                   |
+| 409     | Conflict              | Conflicto (e.g., email duplicado)                                       |
+| 422     | Unprocessable Entity  | Lógica de negocio inválida                                              |
+| **429** | **Too Many Requests** | **Rate limit excedido**                                                 |
+| 500     | Internal Server Error | Error del servidor                                                      |
+| 503     | Service Unavailable   | Servicio no disponible                                                  |
 
 ### Diferencia entre 401 y 403
 
-| Aspecto | 401 Unauthorized | 403 Forbidden |
-|---------|------------------|---------------|
-| **Significado** | No identificado | Identificado pero sin permisos |
-| **Token JWT** | No enviado o inválido | Válido pero rol insuficiente |
-| **Ejemplo** | Sin header `Authorization` | USER intentando crear producto (requiere ADMIN) |
-| **Solución** | Obtener token válido | Obtener token con rol correcto (ADMIN) |
+| Aspecto         | 401 Unauthorized           | 403 Forbidden                                   |
+| --------------- | -------------------------- | ----------------------------------------------- |
+| **Significado** | No identificado            | Identificado pero sin permisos                  |
+| **Token JWT**   | No enviado o inválido      | Válido pero rol insuficiente                    |
+| **Ejemplo**     | Sin header `Authorization` | USER intentando crear producto (requiere ADMIN) |
+| **Solución**    | Obtener token válido       | Obtener token con rol correcto (ADMIN)          |
 
 ### Formato de Respuestas
 
@@ -614,7 +619,7 @@ Este proyecto y su documentación están bajo la licencia MIT. Ver archivo `LICE
 **✅ Admin Protection:** Validación para prevenir auto-eliminación de administradores  
 **✅ Price Validation:** Precio mínimo configurado en $0.50 (PRODUCT_PRICE.MIN)  
 **✅ Authorization Tests:** Pruebas 403 para verificar restricciones de permisos  
-**✅ JWT Expiration:** Tokens con tiempo de vida limitado  
+**✅ JWT Expiration:** Tokens con tiempo de vida limitado
 
 > **Nota de Seguridad:** Todos los endpoints administrativos están protegidos con el decorador `@Roles('ADMIN')` y retornan `403 Forbidden` cuando un usuario con rol USER intenta acceder.
 

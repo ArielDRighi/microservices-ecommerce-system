@@ -10,19 +10,19 @@
 
 Este módulo implementa control de acceso basado en roles:
 
-| Endpoint | Método | Acceso | Descripción |
-|----------|--------|--------|-------------|
-| `/categories` | POST | **🔴 ADMIN Only** | Crear categorías |
-| `/categories` | GET | 🟢 Público | Listar categorías |
-| `/categories/tree` | GET | 🟢 Público | Obtener árbol completo |
-| `/categories/slug/:slug` | GET | 🟢 Público | Buscar por slug |
-| `/categories/:id` | GET | 🟢 Público | Obtener por ID |
-| `/categories/:id/descendants` | GET | 🟢 Público | Obtener descendientes |
-| `/categories/:id/path` | GET | 🟢 Público | Obtener path/breadcrumb |
-| `/categories/:id` | PUT | **🔴 ADMIN Only** | Actualizar categoría |
-| `/categories/:id/activate` | PATCH | **🔴 ADMIN Only** | Activar categoría |
-| `/categories/:id/deactivate` | PATCH | **🔴 ADMIN Only** | Desactivar categoría |
-| `/categories/:id` | DELETE | **🔴 ADMIN Only** | Eliminar categoría (soft delete) |
+| Endpoint                      | Método | Acceso            | Descripción                      |
+| ----------------------------- | ------ | ----------------- | -------------------------------- |
+| `/categories`                 | POST   | **🔴 ADMIN Only** | Crear categorías                 |
+| `/categories`                 | GET    | 🟢 Público        | Listar categorías                |
+| `/categories/tree`            | GET    | 🟢 Público        | Obtener árbol completo           |
+| `/categories/slug/:slug`      | GET    | 🟢 Público        | Buscar por slug                  |
+| `/categories/:id`             | GET    | 🟢 Público        | Obtener por ID                   |
+| `/categories/:id/descendants` | GET    | 🟢 Público        | Obtener descendientes            |
+| `/categories/:id/path`        | GET    | 🟢 Público        | Obtener path/breadcrumb          |
+| `/categories/:id`             | PUT    | **🔴 ADMIN Only** | Actualizar categoría             |
+| `/categories/:id/activate`    | PATCH  | **🔴 ADMIN Only** | Activar categoría                |
+| `/categories/:id/deactivate`  | PATCH  | **🔴 ADMIN Only** | Desactivar categoría             |
+| `/categories/:id`             | DELETE | **🔴 ADMIN Only** | Eliminar categoría (soft delete) |
 
 ### Roles Disponibles
 

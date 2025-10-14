@@ -34,11 +34,11 @@ export ADMIN_TOKEN=""
 
 Este módulo tiene rate limiting para prevenir ataques de fuerza bruta:
 
-| Endpoint | Límite | Ventana de Tiempo | Status Code |
-|----------|--------|-------------------|-------------|
-| POST /auth/login | 5 requests | 60 segundos (1 minuto) | 429 Too Many Requests |
-| POST /auth/register | 3 requests | 3600 segundos (1 hora) | 429 Too Many Requests |
-| Otros endpoints | 10 requests | 60 segundos (general) | 429 Too Many Requests |
+| Endpoint            | Límite      | Ventana de Tiempo      | Status Code           |
+| ------------------- | ----------- | ---------------------- | --------------------- |
+| POST /auth/login    | 5 requests  | 60 segundos (1 minuto) | 429 Too Many Requests |
+| POST /auth/register | 3 requests  | 3600 segundos (1 hora) | 429 Too Many Requests |
+| Otros endpoints     | 10 requests | 60 segundos (general)  | 429 Too Many Requests |
 
 **Nota:** Los límites se resetean automáticamente después del tiempo especificado.
 
@@ -761,21 +761,21 @@ echo ""
 # Hacer 6 intentos rápidos
 for i in {1..6}; do
   echo "Intento $i..."
-  
+
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/auth/login" \
     -H "Content-Type: application/json" \
     -d '{
       "email": "test@example.com",
       "password": "password123"
     }')
-  
+
   if [ "$HTTP_CODE" == "429" ]; then
     echo "✅ Intento $i: Rate limit activado (429)"
     break
   else
     echo "   Intento $i: HTTP $HTTP_CODE"
   fi
-  
+
   sleep 0.5  # Pequeña pausa entre requests
 done
 
@@ -837,7 +837,7 @@ echo ""
 # Hacer 4 intentos rápidos con emails diferentes
 for i in {1..4}; do
   echo "Intento $i de registro..."
-  
+
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/auth/register" \
     -H "Content-Type: application/json" \
     -d "{
@@ -846,7 +846,7 @@ for i in {1..4}; do
       \"firstName\": \"Test\",
       \"lastName\": \"User$i\"
     }")
-  
+
   if [ "$HTTP_CODE" == "429" ]; then
     echo "✅ Intento $i: Rate limit activado (429)"
     break
@@ -855,7 +855,7 @@ for i in {1..4}; do
   else
     echo "   Intento $i: HTTP $HTTP_CODE"
   fi
-  
+
   sleep 1
 done
 

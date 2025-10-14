@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Category } from './entities/category.entity';
 import {
   createMockCategory,
   createMockCategoryRepository,
@@ -369,7 +370,7 @@ describe('CategoriesService - Hierarchy & Tree Operations', () => {
       const result = await service['findDescendants']('parent');
 
       expect(result).toHaveLength(3);
-      expect(result.map((c: any) => c.id)).toEqual(['c1', 'c2', 'gc1']);
+      expect(result.map((c: Category) => c.id)).toEqual(['c1', 'c2', 'gc1']);
     });
 
     it('should respect maxDepth parameter', async () => {

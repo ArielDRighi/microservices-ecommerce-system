@@ -10,16 +10,16 @@
 
 Este módulo implementa control de acceso basado en roles:
 
-| Endpoint | Método | Acceso | Descripción |
-|----------|--------|--------|-------------|
-| `/products` | POST | **🔴 ADMIN Only** | Crear productos |
-| `/products` | GET | 🟢 Público | Listar productos |
-| `/products/search` | GET | 🟢 Público | Buscar productos |
-| `/products/:id` | GET | 🟢 Público | Obtener producto |
-| `/products/:id` | PATCH | **🔴 ADMIN Only** | Actualizar producto |
-| `/products/:id/activate` | PATCH | **🔴 ADMIN Only** | Activar producto |
-| `/products/:id/deactivate` | PATCH | **🔴 ADMIN Only** | Desactivar producto |
-| `/products/:id` | DELETE | **🔴 ADMIN Only** | Eliminar producto (soft delete) |
+| Endpoint                   | Método | Acceso            | Descripción                     |
+| -------------------------- | ------ | ----------------- | ------------------------------- |
+| `/products`                | POST   | **🔴 ADMIN Only** | Crear productos                 |
+| `/products`                | GET    | 🟢 Público        | Listar productos                |
+| `/products/search`         | GET    | 🟢 Público        | Buscar productos                |
+| `/products/:id`            | GET    | 🟢 Público        | Obtener producto                |
+| `/products/:id`            | PATCH  | **🔴 ADMIN Only** | Actualizar producto             |
+| `/products/:id/activate`   | PATCH  | **🔴 ADMIN Only** | Activar producto                |
+| `/products/:id/deactivate` | PATCH  | **🔴 ADMIN Only** | Desactivar producto             |
+| `/products/:id`            | DELETE | **🔴 ADMIN Only** | Eliminar producto (soft delete) |
 
 ### Roles Disponibles
 
@@ -157,6 +157,7 @@ echo "User Token: $USER_TOKEN"
 ```
 
 **⚠️ IMPORTANTE - Validación de Precio:**
+
 - **Precio mínimo:** $0.50 USD (constante: `PRODUCT_PRICE.MIN = 0.5`)
 - **Precio máximo:** $1,000,000.00 USD (constante: `PRODUCT_PRICE.MAX = 1000000`)
 - Precios fuera de este rango retornarán error 400
@@ -441,9 +442,7 @@ curl -X POST "$BASE_URL/products" \
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "price must not be less than 0.5"
-  ],
+  "message": ["price must not be less than 0.5"],
   "error": "Bad Request"
 }
 ```
@@ -1476,8 +1475,8 @@ Definidas en `src/modules/products/constants/product-validation.constants.ts`:
 
 ```typescript
 export const PRODUCT_PRICE = {
-  MIN: 0.5,      // Precio mínimo: $0.50
-  MAX: 1000000,  // Precio máximo: $1,000,000.00
+  MIN: 0.5, // Precio mínimo: $0.50
+  MAX: 1000000, // Precio máximo: $1,000,000.00
 } as const;
 ```
 
