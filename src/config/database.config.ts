@@ -71,7 +71,7 @@ export const databaseConfig = registerAs(
     // Additional TypeORM Options
     autoLoadEntities: true,
     keepConnectionAlive: true,
-    dropSchema: process.env['NODE_ENV'] === 'test',
+    dropSchema: false, // Never drop schema automatically - migrations handle schema changes
   }),
 );
 
@@ -92,9 +92,9 @@ export const databaseTestConfig = registerAs(
       process.env['TEST_DATABASE_NAME'] || process.env['DATABASE_NAME'] || 'ecommerce_async_test',
 
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
-    synchronize: true, // Always synchronize in test environment
+    synchronize: false, // Use migrations for schema changes
     logging: false,
-    dropSchema: true, // Reset database for each test run
+    dropSchema: false, // Never drop schema - migrations handle schema changes
     keepConnectionAlive: false,
 
     // Minimal pool for testing
