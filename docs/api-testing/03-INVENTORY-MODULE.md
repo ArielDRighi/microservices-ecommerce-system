@@ -2,24 +2,86 @@
 
 **Módulo:** Inventory  
 **Base URL:** `http://localhost:3000/inventory`  
-**Descripción:** Gestión de stock, reservas con TTL, movimientos y estadísticas en tiempo real
+**Descripción:** Gestión de stock, reservas con TTL, movimientos, estadísticas en tiempo real y control de acceso basado en roles (RBAC)
+
+---
+
+## 🔐 Control de Acceso (RBAC)
+
+Este módulo implementa control de acceso basado en roles:
+
+| Endpoint | Método | Acceso | Descripción |
+|----------|--------|--------|-------------|
+| `/inventory` | POST | **🔴 ADMIN Only** | Crear inventario inicial |
+| `/inventory/add-stock` | POST | **🔴 ADMIN Only** | Agregar stock |
+| `/inventory/remove-stock` | POST | **🔴 ADMIN Only** | Remover stock |
+| `/inventory/product/:productId` | GET | 🟢 Público | Obtener inventario |
+| `/inventory` | GET | 🟢 Público | Listar inventario |
+| `/inventory/check-availability` | POST | 🟢 Público | Verificar disponibilidad |
+| `/inventory/reserve` | POST | 🟡 Auth Required | Reservar stock |
+| `/inventory/release-reservation` | PUT | 🟡 Auth Required | Liberar reserva |
+| `/inventory/fulfill-reservation` | PUT | 🟡 Auth Required | Confirmar reserva |
+| `/inventory/low-stock` | GET | 🟢 Público | Stock bajo |
+| `/inventory/out-of-stock` | GET | 🟢 Público | Sin stock |
+| `/inventory/stats` | GET | 🟡 Auth Required | Estadísticas |
+
+### Roles Disponibles
+
+- **ADMIN**: Acceso completo (crear inventario, agregar/remover stock)
+- **USER**: Puede reservar/liberar/confirmar (operaciones de compra)
+- **Público**: Solo lectura (ver inventario y disponibilidad)
+
+### 🔑 Obtener Tokens por Rol
+
+```bash
+# Token de ADMINISTRADOR (crear/agregar/remover stock)
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
+  }' | jq -r '.data.accessToken')
+
+# Token de USUARIO (reservas)
+export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "Admin Token: $ADMIN_TOKEN"
+echo "User Token: $USER_TOKEN"
+```
+
+### ⚠️ Respuesta 403 Forbidden (Sin Permisos)
+
+Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] 1️⃣ **Crear Inventario Inicial** (POST /inventory) [Auth Required] - **EMPEZAR AQUÍ**
-- [ ] 2️⃣ Agregar Stock (POST /inventory/add-stock) [Auth Required]
-- [ ] 3️⃣ Obtener Inventario por Producto (GET /inventory/product/:productId) [Public]
-- [ ] 4️⃣ Listar Todo el Inventario (GET /inventory) [Public]
-- [ ] 5️⃣ Verificar Disponibilidad (POST /inventory/check-availability) [Public]
-- [ ] 6️⃣ Reservar Stock (POST /inventory/reserve) [Auth Required]
-- [ ] 7️⃣ Liberar Reserva (PUT /inventory/release-reservation) [Auth Required]
-- [ ] 8️⃣ Confirmar Reserva (PUT /inventory/fulfill-reservation) [Auth Required]
-- [ ] 9️⃣ Remover Stock (POST /inventory/remove-stock) [Auth Required]
-- [ ] 🔟 Productos con Stock Bajo (GET /inventory/low-stock) [Public]
-- [ ] 1️⃣1️⃣ Productos Sin Stock (GET /inventory/out-of-stock) [Public]
-- [ ] 1️⃣2️⃣ Estadísticas de Inventario (GET /inventory/stats) [Auth Required]
+- [ ] 1️⃣ **Crear Inventario Inicial** (POST /inventory) **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
+- [ ] 2️⃣ Agregar Stock (POST /inventory/add-stock) **[🔴 ADMIN Only]**
+- [ ] 3️⃣ Obtener Inventario por Producto (GET /inventory/product/:productId) **[🟢 Público]**
+- [ ] 4️⃣ Listar Todo el Inventario (GET /inventory) **[🟢 Público]**
+- [ ] 5️⃣ Verificar Disponibilidad (POST /inventory/check-availability) **[🟢 Público]**
+- [ ] 6️⃣ Reservar Stock (POST /inventory/reserve) **[🟡 Auth Required]**
+- [ ] 7️⃣ Liberar Reserva (PUT /inventory/release-reservation) **[🟡 Auth Required]**
+- [ ] 8️⃣ Confirmar Reserva (PUT /inventory/fulfill-reservation) **[🟡 Auth Required]**
+- [ ] 9️⃣ Remover Stock (POST /inventory/remove-stock) **[🔴 ADMIN Only]**
+- [ ] 🔟 Productos con Stock Bajo (GET /inventory/low-stock) **[🟢 Público]**
+- [ ] 1️⃣1️⃣ Productos Sin Stock (GET /inventory/out-of-stock) **[🟢 Público]**
+- [ ] 1️⃣2️⃣ Estadísticas de Inventario (GET /inventory/stats) **[🟡 Auth Required]**
 
 **IMPORTANTE:** Debes crear inventario inicial para los productos antes de poder crear órdenes.
 
@@ -29,8 +91,8 @@
 
 ```bash
 export BASE_URL="http://localhost:3000"
-export TOKEN="your-jwt-token-here"
-export ADMIN_TOKEN="admin-jwt-token-here"
+export ADMIN_TOKEN=""  # Token con rol ADMIN (crear/agregar/remover stock)
+export USER_TOKEN=""   # Token con rol USER (reservas)
 export PRODUCT_ID=""
 export RESERVATION_ID=""
 ```
@@ -60,14 +122,15 @@ El sistema de inventario implementa **reservas con TTL (Time To Live)**:
 
 ---
 
-## 1️⃣ Crear Inventario Inicial - **EMPEZAR AQUÍ**
+## 1️⃣ Crear Inventario Inicial **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
 
-**IMPORTANTE:** Antes de poder hacer órdenes, necesitas crear registros de inventario para los productos.
+**IMPORTANTE:** Antes de poder hacer órdenes, necesitas crear registros de inventario para los productos. Solo ADMIN puede crear inventario.
 
-### ✅ Test 1.1: Crear inventario inicial para producto
+### ✅ Test 1.1: Crear inventario inicial para producto como ADMIN
 
 **Endpoint:** `POST /inventory`  
-**Autenticación:** Bearer Token (JWT) - Required  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only  
 **Status Code:** `201 Created`
 
 **Request Body (mínimo):**
@@ -132,12 +195,12 @@ export PRODUCT_ID_4="1fd92456-65aa-42a7-9f14-9394e6516b3f"
 export SKU_4="SONY-WH1000XM5-001"
 ```
 
-**Comandos curl para crear inventario de los 4 productos:**
+**Comandos curl para crear inventario de los 4 productos (como ADMIN):**
 
 ```bash
 # 1. Samsung Galaxy S24 - 100 unidades
 curl -X POST "$BASE_URL/inventory" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "productId": "a5585341-86ff-4849-8558-678a8af7c444",
@@ -217,12 +280,13 @@ curl -X POST "$BASE_URL/inventory" \
 
 ---
 
-## 2️⃣ Agregar Stock (a inventario existente)
+## 2️⃣ Agregar Stock (a inventario existente) **[🔴 ADMIN Only]**
 
-### ✅ Test 2.1: Agregar stock exitosamente
+### ✅ Test 2.1: Agregar stock exitosamente como ADMIN
 
 **Endpoint:** `POST /inventory/add-stock`  
-**Autenticación:** Bearer Token (JWT) - Required  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only  
 **Status Code:** `200 OK`
 
 **NOTA:** Este endpoint requiere el `inventoryId`, no el `productId`. Primero debes obtener el inventoryId.
@@ -260,14 +324,13 @@ curl -X POST "$BASE_URL/inventory" \
 
 ```bash
 # Primero obtener el inventory ID del Samsung
-export INVENTORY_ID=$(curl -s -X GET "$BASE_URL/inventory/product/a5585341-86ff-4849-8558-678a8af7c444" \
-  -H "Authorization: Bearer $TOKEN" | grep -oP '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+export INVENTORY_ID=$(curl -s -X GET "$BASE_URL/inventory/product/a5585341-86ff-4849-8558-678a8af7c444" | grep -oP '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 echo "Inventory ID: $INVENTORY_ID"
 
-# Agregar 50 unidades más
+# Agregar 50 unidades más (requiere ADMIN_TOKEN)
 curl -X POST "$BASE_URL/inventory/add-stock" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
     \"inventoryId\": \"$INVENTORY_ID\",
@@ -305,11 +368,48 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
 
 ---
 
-## 3️⃣ Obtener Inventario por Producto
+### ❌ Test 2.2: USER sin rol ADMIN intenta agregar stock (403 Forbidden)
 
-### ✅ Test 1.1: Verificar stock disponible
+**Endpoint:** `POST /inventory/add-stock`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
 
-**Endpoint:** `POST /inventory/check-availability`  
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/inventory/add-stock" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"inventoryId\": \"$INVENTORY_ID\",
+    \"movementType\": \"RESTOCK\",
+    \"quantity\": 50
+  }" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403 (no 401)
+- [ ] Stock NO fue incrementado
+- [ ] Usuario autenticado pero sin permisos ADMIN
+
+---
+
+## 3️⃣ Obtener Inventario por Producto **[🟢 Público]**
+
+### ✅ Test 3.1: Verificar stock disponible
+
+**Endpoint:** `GET /inventory/product/:productId`  
 **Autenticación:** No requerida (Public)  
 **Status Code:** `200 OK`
 
@@ -756,12 +856,13 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
 
 ---
 
-## 6️⃣ Remover Stock
+## 6️⃣ Remover Stock **[🔴 ADMIN Only]**
 
-### ✅ Test 6.1: Remover stock exitosamente
+### ✅ Test 6.1: Remover stock exitosamente como ADMIN
 
 **Endpoint:** `POST /inventory/remove-stock`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only  
 **Status Code:** `201 Created`
 
 **Request Body:**
@@ -817,7 +918,44 @@ curl -X POST "$BASE_URL/inventory/remove-stock" \
 
 ---
 
-### ❌ Test 6.2: Remover más stock del disponible (400 Bad Request)
+### ❌ Test 6.2: USER sin rol ADMIN intenta remover stock (403 Forbidden)
+
+**Endpoint:** `POST /inventory/remove-stock`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/inventory/remove-stock" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"productId\": \"$PRODUCT_ID\",
+    \"quantity\": 10,
+    \"reason\": \"Unauthorized removal\"
+  }" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403 (no 401)
+- [ ] Stock NO fue removido
+- [ ] Usuario autenticado pero sin permisos ADMIN
+
+---
+
+### ❌ Test 6.3: Remover más stock del disponible (400 Bad Request)
 
 **Comando curl:**
 
@@ -1277,11 +1415,35 @@ Reserved Quantity = Sum of active reservations
 - Alertas automáticas cuando `quantity <= threshold`
 - Útil para reorden automático
 
+### Control de Acceso (RBAC)
+
+**Operaciones ADMIN Only:**
+- Crear inventario inicial (`POST /inventory`)
+- Agregar stock (`POST /inventory/add-stock`)
+- Remover stock (`POST /inventory/remove-stock`)
+
+**Operaciones Auth Required (USER/ADMIN):**
+- Reservar stock (`POST /inventory/reserve`)
+- Liberar reserva (`PUT /inventory/release-reservation`)
+- Confirmar reserva (`PUT /inventory/fulfill-reservation`)
+- Ver estadísticas (`GET /inventory/stats`)
+
+**Operaciones Públicas:**
+- Ver inventario
+- Verificar disponibilidad
+- Ver stock bajo/sin stock
+
+**Respuestas de Autorización:**
+- **403 Forbidden**: Usuario autenticado sin rol ADMIN
+- **401 Unauthorized**: Sin autenticación
+
 ---
 
 **Estado del Módulo:** ✅ Completado  
-**Tests Totales:** 40+  
-**Tests Críticos:** 13  
+**Tests Totales:** 45+  
+**Tests Críticos:** 15  
+**RBAC:** ✅ Sistema de roles implementado  
+**Seguridad:** ✅ Operaciones de stock protegidas (ADMIN only)  
 **Reservas:** Con TTL automático  
 **Audit Trail:** Completo  
-**Última Actualización:** 2025-10-11
+**Última Actualización:** 2025-10-14

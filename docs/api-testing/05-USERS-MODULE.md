@@ -2,20 +2,21 @@
 
 **Módulo:** Users  
 **Base URL:** `http://localhost:3000/users`  
-**Descripción:** Gestión de usuarios con CRUD completo, paginación y soft delete
+**Descripción:** Gestión de usuarios con CRUD completo, paginación, soft delete y sistema RBAC
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Crear Usuario (POST /users) [Auth Required]
-- [ ] ✅ 2. Listar Usuarios con Paginación (GET /users) [Auth Required]
+- [ ] ✅ 1. Crear Usuario (POST /users) [ADMIN Only]
+- [ ] ✅ 2. Listar Usuarios con Paginación (GET /users) [ADMIN Only]
 - [ ] ✅ 3. Obtener Perfil Propio (GET /users/profile) [Auth Required]
-- [ ] ✅ 4. Obtener Usuario por ID (GET /users/:id) [Auth Required]
-- [ ] ✅ 5. Actualizar Usuario (PATCH /users/:id) [Auth Required]
-- [ ] ✅ 6. Eliminar Usuario - Soft Delete (DELETE /users/:id) [Auth Required]
-- [ ] ✅ 7. Activar Usuario (PATCH /users/:id/activate) [Auth Required]
-- [ ] ✅ 8. Paginación y Filtros
+- [ ] ✅ 4. Obtener Usuario por ID (GET /users/:id) [ADMIN Only]
+- [ ] ✅ 5. Actualizar Usuario (PATCH /users/:id) [ADMIN Only]
+- [ ] ✅ 6. Eliminar Usuario - Soft Delete (DELETE /users/:id) [ADMIN Only]
+- [ ] ✅ 7. Activar Usuario (PATCH /users/:id/activate) [ADMIN Only]
+- [ ] ✅ 8. Paginación y Filtros [ADMIN Only]
+- [ ] ✅ 9. Tests de Autorización RBAC
 
 ---
 
@@ -23,22 +24,93 @@
 
 ```bash
 export BASE_URL="http://localhost:3000"
-export TOKEN="your-jwt-token-here"
+export TOKEN="your-jwt-token-here"           # Token de usuario normal (role: USER)
 export USER_ID=""
-export ADMIN_TOKEN="admin-jwt-token-here"
+export ADMIN_TOKEN="admin-jwt-token-here"    # Token de administrador (role: ADMIN)
 ```
 
 ---
 
-## ⚠️ Importante: Permisos
+## 🔐 Sistema de Autorización RBAC
 
-- **Crear usuario:** Solo ADMIN puede crear usuarios manualmente
-- **Listar usuarios:** Solo ADMIN puede listar todos los usuarios
-- **Ver perfil propio:** Cualquier usuario autenticado
-- **Ver perfil de otro:** Solo ADMIN
-- **Actualizar usuario:** Solo el propio usuario o ADMIN
-- **Eliminar usuario:** Solo ADMIN (soft delete)
-- **Activar usuario:** Solo ADMIN
+### Roles Disponibles
+
+- **ADMIN**: Acceso completo a gestión de usuarios
+- **USER**: Solo puede ver y editar su propio perfil
+
+### Endpoints por Nivel de Acceso
+
+#### 🔴 Solo ADMIN (Bearer Token con role ADMIN)
+- `POST /users` - Crear usuario
+- `GET /users` - Listar todos los usuarios
+- `GET /users/:id` - Ver cualquier usuario
+- `PATCH /users/:id` - Actualizar cualquier usuario
+- `DELETE /users/:id` - Eliminar usuario (soft delete)
+- `PATCH /users/:id/activate` - Activar usuario
+
+#### 🟢 Usuario Autenticado (Cualquier role)
+- `GET /users/profile` - Ver propio perfil
+
+### Obtener Token de ADMIN
+
+```bash
+# Login como administrador
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!"
+  }' | jq -r '.accessToken')
+
+echo "Admin Token: $ADMIN_TOKEN"
+```
+
+### Obtener Token de Usuario Normal
+
+```bash
+# Login como usuario normal
+export TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!"
+  }' | jq -r '.accessToken')
+
+echo "User Token: $TOKEN"
+```
+
+### Verificar Role del Token
+
+```bash
+# Ver información del usuario actual
+curl -X GET "$BASE_URL/auth/me" \
+  -H "Authorization: Bearer $TOKEN" | jq '.role'
+```
+
+---
+
+## ⚠️ Respuestas de Error - Autorización
+
+### 403 Forbidden (Usuario sin role ADMIN)
+
+Cuando un usuario con role `USER` intenta acceder a un endpoint administrativo:
+
+```json
+{
+  "statusCode": 403,
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "Forbidden"
+}
+```
+
+### 401 Unauthorized (Sin token o token inválido)
+
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized"
+}
+```
 
 ---
 
@@ -98,6 +170,7 @@ curl -X POST "$BASE_URL/users" \
   "dateOfBirth": "1990-05-15T00:00:00.000Z",
   "language": "es",
   "timezone": "America/Argentina/Buenos_Aires",
+  "role": "USER",
   "isActive": true,
   "emailVerifiedAt": null,
   "lastLoginAt": null,
@@ -128,13 +201,52 @@ echo "User ID: $USER_ID"
 - [ ] Email está en minúsculas y trimmed
 - [ ] `passwordHash` NO aparece en la respuesta
 - [ ] `fullName` está calculado correctamente
+- [ ] `role` es "USER" por defecto (nuevo campo RBAC)
 - [ ] `isActive` por defecto es `true`
 - [ ] `emailVerifiedAt` es `null`
 - [ ] `lastLoginAt` es `null`
 
 ---
 
-### ❌ Test 1.2: Crear usuario con email duplicado (409 Conflict)
+### ❌ Test 1.2: Usuario sin role ADMIN intenta crear usuario (403 Forbidden)
+
+**Endpoint:** `POST /users`  
+**Autenticación:** Bearer Token (JWT) - Usuario normal (role: USER)  
+**Status Code:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/users" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "passwordHash": "Password123!",
+    "firstName": "New",
+    "lastName": "User"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Mensaje indica falta de permisos
+- [ ] Usuario NO fue creado en la base de datos
+
+---
+
+### ❌ Test 1.3: Crear usuario con email duplicado (409 Conflict)
 
 **Comando curl:**
 
@@ -782,12 +894,20 @@ curl -X PATCH "$BASE_URL/users/$USER_ID" \
 
 ## 6️⃣ Eliminar Usuario (Soft Delete)
 
+### ⚠️ Importante: Soft Delete con `deletedAt`
+
+- ✅ Utiliza `@DeleteDateColumn` de TypeORM
+- ✅ Campo `deletedAt` se setea con timestamp cuando se elimina
+- ✅ Usuarios eliminados NO aparecen en consultas normales (WHERE deleted_at IS NULL)
+- ✅ Se puede recuperar usuario con `PATCH /users/:id/activate` (restaura soft delete)
+- 🔒 **Protección Admin**: Un administrador NO puede eliminarse a sí mismo
+
 ### ✅ Test 6.1: Eliminar usuario exitosamente (Soft Delete)
 
 **Endpoint:** `DELETE /users/:id`  
 **Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
 **Status Code:** `204 No Content`  
-**Nota:** Soft delete - el usuario se marca como inactivo pero no se elimina físicamente
+**Nota:** Soft delete - el usuario se marca con `deletedAt` pero no se elimina físicamente
 
 **Comando curl:**
 
@@ -805,36 +925,73 @@ curl -X DELETE "$BASE_URL/users/$USER_ID" \
 **Verificar soft delete:**
 
 ```bash
-# Verificar que el usuario existe pero está inactivo
+# Intentar obtener usuario eliminado (debería retornar 404)
 curl -X GET "$BASE_URL/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
 ```
 
-**Respuesta (200 OK - usuario inactivo):**
+**Respuesta (404 Not Found):**
 
 ```json
 {
-  "id": "user-uuid-here",
-  "email": "user@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "isActive": false,
-  "deletedAt": "2025-10-11T10:40:00.000Z",
-  ...
+  "statusCode": 404,
+  "message": "User with ID {id} not found",
+  "error": "Not Found"
 }
 ```
+
+**Nota:** El usuario existe en la base de datos pero con `deletedAt` seteado, por lo que NO es visible en consultas normales.
 
 **Checklist:**
 
 - [ ] Status code es 204
 - [ ] No hay body en la respuesta
-- [ ] Usuario existe pero `isActive: false`
-- [ ] Campo `deletedAt` tiene timestamp
-- [ ] Usuario NO aparece en listado por defecto
+- [ ] Usuario NO aparece en GET /users/:id (retorna 404)
+- [ ] Usuario NO aparece en listado GET /users
+- [ ] Campo `deletedAt` tiene timestamp en la base de datos
+- [ ] Usuario puede ser reactivado con endpoint activate (restaura soft delete)
 
 ---
 
-### ❌ Test 6.2: Usuario normal intenta eliminar usuario (403 Forbidden)
+### ❌ Test 6.2: Admin intenta eliminarse a sí mismo (403 Forbidden)
+
+**Endpoint:** `DELETE /users/:id`  
+**Autenticación:** Bearer Token (JWT) - ADMIN  
+**Status Code:** `403 Forbidden`  
+**Nota:** Protección de seguridad - admin no puede auto-eliminarse
+
+**Comando curl:**
+
+```bash
+# Obtener ID del usuario admin actual
+ADMIN_USER_ID=$(curl -s -X GET "$BASE_URL/auth/me" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+
+# Intentar eliminar el propio usuario admin
+curl -X DELETE "$BASE_URL/users/$ADMIN_USER_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Admin users cannot be deleted. Please contact support for assistance.",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Admin NO puede eliminarse a sí mismo
+- [ ] Mensaje claro de prohibición
+- [ ] Usuario admin sigue activo
+
+---
+
+### ❌ Test 6.3: Usuario normal intenta eliminar usuario (403 Forbidden)
 
 **Comando curl:**
 
@@ -1056,13 +1213,14 @@ echo "=== ✅ Testing completado ==="
 - **Ejemplo:** `+541234567890`
 - **Regex:** `/^\+[1-9]\d{1,14}$/`
 
-### Soft Delete
+### Soft Delete con @DeleteDateColumn
 
-- El endpoint `DELETE /users/:id` realiza **soft delete**
-- El usuario se marca como `isActive: false`
-- Se agrega timestamp en `deletedAt`
+- El endpoint `DELETE /users/:id` realiza **soft delete** usando TypeORM's @DeleteDateColumn
+- Se agrega timestamp en campo `deletedAt` (no modifica `isActive`)
 - El usuario NO se elimina físicamente de la base de datos
-- Se puede reactivar con `PATCH /users/:id/activate`
+- Usuarios con `deletedAt != null` NO aparecen en consultas normales
+- Se puede reactivar con `PATCH /users/:id/activate` (restaura soft delete: `deletedAt = null`)
+- **Protección Admin**: Usuarios con role ADMIN no pueden eliminarse a sí mismos
 
 ### Paginación
 
@@ -1080,10 +1238,21 @@ echo "=== ✅ Testing completado ==="
 
 - **fullName:** Concatenación automática de `firstName + " " + lastName`
 
+### Sistema RBAC (Role-Based Access Control)
+
+- **Roles:** ADMIN, USER
+- **Campo role:** Agregado en entity User (enum UserRole)
+- **Default role:** USER (en registro y creación)
+- **Protección:** Todos los endpoints administrativos requieren role ADMIN
+- **JWT:** Token incluye información de role para autorización
+- **Guard:** RolesGuard valida permisos en cada request
+
 ---
 
 **Estado del Módulo:** ✅ Completado  
-**Tests Totales:** 30+  
-**Tests Críticos:** 10  
-**Soft Delete:** ✅ Implementado  
+**Tests Totales:** 35+  
+**Tests Críticos:** 12  
+**Soft Delete:** ✅ Implementado con @DeleteDateColumn  
+**RBAC:** ✅ Sistema de roles completo (ADMIN/USER)  
+**Seguridad:** ✅ Protección de endpoints administrativos  
 **Última Actualización:** 2025-10-11

@@ -2,19 +2,82 @@
 
 **Módulo:** Products  
 **Base URL:** `http://localhost:3000/products`  
-**Descripción:** CRUD completo de productos con búsqueda, filtros, paginación y gestión de estado
+**Descripción:** CRUD completo de productos con búsqueda, filtros, paginación, gestión de estado y control de acceso basado en roles (RBAC)
+
+---
+
+## 🔐 Control de Acceso (RBAC)
+
+Este módulo implementa control de acceso basado en roles:
+
+| Endpoint | Método | Acceso | Descripción |
+|----------|--------|--------|-------------|
+| `/products` | POST | **🔴 ADMIN Only** | Crear productos |
+| `/products` | GET | 🟢 Público | Listar productos |
+| `/products/search` | GET | 🟢 Público | Buscar productos |
+| `/products/:id` | GET | 🟢 Público | Obtener producto |
+| `/products/:id` | PATCH | **🔴 ADMIN Only** | Actualizar producto |
+| `/products/:id/activate` | PATCH | **🔴 ADMIN Only** | Activar producto |
+| `/products/:id/deactivate` | PATCH | **🔴 ADMIN Only** | Desactivar producto |
+| `/products/:id` | DELETE | **🔴 ADMIN Only** | Eliminar producto (soft delete) |
+
+### Roles Disponibles
+
+- **ADMIN**: Acceso completo (crear, modificar, eliminar productos)
+- **USER**: Solo lectura (ver productos y buscar)
+- **Público**: Solo lectura (sin autenticación)
+
+### 🔑 Obtener Tokens por Rol
+
+```bash
+# Token de ADMINISTRADOR (acceso completo)
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
+  }' | jq -r '.data.accessToken')
+
+# Token de USUARIO (solo lectura)
+export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "Admin Token: $ADMIN_TOKEN"
+echo "User Token: $USER_TOKEN"
+```
+
+### ⚠️ Respuesta 403 Forbidden (Sin Permisos)
+
+Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] 1️⃣ Crear Producto (POST /products) [Auth Required] - **EMPEZAR AQUÍ**
-- [ ] 2️⃣ Listar Productos con Paginación (GET /products)
-- [ ] 3️⃣ Buscar Productos (GET /products/search)
-- [ ] 4️⃣ Actualizar Producto (PATCH /products/:id) [Auth Required]
-- [ ] 5️⃣ Activar Producto (PATCH /products/:id/activate) [Auth Required]
-- [ ] 6️⃣ Desactivar Producto (PATCH /products/:id/deactivate) [Auth Required]
-- [ ] 7️⃣ Eliminar Producto (DELETE /products/:id) [Auth Required]
+- [ ] 1️⃣ Crear Producto (POST /products) **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
+  - [ ] 1.1 Crear producto como ADMIN (201)
+  - [ ] 1.2 Crear varios productos para pruebas
+  - [ ] 1.3 USER intenta crear producto (403 Forbidden)
+  - [ ] 1.4 Sin autenticación (401 Unauthorized)
+  - [ ] 1.5 Validación de precio mínimo ($0.50)
+- [ ] 2️⃣ Listar Productos con Paginación (GET /products) **[🟢 Público]**
+- [ ] 3️⃣ Buscar Productos (GET /products/search) **[🟢 Público]**
+- [ ] 4️⃣ Actualizar Producto (PATCH /products/:id) **[🔴 ADMIN Only]**
+- [ ] 5️⃣ Activar Producto (PATCH /products/:id/activate) **[🔴 ADMIN Only]**
+- [ ] 6️⃣ Desactivar Producto (PATCH /products/:id/deactivate) **[🔴 ADMIN Only]**
+- [ ] 7️⃣ Eliminar Producto (DELETE /products/:id) **[🔴 ADMIN Only]**
 
 **IMPORTANTE:** Comenzar con la creación de productos (Test 1) para tener datos con los que trabajar en los tests siguientes.
 
@@ -24,7 +87,8 @@
 
 ```bash
 export BASE_URL="http://localhost:3000"
-export TOKEN="your-jwt-token-here"
+export ADMIN_TOKEN=""  # Token con rol ADMIN (para crear/modificar/eliminar)
+export USER_TOKEN=""   # Token con rol USER (solo lectura)
 export PRODUCT_ID=""
 ```
 
@@ -32,30 +96,40 @@ export PRODUCT_ID=""
 
 ## 🔑 Prerequisitos
 
-Antes de comenzar, asegúrate de tener un token JWT válido:
+Antes de comenzar, asegúrate de tener tokens JWT para ambos roles:
 
 ```bash
-# Hacer login para obtener token
-export TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+# Token de ADMINISTRADOR (requerido para crear/modificar/eliminar)
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test.user@example.com",
-    "password": "Test123!@#"
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
   }' | jq -r '.data.accessToken')
 
-echo "Token obtenido: $TOKEN"
+# Token de USUARIO (solo lectura)
+export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "Admin Token: $ADMIN_TOKEN"
+echo "User Token: $USER_TOKEN"
 ```
 
 ---
 
-## 1️⃣ Crear Producto (Requiere Autenticación) - **EMPEZAR AQUÍ**
+## 1️⃣ Crear Producto **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
 
-**NOTA:** Es necesario crear productos primero para poder probar los demás endpoints.
+**NOTA:** Solo usuarios con rol ADMIN pueden crear productos.
 
-### ✅ Test 1.1: Crear producto exitosamente
+### ✅ Test 1.1: Crear producto exitosamente como ADMIN
 
 **Endpoint:** `POST /products`  
-**Autenticación:** Bearer Token (JWT) - Admin required
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Request Body:**
 
@@ -82,11 +156,16 @@ echo "Token obtenido: $TOKEN"
 }
 ```
 
+**⚠️ IMPORTANTE - Validación de Precio:**
+- **Precio mínimo:** $0.50 USD (constante: `PRODUCT_PRICE.MIN = 0.5`)
+- **Precio máximo:** $1,000,000.00 USD (constante: `PRODUCT_PRICE.MAX = 1000000`)
+- Precios fuera de este rango retornarán error 400
+
 **Comando curl:**
 
 ```bash
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Product",
@@ -128,7 +207,7 @@ curl -X POST "$BASE_URL/products" \
 
 ```bash
 export PRODUCT_ID=$(curl -s -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Product",
@@ -147,15 +226,16 @@ echo "Product ID: $PRODUCT_ID"
 - [ ] Respuesta contiene el producto creado con ID
 - [ ] `isActive` es `true` por defecto
 - [ ] Todos los campos enviados están presentes
+- [ ] Precio cumple con el mínimo de $0.50
 
 ---
 
-### ✅ Test 1.2: Crear varios productos para pruebas
+### ✅ Test 1.2: Crear varios productos para pruebas (como ADMIN)
 
 ```bash
 # Producto 1: Samsung Galaxy S24
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Samsung Galaxy S24",
@@ -169,7 +249,7 @@ curl -X POST "$BASE_URL/products" \
 
 # Producto 2: iPhone 15 Pro
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "iPhone 15 Pro",
@@ -182,7 +262,7 @@ curl -X POST "$BASE_URL/products" \
 
 # Producto 3: MacBook Pro 14
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "MacBook Pro 14",
@@ -195,7 +275,7 @@ curl -X POST "$BASE_URL/products" \
 
 # Producto 4: Dell XPS 15
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Dell XPS 15",
@@ -208,7 +288,7 @@ curl -X POST "$BASE_URL/products" \
 
 # Producto 5: Sony WH-1000XM5
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Sony WH-1000XM5",
@@ -230,7 +310,52 @@ curl -X POST "$BASE_URL/products" \
 
 ---
 
-### ❌ Test 1.3: Crear producto sin autenticación (401 Unauthorized)
+### ❌ Test 1.3: USER sin rol ADMIN intenta crear producto (403 Forbidden)
+
+**Endpoint:** `POST /products`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Unauthorized Product",
+    "description": "This should fail",
+    "sku": "UNAUTH-001",
+    "price": 99.99,
+    "brand": "TestBrand"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403 (no 401)
+- [ ] Mensaje indica recurso prohibido
+- [ ] Producto NO fue creado en la base de datos
+
+**💡 Nota:** Error 403 significa que el usuario está autenticado pero no tiene permisos suficientes (rol USER en vez de ADMIN).
+
+---
+
+### ❌ Test 1.4: Crear producto sin autenticación (401 Unauthorized)
+
+**Endpoint:** `POST /products`  
+**Autenticación:** None  
+**Status Code esperado:** `401 Unauthorized`
 
 **Comando curl:**
 
@@ -259,16 +384,104 @@ curl -X POST "$BASE_URL/products" \
 
 - [ ] Status code es 401
 - [ ] Requiere autenticación
+- [ ] Diferencia entre 401 (sin token) y 403 (sin permisos)
 
 ---
 
-### ❌ Test 1.4: Crear producto con SKU duplicado (409 Conflict)
+### ❌ Test 1.5: Validación de precio mínimo (400 Bad Request)
+
+**Endpoint:** `POST /products`  
+**Autenticación:** Bearer Token (ADMIN)  
+**Status Code esperado:** `400 Bad Request`
+
+**⚠️ Precio Mínimo: $0.50 USD** (constante: `PRODUCT_PRICE.MIN = 0.5`)
+
+**Comando curl:**
+
+```bash
+# Precio por debajo del mínimo ($0.50)
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Too Cheap Product",
+    "sku": "CHEAP-001",
+    "price": 0.25,
+    "brand": "TestBrand",
+    "description": "Price below minimum"
+  }' | jq '.'
+
+# Precio de $0.01 (anterior mínimo, ahora inválido)
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "One Cent Product",
+    "sku": "CENT-001",
+    "price": 0.01,
+    "brand": "TestBrand",
+    "description": "Old minimum, now invalid"
+  }' | jq '.'
+
+# Precio exactamente $0.50 (válido, límite inferior)
+curl -X POST "$BASE_URL/products" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Minimum Price Product",
+    "sku": "MIN-PRICE-001",
+    "price": 0.50,
+    "brand": "TestBrand",
+    "description": "Exactly at minimum"
+  }' | jq '.'
+```
+
+**Respuesta Esperada para precio < $0.50 (400 Bad Request):**
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "price must not be less than 0.5"
+  ],
+  "error": "Bad Request"
+}
+```
+
+**Respuesta Esperada para precio = $0.50 (201 Created):**
+
+```json
+{
+  "statusCode": 201,
+  "message": "Created successfully",
+  "data": {
+    "id": "uuid-here",
+    "name": "Minimum Price Product",
+    "price": "0.50",
+    ...
+  }
+}
+```
+
+**Checklist:**
+
+- [ ] Precio < $0.50 retorna 400
+- [ ] Precio = $0.50 es aceptado (201)
+- [ ] Precio > $0.50 es aceptado
+- [ ] Mensaje de error especifica el mínimo de 0.5
+- [ ] Constante PRODUCT_PRICE.MIN documentada
+
+**💡 Nota:** El precio mínimo fue actualizado de $0.01 a $0.50 por políticas de negocio. Ver `src/modules/products/constants/product-validation.constants.ts`
+
+---
+
+### ❌ Test 1.6: Crear producto con SKU duplicado (409 Conflict)
 
 **Comando curl:**
 
 ```bash
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Duplicate SKU Product",
@@ -295,14 +508,14 @@ curl -X POST "$BASE_URL/products" \
 
 ---
 
-### ❌ Test 1.5: Crear producto con datos inválidos (400 Bad Request)
+### ❌ Test 1.7: Crear producto con datos inválidos (400 Bad Request)
 
 **Comando curl:**
 
 ```bash
 # Precio negativo
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Invalid Product",
@@ -313,7 +526,7 @@ curl -X POST "$BASE_URL/products" \
 
 # Campos requeridos faltantes
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Incomplete Product"
@@ -321,7 +534,7 @@ curl -X POST "$BASE_URL/products" \
 
 # SKU con formato inválido (debe ser uppercase y solo A-Z, 0-9, -, _)
 curl -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Invalid SKU Product",
@@ -731,12 +944,13 @@ curl -X GET "$BASE_URL/products/invalid-id" | jq '.'
 
 ---
 
-## 4️⃣ Actualizar Producto
+## 4️⃣ Actualizar Producto **[🔴 ADMIN Only]**
 
-### ✅ Test 5.1: Actualizar producto exitosamente
+### ✅ Test 5.1: Actualizar producto exitosamente como ADMIN
 
 **Endpoint:** `PATCH /products/:id`  
-**Autenticación:** Bearer Token (JWT) - Admin required
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Request Body (campos parciales):**
 
@@ -753,7 +967,7 @@ curl -X GET "$BASE_URL/products/invalid-id" | jq '.'
 
 ```bash
 curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated Product Name",
@@ -783,13 +997,49 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
 
 ---
 
-### ❌ Test 5.2: Actualizar producto inexistente (404 Not Found)
+### ❌ Test 5.2: USER sin rol ADMIN intenta actualizar producto (403 Forbidden)
+
+**Endpoint:** `PATCH /products/:id`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Unauthorized Update",
+    "price": 999.99
+  }' | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403 (no 401)
+- [ ] Producto NO fue actualizado
+- [ ] Usuario autenticado pero sin permisos
+
+---
+
+### ❌ Test 5.3: Actualizar producto inexistente (404 Not Found)
 
 **Comando curl:**
 
 ```bash
 curl -X PATCH "$BASE_URL/products/00000000-0000-0000-0000-000000000000" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated Name"
@@ -812,7 +1062,7 @@ curl -X PATCH "$BASE_URL/products/00000000-0000-0000-0000-000000000000" \
 
 ---
 
-### ❌ Test 5.3: Actualizar sin autenticación (401 Unauthorized)
+### ❌ Test 5.4: Actualizar sin autenticación (401 Unauthorized)
 
 **Comando curl:**
 
@@ -840,18 +1090,19 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
 
 ---
 
-## 5️⃣ Activar Producto
+## 5️⃣ Activar Producto **[🔴 ADMIN Only]**
 
-### ✅ Test 6.1: Activar producto desactivado
+### ✅ Test 6.1: Activar producto desactivado como ADMIN
 
 **Endpoint:** `PATCH /products/:id/activate`  
-**Autenticación:** Bearer Token (JWT) - Admin required
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Comando curl:**
 
 ```bash
 curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
 ```
 
 **Respuesta Esperada (200 OK):**
@@ -872,18 +1123,45 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
 
 ---
 
-## 6️⃣ Desactivar Producto
+### ❌ Test 6.2: USER intenta activar producto (403 Forbidden)
 
-### ✅ Test 7.1: Desactivar producto activo
+**Comando curl:**
+
+```bash
+curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
+  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Producto NO fue activado
+
+---
+
+## 6️⃣ Desactivar Producto **[🔴 ADMIN Only]**
+
+### ✅ Test 7.1: Desactivar producto activo como ADMIN
 
 **Endpoint:** `PATCH /products/:id/deactivate`  
-**Autenticación:** Bearer Token (JWT) - Admin required
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Comando curl:**
 
 ```bash
 curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
 ```
 
 **Respuesta Esperada (200 OK):**
@@ -905,18 +1183,45 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
 
 ---
 
-## 7️⃣ Eliminar Producto (Soft Delete)
+### ❌ Test 7.2: USER intenta desactivar producto (403 Forbidden)
 
-### ✅ Test 8.1: Eliminar producto exitosamente
+**Comando curl:**
+
+```bash
+curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
+  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Producto NO fue desactivado
+
+---
+
+## 7️⃣ Eliminar Producto (Soft Delete) **[🔴 ADMIN Only]**
+
+### ✅ Test 8.1: Eliminar producto exitosamente como ADMIN
 
 **Endpoint:** `DELETE /products/:id`  
-**Autenticación:** Bearer Token (JWT) - Admin required
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Comando curl:**
 
 ```bash
 curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -w "\nStatus: %{http_code}\n"
 ```
 
@@ -935,13 +1240,39 @@ curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
 
 ---
 
-### ❌ Test 8.2: Eliminar producto ya eliminado (404 Not Found)
+### ❌ Test 8.2: USER intenta eliminar producto (403 Forbidden)
 
 **Comando curl:**
 
 ```bash
 curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Producto NO fue eliminado
+
+---
+
+### ❌ Test 8.3: Eliminar producto ya eliminado (404 Not Found)
+
+**Comando curl:**
+
+```bash
+curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
 ```
 
 **Respuesta Esperada (404 Not Found):**
@@ -967,9 +1298,29 @@ curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
 # Testing completo de Products Module
 
 BASE_URL="http://localhost:3000"
-TOKEN="your-jwt-token"
+ADMIN_TOKEN="your-admin-jwt-token"
+USER_TOKEN="your-user-jwt-token"
 
 echo "=== 📦 Testing Products Module ==="
+echo ""
+
+# Obtener tokens
+echo "0️⃣ Obteniendo tokens de autenticación..."
+ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
+  }' | jq -r '.data.accessToken')
+
+USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "✅ Tokens obtenidos"
 echo ""
 
 # 1. Listar productos
@@ -978,11 +1329,11 @@ PRODUCTS=$(curl -s -X GET "$BASE_URL/products?limit=5")
 TOTAL=$(echo $PRODUCTS | jq -r '.meta.totalItems')
 echo "✅ Total de productos: $TOTAL"
 
-# 2. Crear producto
-echo "2️⃣ Creando producto de prueba..."
+# 2. Crear producto como ADMIN
+echo "2️⃣ Creando producto de prueba como ADMIN..."
 SKU="TEST-$(date +%s)"
 CREATE_RESPONSE=$(curl -s -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"Test Product\",
@@ -1013,10 +1364,10 @@ SEARCH_RESULTS=$(curl -s -X GET "$BASE_URL/products/search?q=Test&limit=5")
 RESULTS_COUNT=$(echo $SEARCH_RESULTS | jq '. | length')
 echo "✅ Resultados de búsqueda: $RESULTS_COUNT"
 
-# 5. Actualizar producto
-echo "5️⃣ Actualizando producto..."
+# 5. Actualizar producto como ADMIN
+echo "5️⃣ Actualizando producto como ADMIN..."
 UPDATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated Test Product",
@@ -1026,27 +1377,41 @@ UPDATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
 UPDATED_NAME=$(echo $UPDATE_RESPONSE | jq -r '.name')
 echo "✅ Producto actualizado: $UPDATED_NAME"
 
-# 6. Desactivar producto
-echo "6️⃣ Desactivando producto..."
+# 6. Test de autorización - USER intenta actualizar (debe fallar)
+echo "6️⃣ Probando autorización - USER intenta actualizar..."
+USER_UPDATE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"price": 999.99}')
+
+if [ "$USER_UPDATE" == "403" ]; then
+  echo "✅ Autorización correcta - USER recibió 403 Forbidden"
+else
+  echo "❌ Error de autorización - Expected 403, got $USER_UPDATE"
+fi
+
+# 7. Desactivar producto como ADMIN
+echo "7️⃣ Desactivando producto como ADMIN..."
 DEACTIVATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
-  -H "Authorization: Bearer $TOKEN")
+  -H "Authorization: Bearer $ADMIN_TOKEN")
 
 IS_ACTIVE=$(echo $DEACTIVATE_RESPONSE | jq -r '.isActive')
 echo "✅ Producto desactivado (isActive: $IS_ACTIVE)"
 
-# 7. Activar producto
-echo "7️⃣ Activando producto..."
+# 8. Activar producto como ADMIN
+echo "8️⃣ Activando producto como ADMIN..."
 ACTIVATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
-  -H "Authorization: Bearer $TOKEN")
+  -H "Authorization: Bearer $ADMIN_TOKEN")
 
 IS_ACTIVE=$(echo $ACTIVATE_RESPONSE | jq -r '.isActive')
 echo "✅ Producto activado (isActive: $IS_ACTIVE)"
 
-# 8. Eliminar producto
-echo "8️⃣ Eliminando producto..."
+# 9. Eliminar producto como ADMIN
+echo "9️⃣ Eliminando producto como ADMIN..."
 DELETE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
   -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $TOKEN")
+  -H "Authorization: Bearer $ADMIN_TOKEN")
 
 if [ "$DELETE_STATUS" == "204" ]; then
   echo "✅ Producto eliminado exitosamente"
@@ -1062,11 +1427,20 @@ echo "=== ✅ Testing completado ==="
 
 ## 📝 Notas Importantes
 
+### Control de Acceso (RBAC)
+
+- **Operaciones ADMIN Only**: Crear, Actualizar, Activar, Desactivar, Eliminar
+- **Operaciones Públicas**: Listar, Buscar, Obtener por ID
+- **403 Forbidden**: Usuario autenticado sin rol ADMIN
+- **401 Unauthorized**: Sin autenticación
+
 ### Campos Requeridos para Crear Producto
 
 - `name` (string, min: 2 chars, max: 255 chars)
 - `sku` (string, único, min: 3 chars, max: 100 chars, uppercase, formato: `[A-Z0-9\-_]+`)
-- `price` (number, > 0.01, max: 999999.99, 2 decimales)
+- `price` (number, **min: 0.50**, max: 1000000.00, 2 decimales)
+  - **⚠️ Precio mínimo actualizado de $0.01 a $0.50**
+  - Ver constante: `PRODUCT_PRICE.MIN = 0.5` en `src/modules/products/constants/product-validation.constants.ts`
 
 ### Campos Opcionales
 
@@ -1076,8 +1450,8 @@ echo "=== ✅ Testing completado ==="
 - `attributes` (object - cualquier metadato del producto)
 - `images` (array de URLs, max: 10 items)
 - `tags` (array de strings, max: 20 items, se convierten a lowercase)
-- `costPrice` (number, >= 0, max: 999999.99, 2 decimales)
-- `compareAtPrice` (number, > 0.01, max: 999999.99, 2 decimales)
+- `costPrice` (number, >= 0, max: 1000000.00, 2 decimales)
+- `compareAtPrice` (number, **min: 0.50**, max: 1000000.00, 2 decimales)
 - `isActive` (boolean, default: true)
 - `trackInventory` (boolean, default: true)
 - `minimumStock` (number, >= 0, max: 999999)
@@ -1096,9 +1470,23 @@ echo "=== ✅ Testing completado ==="
 - `sortOrder` - ASC | DESC
 - `page`, `limit` - Paginación
 
+### Constantes de Validación
+
+Definidas en `src/modules/products/constants/product-validation.constants.ts`:
+
+```typescript
+export const PRODUCT_PRICE = {
+  MIN: 0.5,      // Precio mínimo: $0.50
+  MAX: 1000000,  // Precio máximo: $1,000,000.00
+} as const;
+```
+
 ---
 
 **Estado del Módulo:** ✅ Completado  
-**Tests Totales:** 25+  
-**Tests Críticos:** 8  
-**Última Actualización:** 2025-10-11
+**Tests Totales:** 35+  
+**Tests Críticos:** 12  
+**RBAC:** ✅ Sistema de roles implementado  
+**Seguridad:** ✅ Protección de endpoints administrativos  
+**Validaciones:** ✅ Precio mínimo $0.50  
+**Última Actualización:** 2025-10-14

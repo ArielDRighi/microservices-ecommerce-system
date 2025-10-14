@@ -2,24 +2,97 @@
 
 **Módulo:** Categories  
 **Base URL:** `http://localhost:3000/categories`  
-**Descripción:** Gestión jerárquica de categorías con árbol, slugs y relaciones parent-child
+**Descripción:** Gestión jerárquica de categorías con árbol, slugs, relaciones parent-child y control de acceso basado en roles (RBAC)
+
+---
+
+## � Control de Acceso (RBAC)
+
+Este módulo implementa control de acceso basado en roles:
+
+| Endpoint | Método | Acceso | Descripción |
+|----------|--------|--------|-------------|
+| `/categories` | POST | **🔴 ADMIN Only** | Crear categorías |
+| `/categories` | GET | 🟢 Público | Listar categorías |
+| `/categories/tree` | GET | 🟢 Público | Obtener árbol completo |
+| `/categories/slug/:slug` | GET | 🟢 Público | Buscar por slug |
+| `/categories/:id` | GET | 🟢 Público | Obtener por ID |
+| `/categories/:id/descendants` | GET | 🟢 Público | Obtener descendientes |
+| `/categories/:id/path` | GET | 🟢 Público | Obtener path/breadcrumb |
+| `/categories/:id` | PUT | **🔴 ADMIN Only** | Actualizar categoría |
+| `/categories/:id/activate` | PATCH | **🔴 ADMIN Only** | Activar categoría |
+| `/categories/:id/deactivate` | PATCH | **🔴 ADMIN Only** | Desactivar categoría |
+| `/categories/:id` | DELETE | **🔴 ADMIN Only** | Eliminar categoría (soft delete) |
+
+### Roles Disponibles
+
+- **ADMIN**: Acceso completo (crear, modificar, eliminar categorías)
+- **USER**: Solo lectura (ver categorías y árbol)
+- **Público**: Solo lectura (sin autenticación)
+
+### 🔑 Obtener Tokens por Rol
+
+```bash
+# Token de ADMINISTRADOR (acceso completo)
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
+  }' | jq -r '.data.accessToken')
+
+# Token de USUARIO (solo lectura)
+export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "Admin Token: $ADMIN_TOKEN"
+echo "User Token: $USER_TOKEN"
+```
+
+### ⚠️ Respuesta 403 Forbidden (Sin Permisos)
+
+Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+### 🗑️ Soft Delete con @DeleteDateColumn
+
+Las categorías usan **soft delete** mediante `@DeleteDateColumn`:
+
+- Campo `deletedAt` (timestamp nullable)
+- Categorías eliminadas tienen `deletedAt != null`
+- Queries normales excluyen automáticamente registros con `deletedAt`
+- No se puede eliminar categoría con productos activos asociados
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Crear Categoría Raíz (POST /categories) [Auth Required - ADMIN]
-- [ ] ✅ 2. Crear Sub-categoría (POST /categories) [Auth Required - ADMIN]
-- [ ] ✅ 3. Listar Categorías con Paginación (GET /categories)
-- [ ] ✅ 4. Obtener Árbol de Categorías (GET /categories/tree)
-- [ ] ✅ 5. Buscar por Slug (GET /categories/slug/:slug)
-- [ ] ✅ 6. Obtener por ID (GET /categories/:id)
-- [ ] ✅ 7. Obtener Descendientes (GET /categories/:id/descendants)
-- [ ] ✅ 8. Obtener Path Completo (GET /categories/:id/path)
-- [ ] ✅ 9. Actualizar Categoría (PUT /categories/:id) [Auth Required - ADMIN]
-- [ ] ✅ 10. Activar Categoría (PATCH /categories/:id/activate) [Auth Required - ADMIN]
-- [ ] ✅ 11. Desactivar Categoría (PATCH /categories/:id/deactivate) [Auth Required - ADMIN]
-- [ ] ✅ 12. Eliminar Categoría (DELETE /categories/:id) [Auth Required - ADMIN]
+- [ ] 1️⃣ Crear Categoría Raíz (POST /categories) **[🔴 ADMIN Only]**
+  - [ ] 1.1 Crear como ADMIN (201)
+  - [ ] 1.2 USER intenta crear (403 Forbidden)
+  - [ ] 1.3 Sin autenticación (401 Unauthorized)
+- [ ] 2️⃣ Crear Sub-categoría (POST /categories) **[🔴 ADMIN Only]**
+- [ ] 3️⃣ Listar Categorías con Paginación (GET /categories) **[🟢 Público]**
+- [ ] 4️⃣ Obtener Árbol de Categorías (GET /categories/tree) **[🟢 Público]**
+- [ ] 5️⃣ Buscar por Slug (GET /categories/slug/:slug) **[🟢 Público]**
+- [ ] 6️⃣ Obtener por ID (GET /categories/:id) **[🟢 Público]**
+- [ ] 7️⃣ Obtener Descendientes (GET /categories/:id/descendants) **[🟢 Público]**
+- [ ] 8️⃣ Obtener Path Completo (GET /categories/:id/path) **[🟢 Público]**
+- [ ] 9️⃣ Actualizar Categoría (PUT /categories/:id) **[🔴 ADMIN Only]**
+- [ ] 🔟 Activar Categoría (PATCH /categories/:id/activate) **[🔴 ADMIN Only]**
+- [ ] 1️⃣1️⃣ Desactivar Categoría (PATCH /categories/:id/deactivate) **[🔴 ADMIN Only]**
+- [ ] 1️⃣2️⃣ Eliminar Categoría (DELETE /categories/:id) **[🔴 ADMIN Only]**
 
 ---
 
@@ -27,7 +100,8 @@
 
 ```bash
 export BASE_URL="http://localhost:3000"
-export ADMIN_TOKEN="admin-jwt-token-here"
+export ADMIN_TOKEN=""  # Token con rol ADMIN (para crear/modificar/eliminar)
+export USER_TOKEN=""   # Token con rol USER (solo lectura)
 export CATEGORY_ID=""
 export PARENT_CATEGORY_ID=""
 export CHILD_CATEGORY_ID=""
@@ -61,12 +135,13 @@ Electronics (root)
 
 ---
 
-## 1️⃣ Crear Categoría Raíz
+## 1️⃣ Crear Categoría Raíz **[🔴 ADMIN Only]**
 
-### ✅ Test 1.1: Crear categoría raíz exitosamente
+### ✅ Test 1.1: Crear categoría raíz exitosamente como ADMIN
 
 **Endpoint:** `POST /categories`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only  
 **Status Code:** `201 Created`
 
 **Request Body:**
@@ -183,11 +258,86 @@ curl -X POST "$BASE_URL/categories" \
 
 ---
 
-## 2️⃣ Crear Sub-categoría
-
-### ✅ Test 2.1: Crear sub-categoría exitosamente
+### ❌ Test 1.3: USER sin rol ADMIN intenta crear categoría (403 Forbidden)
 
 **Endpoint:** `POST /categories`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/categories" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Unauthorized Category",
+    "description": "This should fail",
+    "slug": "unauthorized"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403 (no 401)
+- [ ] Mensaje indica recurso prohibido
+- [ ] Categoría NO fue creada en la base de datos
+
+**💡 Nota:** Error 403 significa que el usuario está autenticado pero no tiene permisos suficientes (rol USER en vez de ADMIN).
+
+---
+
+### ❌ Test 1.4: Crear categoría sin autenticación (401 Unauthorized)
+
+**Endpoint:** `POST /categories`  
+**Autenticación:** None  
+**Status Code esperado:** `401 Unauthorized`
+
+**Comando curl:**
+
+```bash
+curl -X POST "$BASE_URL/categories" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "No Auth Category",
+    "slug": "no-auth"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (401 Unauthorized):**
+
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 401
+- [ ] Requiere autenticación
+- [ ] Diferencia entre 401 (sin token) y 403 (sin permisos)
+
+---
+
+## 2️⃣ Crear Sub-categoría **[🔴 ADMIN Only]**
+
+### ✅ Test 2.1: Crear sub-categoría exitosamente como ADMIN
+
+**Endpoint:** `POST /categories`  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
 **Request Body:** Incluir `parentId`
 
 **Comando curl:**
@@ -771,12 +921,13 @@ curl -X GET "$BASE_URL/categories/$CHILD_CATEGORY_ID/path" | jq '.'
 
 ---
 
-## 9️⃣ Actualizar Categoría
+## 9️⃣ Actualizar Categoría **[🔴 ADMIN Only]**
 
-### ✅ Test 9.1: Actualizar información básica
+### ✅ Test 9.1: Actualizar información básica como ADMIN
 
 **Endpoint:** `PUT /categories/:id`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Request Body:**
 
@@ -824,7 +975,43 @@ curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
 
 ---
 
-### ✅ Test 9.2: Mover categoría a otro parent
+### ❌ Test 9.2: USER sin rol ADMIN intenta actualizar categoría (403 Forbidden)
+
+**Endpoint:** `PUT /categories/:id`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Unauthorized Update",
+    "description": "This should fail"
+  }' | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403 (no 401)
+- [ ] Categoría NO fue actualizada
+- [ ] Usuario autenticado pero sin permisos
+
+---
+
+### ✅ Test 9.3: Mover categoría a otro parent como ADMIN
 
 **Request Body:**
 
@@ -860,7 +1047,7 @@ curl -X PUT "$BASE_URL/categories/$CHILD_CATEGORY_ID" \
 
 ---
 
-### ❌ Test 9.3: Crear jerarquía circular (400 Bad Request)
+### ❌ Test 9.4: Crear jerarquía circular (400 Bad Request)
 
 **Escenario:** Intentar mover un parent como hijo de su propio descendiente
 
@@ -893,12 +1080,13 @@ curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
 
 ---
 
-## 🔟 Activar/Desactivar Categoría
+## 🔟 Activar/Desactivar Categoría **[🔴 ADMIN Only]**
 
-### ✅ Test 10.1: Desactivar categoría
+### ✅ Test 10.1: Desactivar categoría como ADMIN
 
 **Endpoint:** `PATCH /categories/:id/deactivate`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
 
 **Comando curl:**
 
@@ -927,9 +1115,10 @@ curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/deactivate" \
 
 ---
 
-### ✅ Test 10.2: Activar categoría
+### ✅ Test 10.2: Activar categoría como ADMIN
 
-**Endpoint:** `PATCH /categories/:id/activate`
+**Endpoint:** `PATCH /categories/:id/activate`  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**
 
 **Comando curl:**
 
@@ -957,13 +1146,76 @@ curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/activate" \
 
 ---
 
-## 1️⃣1️⃣ Eliminar Categoría
+### ❌ Test 10.3: USER intenta desactivar categoría (403 Forbidden)
 
-### ✅ Test 11.1: Eliminar categoría sin hijos ni productos
+**Endpoint:** `PATCH /categories/:id/deactivate`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/deactivate" \
+  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Categoría NO fue desactivada
+
+---
+
+### ❌ Test 10.4: USER intenta activar categoría (403 Forbidden)
+
+**Endpoint:** `PATCH /categories/:id/activate`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/activate" \
+  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Categoría NO fue activada
+
+---
+
+## 1️⃣1️⃣ Eliminar Categoría (Soft Delete) **[🔴 ADMIN Only]**
+
+### ✅ Test 11.1: Eliminar categoría sin hijos ni productos como ADMIN
 
 **Endpoint:** `DELETE /categories/:id`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only  
 **Status Code:** `204 No Content`
+
+**⚠️ Soft Delete:** Las categorías usan `@DeleteDateColumn` con campo `deletedAt`. No se eliminan físicamente de la base de datos.
 
 **Comando curl:**
 
@@ -988,12 +1240,44 @@ curl -X DELETE "$BASE_URL/categories/$TEMP_CATEGORY_ID" \
 **Checklist:**
 
 - [ ] Status code es 204
-- [ ] Soft delete (marca como inactiva)
-- [ ] Categoría eliminada no aparece en listados
+- [ ] Soft delete: `deletedAt` timestamp establecido
+- [ ] Categoría eliminada no aparece en listados normales
+- [ ] Campo `deletedAt` no es null en la base de datos
 
 ---
 
-### ❌ Test 11.2: Eliminar categoría con hijos (400 Bad Request)
+### ❌ Test 11.2: USER intenta eliminar categoría (403 Forbidden)
+
+**Endpoint:** `DELETE /categories/:id`  
+**Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
+**Status Code esperado:** `403 Forbidden`
+
+**Comando curl:**
+
+```bash
+curl -X DELETE "$BASE_URL/categories/$TEMP_CATEGORY_ID" \
+  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Forbidden resource",
+  "error": "Forbidden"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 403
+- [ ] Categoría NO fue eliminada
+- [ ] Usuario autenticado pero sin permisos
+
+---
+
+### ❌ Test 11.3: Eliminar categoría con hijos o productos (400 Bad Request)
 
 **Comando curl:**
 
@@ -1028,13 +1312,33 @@ curl -X DELETE "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
 # Testing completo de Categories Module
 
 BASE_URL="http://localhost:3000"
-ADMIN_TOKEN="your-admin-jwt-token"
+ADMIN_TOKEN=""
+USER_TOKEN=""
 
 echo "=== 🏷️ Testing Categories Module ==="
 echo ""
 
-# 1. Crear categoría raíz
-echo "1️⃣ Creando categoría raíz..."
+# Obtener tokens
+echo "0️⃣ Obteniendo tokens de autenticación..."
+ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
+  }' | jq -r '.data.accessToken')
+
+USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "✅ Tokens obtenidos"
+echo ""
+
+# 1. Crear categoría raíz como ADMIN
+echo "1️⃣ Creando categoría raíz como ADMIN..."
 ROOT_CATEGORY=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
@@ -1128,8 +1432,22 @@ ACTIVATED=$(curl -s -X PATCH "$BASE_URL/categories/$SUBSUB_ID/activate" \
 IS_ACTIVE_AGAIN=$(echo $ACTIVATED | jq -r '.isActive')
 echo "✅ Categoría activada (isActive: $IS_ACTIVE_AGAIN)"
 
-# 11. Intentar eliminar parent con children (debe fallar)
-echo "1️⃣1️⃣ Intentando eliminar categoría con hijos..."
+# 11. Test de autorización - USER intenta actualizar (debe fallar)
+echo "1️⃣1️⃣ Probando autorización - USER intenta actualizar..."
+USER_UPDATE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X PUT "$BASE_URL/categories/$ROOT_ID" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Unauthorized"}')
+
+if [ "$USER_UPDATE" == "403" ]; then
+  echo "✅ Autorización correcta - USER recibió 403 Forbidden"
+else
+  echo "❌ Error de autorización - Expected 403, got $USER_UPDATE"
+fi
+
+# 12. Intentar eliminar parent con children (debe fallar)
+echo "1️⃣2️⃣ Intentando eliminar categoría con hijos..."
 DELETE_RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$BASE_URL/categories/$ROOT_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
@@ -1139,13 +1457,13 @@ else
   echo "❌ Error: status code $DELETE_RESULT"
 fi
 
-# 12. Eliminar leaf category
-echo "1️⃣2️⃣ Eliminando categoría hoja..."
+# 13. Eliminar leaf category como ADMIN
+echo "1️⃣3️⃣ Eliminando categoría hoja como ADMIN..."
 DELETE_LEAF=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$BASE_URL/categories/$SUBSUB_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
 if [ "$DELETE_LEAF" == "204" ]; then
-  echo "✅ Categoría hoja eliminada exitosamente"
+  echo "✅ Categoría hoja eliminada exitosamente (soft delete)"
 else
   echo "❌ Error al eliminar: HTTP $DELETE_LEAF"
 fi
@@ -1171,12 +1489,21 @@ echo "=== ✅ Testing completado ==="
 - **Prevención de ciclos:** No se puede hacer parent de un descendiente
 - **Eliminación:** No se pueden eliminar categorías con hijos o productos
 
-### Soft Delete
+### Control de Acceso (RBAC)
 
-- `DELETE /categories/:id` realiza soft delete
-- Categoría marcada como `isActive: false`
-- No aparece en listados por defecto
-- Se puede reactivar con `PATCH /categories/:id/activate`
+- **Operaciones ADMIN Only**: Crear, Actualizar, Activar, Desactivar, Eliminar
+- **Operaciones Públicas**: Listar, Árbol, Buscar por slug, Obtener por ID, Descendientes, Path
+- **403 Forbidden**: Usuario autenticado sin rol ADMIN
+- **401 Unauthorized**: Sin autenticación
+
+### Soft Delete con @DeleteDateColumn
+
+- `DELETE /categories/:id` realiza **soft delete** usando `@DeleteDateColumn`
+- Campo `deletedAt` (timestamp) establecido al eliminar
+- Categorías con `deletedAt != null` no aparecen en queries normales
+- TypeORM excluye automáticamente registros soft-deleted
+- No se puede eliminar categoría con hijos o productos asociados
+- **No se marca como `isActive: false`** - usa `deletedAt` para soft delete
 
 ### Metadata
 
@@ -1186,7 +1513,10 @@ echo "=== ✅ Testing completado ==="
 ---
 
 **Estado del Módulo:** ✅ Completado  
-**Tests Totales:** 35+  
-**Tests Críticos:** 12  
+**Tests Totales:** 40+  
+**Tests Críticos:** 15  
+**RBAC:** ✅ Sistema de roles implementado  
+**Seguridad:** ✅ Protección de endpoints administrativos  
+**Soft Delete:** ✅ @DeleteDateColumn con deletedAt  
 **Estructura:** Árbol jerárquico ilimitado  
-**Última Actualización:** 2025-10-11
+**Última Actualización:** 2025-10-14
