@@ -239,7 +239,25 @@ export class ProductsService {
         updateProductDto.costPrice !== undefined ||
         updateProductDto.compareAtPrice !== undefined
       ) {
-        const updatedData = { ...product, ...updateProductDto };
+        // Convert string prices from DB to numbers for validation
+        const currentPrice =
+          typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+        const currentCostPrice = product.costPrice
+          ? typeof product.costPrice === 'string'
+            ? parseFloat(product.costPrice)
+            : product.costPrice
+          : undefined;
+        const currentCompareAtPrice = product.compareAtPrice
+          ? typeof product.compareAtPrice === 'string'
+            ? parseFloat(product.compareAtPrice)
+            : product.compareAtPrice
+          : undefined;
+
+        const updatedData = {
+          price: updateProductDto.price ?? currentPrice,
+          costPrice: updateProductDto.costPrice ?? currentCostPrice,
+          compareAtPrice: updateProductDto.compareAtPrice ?? currentCompareAtPrice,
+        };
         this.validatePriceRelationships(updatedData);
       }
 

@@ -34,7 +34,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 registrations per hour
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 registrations per minute (for testing/portfolio)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
@@ -42,7 +42,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
-    description: 'Too Many Requests - Rate limit exceeded (max 3 registrations per hour)',
+    description: 'Too Many Requests - Rate limit exceeded (max 10 registrations per minute)',
   })
   @ApiBody({
     type: RegisterDto,
@@ -89,16 +89,16 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 login attempts per minute (for testing/portfolio)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User login',
     description:
-      'Authenticate user with email and password. Rate limited to 5 attempts per minute to prevent brute force attacks.',
+      'Authenticate user with email and password. Rate limited to 20 attempts per minute (relaxed for testing/portfolio).',
   })
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
-    description: 'Too Many Requests - Rate limit exceeded (max 5 login attempts per minute)',
+    description: 'Too Many Requests - Rate limit exceeded (max 20 login attempts per minute)',
   })
   @ApiBody({
     type: LoginDto,

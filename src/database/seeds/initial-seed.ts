@@ -4,6 +4,7 @@ import { Product } from '../../modules/products/entities/product.entity';
 import { Inventory } from '../../modules/inventory/entities/inventory.entity';
 import { Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { UserRole } from '../../modules/users/enums/user-role.enum';
 
 export const seedInitialData = async (dataSource: DataSource): Promise<void> => {
   const logger = new Logger('SeedInitialData');
@@ -24,28 +25,50 @@ export const seedInitialData = async (dataSource: DataSource): Promise<void> => 
 
     const hashedPassword = await bcrypt.hash('Admin123!', 12);
 
-    const adminUser = userRepo.create({
-      email: 'admin@test.com',
-      passwordHash: hashedPassword,
-      firstName: 'Admin',
-      lastName: 'User',
-      isActive: true,
-      language: 'en',
-      timezone: 'UTC',
-    });
+    // Check if admin user already exists
+    let adminUser = await userRepo.findOne({ where: { email: 'admin@test.com' } });
+    if (!adminUser) {
+      adminUser = userRepo.create({
+        email: 'admin@test.com',
+        passwordHash: hashedPassword,
+        firstName: 'Admin',
+        lastName: 'User',
+        role: UserRole.ADMIN,
+        isActive: true,
+        language: 'en',
+        timezone: 'UTC',
+      });
+      await userRepo.save(adminUser);
+      logger.log('✅ Created admin user');
+    } else {
+      // Update role if user exists but doesn't have ADMIN role
+      if (adminUser.role !== UserRole.ADMIN) {
+        adminUser.role = UserRole.ADMIN;
+        await userRepo.save(adminUser);
+        logger.log('✅ Updated admin user role to ADMIN');
+      } else {
+        logger.log('ℹ️  Admin user already exists');
+      }
+    }
 
-    const testUser = userRepo.create({
-      email: 'user@test.com',
-      passwordHash: hashedPassword,
-      firstName: 'Test',
-      lastName: 'Customer',
-      isActive: true,
-      language: 'en',
-      timezone: 'UTC',
-    });
-
-    await userRepo.save([adminUser, testUser]);
-    logger.log(`✅ Created ${[adminUser, testUser].length} users`);
+    // Check if test user already exists
+    let testUser = await userRepo.findOne({ where: { email: 'user@test.com' } });
+    if (!testUser) {
+      testUser = userRepo.create({
+        email: 'user@test.com',
+        passwordHash: hashedPassword,
+        firstName: 'Test',
+        lastName: 'Customer',
+        role: UserRole.USER,
+        isActive: true,
+        language: 'en',
+        timezone: 'UTC',
+      });
+      await userRepo.save(testUser);
+      logger.log('✅ Created test user');
+    } else {
+      logger.log('ℹ️  Test user already exists');
+    }
 
     // Create test products (without categories)
     logger.log('📦 Creating products...');
