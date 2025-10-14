@@ -114,10 +114,11 @@ export class UsersService {
     }
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: string, includeDeleted = false): Promise<User | null> {
     try {
       const user = await this.userRepository.findOne({
         where: { id },
+        withDeleted: includeDeleted, // Include soft-deleted records if needed
       });
       return user || null;
     } catch (error) {
@@ -233,11 +234,19 @@ export class UsersService {
 
   async activate(id: string): Promise<UserResponseDto> {
     try {
-      const user = await this.findById(id);
+      // Include soft-deleted users in the search for activation
+      const user = await this.findById(id, true);
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
+      // If user was soft-deleted, restore them
+      if (user.deletedAt) {
+        await this.userRepository.restore(id);
+        this.logger.log(`User restored from soft delete: ${user.email}`);
+      }
+
+      // Activate the user
       await this.userRepository.update(id, { isActive: true });
 
       const activatedUser = await this.findById(id);

@@ -363,20 +363,17 @@ describe('Users API (E2E)', () => {
 
       const userIdToDelete = ResponseHelper.extractData(createResponse).id;
 
-      // Delete user
+      // Delete user (soft delete)
       await request(app.getHttpServer())
         .delete(`/users/${userIdToDelete}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(204);
 
-      // Verify user is deactivated but still exists
-      const getUserResponse = await request(app.getHttpServer())
+      // Verify user is soft deleted (should return 404 on GET)
+      await request(app.getHttpServer())
         .get(`/users/${userIdToDelete}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .expect(200);
-
-      const userResponseData = ResponseHelper.extractData(getUserResponse);
-      expect(userResponseData.isActive).toBe(false);
+        .expect(404);
     });
 
     it('should return 403 when regular USER tries to delete user', async () => {
