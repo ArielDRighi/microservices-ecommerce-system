@@ -1,4 +1,5 @@
 import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { IsNull } from 'typeorm';
 import {
   createMockCategory,
   createMockCreateCategoryDto,
@@ -112,7 +113,8 @@ describe('CategoriesService - CRUD Operations', () => {
       const dto = { name: 'Child', parentId: 'parent-123' };
 
       jest.spyOn(service, 'findBySlug').mockResolvedValue(null);
-      jest.spyOn(service as any, 'findById').mockResolvedValue(parentCategory);
+      // Mock categoryRepository.findOne para la validación de parent
+      mockRepository.findOne.mockResolvedValue(parentCategory);
       jest.spyOn(service as any, 'validateUniqueNameInLevel').mockResolvedValue(undefined);
 
       const newCategory = createMockCategory({ ...dto });
@@ -122,8 +124,8 @@ describe('CategoriesService - CRUD Operations', () => {
 
       await service.create(dto);
 
-      expect(service['findById']).toHaveBeenCalledWith('parent-123', {
-        includeInactive: true,
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'parent-123', deletedAt: IsNull() },
       });
     });
 
@@ -131,9 +133,11 @@ describe('CategoriesService - CRUD Operations', () => {
       const dto = { name: 'Child', parentId: 'non-existent' };
 
       jest.spyOn(service, 'findBySlug').mockResolvedValue(null);
-      jest.spyOn(service as any, 'findById').mockResolvedValue(null);
+      // Mock categoryRepository.findOne retornando null (parent no encontrado)
+      mockRepository.findOne.mockResolvedValue(null);
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto)).rejects.toThrow('Parent ID must be a valid UUID');
       expect(mockRepository.save).not.toHaveBeenCalled();
     });
 
@@ -141,7 +145,8 @@ describe('CategoriesService - CRUD Operations', () => {
       const dto = { name: 'Category', parentId: 'parent-123' };
 
       jest.spyOn(service, 'findBySlug').mockResolvedValue(null);
-      jest.spyOn(service as any, 'findById').mockResolvedValue(createMockCategory());
+      // Mock categoryRepository.findOne para que parent exista
+      mockRepository.findOne.mockResolvedValue(createMockCategory({ id: 'parent-123' }));
       jest
         .spyOn(service as any, 'validateUniqueNameInLevel')
         .mockRejectedValue(new ConflictException('Name exists at this level'));
@@ -173,6 +178,7 @@ describe('CategoriesService - CRUD Operations', () => {
       expect(result).toBeDefined();
       expect(service['findById']).toHaveBeenCalledWith('cat-123', {
         includeRelations: true,
+        includeInactive: true, // Fixed: findOne should include inactive categories
       });
       expect(category.getLevel).toHaveBeenCalled();
       expect(category.getPath).toHaveBeenCalled();

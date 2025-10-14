@@ -9,7 +9,7 @@ export const databaseConfig = registerAs(
     port: parseInt(process.env['DATABASE_PORT'] || '5433', 10),
     username: process.env['DATABASE_USERNAME'] || process.env['DATABASE_USER'] || 'postgres',
     password: process.env['DATABASE_PASSWORD'] || 'password',
-    database: process.env['DATABASE_NAME'] || 'ecommerce_async_dev',
+    database: process.env['DATABASE_NAME'] || 'ecommerce_async',
 
     // Entity and Migration Paths
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],

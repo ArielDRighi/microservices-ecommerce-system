@@ -3,8 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import { join } from 'path';
 
-// Load environment variables from the correct file
-config({ path: `.env.${process.env['NODE_ENV'] || 'development'}` });
+// Load environment variables - try .env.{NODE_ENV} first, fallback to .env
+const envFile = `.env.${process.env['NODE_ENV'] || 'development'}`;
+config({ path: envFile });
+// Fallback to .env if specific env file doesn't exist
+config({ path: '.env' });
 
 const configService = new ConfigService();
 
@@ -15,7 +18,7 @@ export default new DataSource({
   username:
     configService.get('DATABASE_USERNAME') || configService.get('DATABASE_USER') || 'postgres',
   password: configService.get('DATABASE_PASSWORD', 'password'),
-  database: configService.get('DATABASE_NAME', 'ecommerce_async_dev'),
+  database: configService.get('DATABASE_NAME', 'ecommerce_async'),
 
   entities: [
     join(__dirname, '..', 'modules', '**', 'entities', '*.entity{.ts,.js}'),

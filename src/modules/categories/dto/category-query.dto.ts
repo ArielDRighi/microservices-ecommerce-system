@@ -1,4 +1,14 @@
-import { IsOptional, IsBoolean, IsUUID, IsString, IsInt, Min, Max, IsIn } from 'class-validator';
+import {
+  IsOptional,
+  IsBoolean,
+  IsUUID,
+  IsString,
+  IsInt,
+  Min,
+  Max,
+  IsIn,
+  ValidateIf,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 
@@ -39,12 +49,18 @@ export class CategoryQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by parent category ID (null for root categories)',
+    description: 'Filter by parent category ID ("null" string for root categories, or UUID)',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    // Allow "null" string to filter root categories
+    if (value === 'null' || value === null) return null;
+    return value;
+  })
+  @ValidateIf((obj) => obj.parentId !== null)
   @IsUUID(4, { message: 'Parent ID must be a valid UUID' })
-  parentId?: string;
+  parentId?: string | null;
 
   @ApiPropertyOptional({
     description: 'Filter by active status',
