@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -49,6 +50,21 @@ import { QueueModule } from './queues/queue.module';
 
     // Winston Logger Module (Global)
     LoggerModule,
+
+    // Rate Limiting (Throttler) - Higher limits in test environment
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isTest = configService.get<string>('NODE_ENV') === 'test';
+        return [
+          {
+            name: 'default',
+            ttl: 60000, // 60 seconds
+            limit: isTest ? 10000 : 10, // Much higher limit in tests to avoid blocking
+          },
+        ];
+      },
+    }),
 
     // Database
     TypeOrmModule.forRootAsync({
@@ -110,6 +126,16 @@ import { QueueModule } from './queues/queue.module';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
+
+    // Global throttler guard (rate limiting) - Disabled in test environment
+    ...(process.env['NODE_ENV'] !== 'test'
+      ? [
+          {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard,
+          },
+        ]
+      : []),
 
     // Global JWT guard (commented out for now until auth is implemented)
     // {

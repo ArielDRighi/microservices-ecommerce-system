@@ -215,6 +215,23 @@ export class ProductsService {
         throw new NotFoundException(`Product with ID ${id} not found`);
       }
 
+      // Log price change for audit trail
+      if (updateProductDto.price !== undefined) {
+        const oldPrice =
+          typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+        const newPrice = updateProductDto.price;
+
+        if (newPrice !== oldPrice) {
+          this.logger.warn(
+            `PRICE CHANGE AUDIT: Product "${product.name}" (ID: ${id}, SKU: ${product.sku}) ` +
+              `| Old Price: $${oldPrice.toFixed(2)} ` +
+              `| New Price: $${newPrice.toFixed(2)} ` +
+              `| Change: ${newPrice > oldPrice ? '+' : ''}$${(newPrice - oldPrice).toFixed(2)} ` +
+              `| Timestamp: ${new Date().toISOString()}`,
+          );
+        }
+      }
+
       // Validate price relationships if prices are being updated
       // Using strict undefined checks (not falsy) because 0 is a valid price
       if (

@@ -61,7 +61,9 @@ describe('UsersService - CRUD Operations', () => {
 
       // Act & Assert
       await expect(service.create(createUserDto)).rejects.toThrow(BadRequestException);
-      await expect(service.create(createUserDto)).rejects.toThrow('Failed to create user');
+      await expect(service.create(createUserDto)).rejects.toThrow(
+        'An unexpected error occurred while creating user',
+      );
     });
   });
 

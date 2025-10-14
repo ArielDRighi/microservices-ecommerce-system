@@ -3,7 +3,88 @@
 **Proyecto:** E-commerce Async Resilient System  
 **Arquitectura:** Microservicios asíncronos con NestJS, PostgreSQL, Redis, Bull Queues  
 **Autor:** Ariel D. Righi  
-**Última Actualización:** 2025-10-11
+**Última Actualización:** 2025-10-14
+
+---
+
+## 🔐 Control de Acceso (RBAC)
+
+Este sistema implementa **Role-Based Access Control (RBAC)** con dos roles principales:
+
+### Roles del Sistema
+
+| Rol         | Descripción               | Acceso                                               |
+| ----------- | ------------------------- | ---------------------------------------------------- |
+| **ADMIN**   | Administrador del sistema | Acceso completo: crear, modificar, eliminar recursos |
+| **USER**    | Usuario estándar          | Lectura + operaciones propias (órdenes, reservas)    |
+| **Público** | Sin autenticación         | Solo lectura en endpoints públicos                   |
+
+### Operaciones por Rol
+
+**🔴 ADMIN Only:**
+
+- Crear/modificar/eliminar productos
+- Crear/modificar/eliminar categorías
+- Crear/agregar/remover inventario
+- Gestionar usuarios (CRUD)
+
+**🟡 Auth Required (USER/ADMIN):**
+
+- Crear órdenes
+- Ver perfil propio
+- Reservar/liberar stock
+- Ver estadísticas de inventario
+
+**🟢 Público (sin auth):**
+
+- Listar productos y categorías
+- Ver detalles de productos
+- Buscar en catálogo
+- Verificar disponibilidad de stock
+
+### Obtener Tokens por Rol
+
+```bash
+# Token de ADMINISTRADOR
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!@#"
+  }' | jq -r '.data.accessToken')
+
+# Token de USUARIO
+export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "User123!@#"
+  }' | jq -r '.data.accessToken')
+
+echo "Admin Token: $ADMIN_TOKEN"
+echo "User Token: $USER_TOKEN"
+```
+
+### Códigos de Error de Autorización
+
+| Código               | Significado       | Cuándo ocurre                                                                    |
+| -------------------- | ----------------- | -------------------------------------------------------------------------------- |
+| **401 Unauthorized** | Sin autenticación | No se envió token JWT o es inválido                                              |
+| **403 Forbidden**    | Sin permisos      | Usuario autenticado pero sin rol requerido (ej: USER intentando operación ADMIN) |
+
+### Seguridad Adicional
+
+**Rate Limiting:**
+
+- Login: 5 requests/minuto
+- Register: 3 requests/hora
+- General: 10 requests/minuto
+
+**Bull Board Dashboard:**
+
+- Protegido con Basic Authentication
+- Credenciales: `BULL_BOARD_USERNAME` y `BULL_BOARD_PASSWORD` (env vars)
+- Sin credenciales válidas = 401 Unauthorized
 
 ---
 
@@ -14,24 +95,28 @@
 - **[01 - Auth Module](./01-AUTH-MODULE.md)** - 6 endpoints
   - Registro, Login, Refresh Token, Profile, Logout
   - JWT Authentication con refresh tokens
-  - **Tests:** 15+ | **Status:** ✅ Completado
+  - **Rate Limiting:** Login (5/min), Register (3/hr)
+  - **Tests:** 25+ | **Status:** ✅ Completado
 
-- **[04 - Users Module](./04-USERS-MODULE.md)** - 6 endpoints
-  - CRUD de usuarios, paginación, soft delete
-  - Gestión de perfiles y activación
-  - **Tests:** 30+ | **Status:** ✅ Completado
+- **[05 - Users Module](./05-USERS-MODULE.md)** - 6 endpoints **[🔴 ADMIN Only]**
+  - CRUD de usuarios, paginación, soft delete con @DeleteDateColumn
+  - Protección contra auto-eliminación de admin
+  - **RBAC:** Solo ADMIN puede gestionar usuarios
+  - **Tests:** 35+ | **Status:** ✅ Completado
 
 ### 🛍️ Catálogo & Productos
 
 - **[02 - Products Module](./02-PRODUCTS-MODULE.md)** - 8 endpoints
-  - CRUD completo, búsqueda, filtros avanzados
-  - Paginación, sorting, activación/desactivación
-  - **Tests:** 25+ | **Status:** ✅ Completado
-
-- **[05 - Categories Module](./05-CATEGORIES-MODULE.md)** - 11 endpoints
-  - Jerarquía de árbol ilimitada, slugs SEO
-  - Tree structure, descendants, breadcrumbs
+  - CRUD completo **[🔴 ADMIN Only]**, búsqueda, filtros avanzados **[🟢 Público]**
+  - **Precio mínimo:** $0.50 (constante: PRODUCT_PRICE.MIN)
+  - **RBAC:** Admin crea/modifica/elimina, público consulta
   - **Tests:** 35+ | **Status:** ✅ Completado
+
+- **[06 - Categories Module](./06-CATEGORIES-MODULE.md)** - 11 endpoints
+  - CRUD **[🔴 ADMIN Only]**, consultas **[🟢 Público]**
+  - Jerarquía de árbol ilimitada, slugs SEO
+  - Soft delete con @DeleteDateColumn (deletedAt)
+  - **Tests:** 40+ | **Status:** ✅ Completado
 
 ### 🛒 Órdenes & Ventas
 
@@ -42,32 +127,34 @@
 
 ### 📦 Inventario
 
-- **[06 - Inventory Module](./06-INVENTORY-MODULE.md)** - 16 endpoints
-  - Gestión de stock, reservas con TTL
-  - Movimientos, estadísticas, alertas
-  - **Tests:** 40+ | **Status:** ✅ Completado
+- **[03 - Inventory Module](./03-INVENTORY-MODULE.md)** - 16 endpoints
+  - Crear/agregar/remover stock **[🔴 ADMIN Only]**
+  - Reservas con TTL **[🟡 Auth Required]**, consultas **[🟢 Público]**
+  - **RBAC:** Operaciones de stock solo para ADMIN
+  - **Tests:** 45+ | **Status:** ✅ Completado
 
 ### 🏥 Monitoreo & Salud
 
 - **[07 - Health & Monitoring Module](./07-HEALTH-MONITORING-MODULE.md)** - 6 endpoints
-  - Health checks (Kubernetes ready)
-  - Prometheus metrics, Bull Board dashboard
+  - Health checks (Kubernetes ready) **[🟢 Público]**
+  - Prometheus metrics **[🟢 Público]**
+  - **Bull Board dashboard [🔐 Basic Auth]** (BULL_BOARD_USERNAME/PASSWORD)
   - **Tests:** 5+ | **Status:** ✅ Completado
 
 ---
 
 ## 📊 Resumen Ejecutivo
 
-| Módulo     | Endpoints | Tests    | Prioridad | Complejidad |
-| ---------- | --------- | -------- | --------- | ----------- |
-| Auth       | 6         | 15+      | 🔴 Alta   | Media       |
-| Products   | 8         | 25+      | 🔴 Alta   | Media       |
-| Orders     | 4         | 15+      | 🔴 Alta   | Alta        |
-| Users      | 6         | 30+      | 🟡 Media  | Media       |
-| Categories | 11        | 35+      | 🟡 Media  | Alta        |
-| Inventory  | 16        | 40+      | 🔴 Alta   | Muy Alta    |
-| Health     | 6         | 5+       | 🟢 Baja   | Baja        |
-| **TOTAL**  | **57**    | **165+** | -         | -           |
+| Módulo     | Endpoints | Tests    | RBAC   | Seguridad         | Prioridad | Complejidad |
+| ---------- | --------- | -------- | ------ | ----------------- | --------- | ----------- |
+| Auth       | 6         | 25+      | ✅     | Rate Limiting     | 🔴 Alta   | Media       |
+| Products   | 8         | 35+      | ✅     | ADMIN Only (CUD)  | 🔴 Alta   | Media       |
+| Orders     | 4         | 15+      | ✅     | Auth Required     | 🔴 Alta   | Alta        |
+| Users      | 6         | 35+      | ✅     | ADMIN Only        | 🟡 Media  | Media       |
+| Categories | 11        | 40+      | ✅     | ADMIN Only (CUD)  | 🟡 Media  | Alta        |
+| Inventory  | 16        | 45+      | ✅     | ADMIN (stock ops) | 🔴 Alta   | Muy Alta    |
+| Health     | 6         | 5+       | ✅     | Bull Board Auth   | 🟢 Baja   | Baja        |
+| **TOTAL**  | **57**    | **200+** | **✅** | **Completado**    | -         | -           |
 
 ---
 
@@ -394,20 +481,30 @@ Cada módulo sigue esta estructura:
 
 ### Códigos de Estado HTTP
 
-| Código | Significado           | Uso                                 |
-| ------ | --------------------- | ----------------------------------- |
-| 200    | OK                    | GET exitoso, operación completada   |
-| 201    | Created               | POST exitoso, recurso creado        |
-| 202    | Accepted              | Procesamiento asíncrono iniciado    |
-| 204    | No Content            | DELETE exitoso, sin body            |
-| 400    | Bad Request           | Validación fallida, datos inválidos |
-| 401    | Unauthorized          | No autenticado, token inválido      |
-| 403    | Forbidden             | Autenticado pero sin permisos       |
-| 404    | Not Found             | Recurso no encontrado               |
-| 409    | Conflict              | Conflicto (e.g., email duplicado)   |
-| 422    | Unprocessable Entity  | Lógica de negocio inválida          |
-| 500    | Internal Server Error | Error del servidor                  |
-| 503    | Service Unavailable   | Servicio no disponible              |
+| Código  | Significado           | Uso                                                                     |
+| ------- | --------------------- | ----------------------------------------------------------------------- |
+| 200     | OK                    | GET exitoso, operación completada                                       |
+| 201     | Created               | POST exitoso, recurso creado                                            |
+| 202     | Accepted              | Procesamiento asíncrono iniciado                                        |
+| 204     | No Content            | DELETE exitoso, sin body                                                |
+| 400     | Bad Request           | Validación fallida, datos inválidos                                     |
+| **401** | **Unauthorized**      | **Sin autenticación, token inválido/ausente**                           |
+| **403** | **Forbidden**         | **Autenticado pero sin permisos (ej: USER intentando operación ADMIN)** |
+| 404     | Not Found             | Recurso no encontrado                                                   |
+| 409     | Conflict              | Conflicto (e.g., email duplicado)                                       |
+| 422     | Unprocessable Entity  | Lógica de negocio inválida                                              |
+| **429** | **Too Many Requests** | **Rate limit excedido**                                                 |
+| 500     | Internal Server Error | Error del servidor                                                      |
+| 503     | Service Unavailable   | Servicio no disponible                                                  |
+
+### Diferencia entre 401 y 403
+
+| Aspecto         | 401 Unauthorized           | 403 Forbidden                                   |
+| --------------- | -------------------------- | ----------------------------------------------- |
+| **Significado** | No identificado            | Identificado pero sin permisos                  |
+| **Token JWT**   | No enviado o inválido      | Válido pero rol insuficiente                    |
+| **Ejemplo**     | Sin header `Authorization` | USER intentando crear producto (requiere ADMIN) |
+| **Solución**    | Obtener token válido       | Obtener token con rol correcto (ADMIN)          |
 
 ### Formato de Respuestas
 
@@ -485,11 +582,16 @@ Cada módulo sigue esta estructura:
 
 ### Seguridad
 
-- [ ] Endpoints protegidos requieren autenticación
-- [ ] Roles (admin/user) funcionan correctamente
+- [ ] Endpoints protegidos requieren autenticación (401)
+- [ ] RBAC: Roles (ADMIN/USER) funcionan correctamente (403)
 - [ ] Tokens JWT expiran correctamente
-- [ ] Validaciones de input funcionan
+- [ ] Rate limiting en auth (login: 5/min, register: 3/hr) (429)
+- [ ] Validaciones de input funcionan (400)
 - [ ] No se exponen datos sensibles (passwords)
+- [ ] Bull Board protegido con Basic Auth
+- [ ] Soft delete funciona con @DeleteDateColumn (deletedAt)
+- [ ] Admin no puede eliminarse a sí mismo
+- [ ] USER recibe 403 al intentar operaciones ADMIN
 
 ---
 
@@ -508,8 +610,23 @@ Este proyecto y su documentación están bajo la licencia MIT. Ver archivo `LICE
 
 ---
 
-**Última Actualización:** 2025-10-11  
-**Versión de Documentación:** 1.0.0  
-**Tests Totales:** 165+  
+## 🔒 Resumen de Seguridad Implementada
+
+**✅ RBAC (Role-Based Access Control):** Control de acceso por roles (ADMIN/USER/Público) en todos los módulos  
+**✅ Rate Limiting:** Protección contra ataques de fuerza bruta en autenticación (5 req/min login, 3 req/hr register)  
+**✅ Soft Delete:** Eliminación lógica con `@DeleteDateColumn` preservando histórico de datos  
+**✅ Bull Board Auth:** Dashboard de colas protegido con Basic Authentication  
+**✅ Admin Protection:** Validación para prevenir auto-eliminación de administradores  
+**✅ Price Validation:** Precio mínimo configurado en $0.50 (PRODUCT_PRICE.MIN)  
+**✅ Authorization Tests:** Pruebas 403 para verificar restricciones de permisos  
+**✅ JWT Expiration:** Tokens con tiempo de vida limitado
+
+> **Nota de Seguridad:** Todos los endpoints administrativos están protegidos con el decorador `@Roles('ADMIN')` y retornan `403 Forbidden` cuando un usuario con rol USER intenta acceder.
+
+---
+
+**Última Actualización:** 2025-10-14  
+**Versión de Documentación:** 2.0.0  
+**Tests Totales:** 200+  
 **Cobertura de Código:** 74.66%  
-**Estado:** ✅ Producción Ready
+**Estado:** ✅ Producción Ready con RBAC implementado

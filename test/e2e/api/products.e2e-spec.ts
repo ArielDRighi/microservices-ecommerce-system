@@ -6,6 +6,7 @@ import { ResponseHelper } from '../../helpers/response.helper';
 describe('Products API (E2E)', () => {
   let app: INestApplication;
   let adminToken: string;
+  let regularUserToken: string;
 
   beforeAll(async () => {
     app = await TestAppHelper.createTestApp();
@@ -18,7 +19,7 @@ describe('Products API (E2E)', () => {
   beforeEach(async () => {
     await TestAppHelper.cleanDatabase(app);
 
-    // Create admin user for protected endpoints
+    // Create admin user with ADMIN role
     const adminData = {
       email: `admin${Date.now()}@test.com`,
       password: 'AdminPass123!@',
@@ -26,12 +27,42 @@ describe('Products API (E2E)', () => {
       lastName: 'User',
     };
 
-    const adminResponse = await request(app.getHttpServer())
+    await request(app.getHttpServer()).post('/auth/register').send(adminData).expect(201);
+
+    // Manually update admin role in database
+    const { DataSource } = await import('typeorm');
+    const dataSource = app.get(DataSource);
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
+
+    // Login again to get token with updated role
+    const adminLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: adminData.email,
+        password: adminData.password,
+      })
+      .expect(200);
+
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(
+      adminLoginResponse,
+    ).accessToken;
+
+    // Create regular user with USER role (default)
+    const regularUserData = {
+      email: `user${Date.now()}@test.com`,
+      password: 'UserPass123!@',
+      firstName: 'Regular',
+      lastName: 'User',
+    };
+
+    const regularUserResponse = await request(app.getHttpServer())
       .post('/auth/register')
-      .send(adminData)
+      .send(regularUserData)
       .expect(201);
 
-    adminToken = ResponseHelper.extractData<{ accessToken: string }>(adminResponse).accessToken;
+    regularUserToken = ResponseHelper.extractData<{ accessToken: string }>(
+      regularUserResponse,
+    ).accessToken;
   });
 
   describe('GET /products (List with pagination and filters)', () => {
@@ -491,7 +522,7 @@ describe('Products API (E2E)', () => {
       expect(responseData).toHaveProperty('createdAt');
     });
 
-    it('should create product with minimal required fields', async () => {
+    it('should create product with minimal required fields as ADMIN', async () => {
       const productData = {
         name: `Minimal Product ${Date.now()}`,
         price: 29.99,
@@ -514,6 +545,58 @@ describe('Products API (E2E)', () => {
         trackInventory: true, // Default value
         minimumStock: 0, // Default value
       });
+    });
+
+    it('should return 403 when regular USER tries to create product', async () => {
+      const productData = {
+        name: `Forbidden Product ${Date.now()}`,
+        price: 49.99,
+        sku: `FORB-${Date.now()}-001`,
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/products')
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .send(productData)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
+      expect(response.body.message).toContain('role');
+    });
+
+    it('should return 401 when creating product without authentication', async () => {
+      const productData = {
+        name: `Unauthorized Product ${Date.now()}`,
+        price: 39.99,
+        sku: `UNAUTH-${Date.now()}-001`,
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/products')
+        .send(productData)
+        .expect(401);
+
+      expect(response.body.statusCode).toBe(401);
+    });
+
+    it('should reject product with price below minimum ($0.50)', async () => {
+      const productData = {
+        name: `Low Price Product ${Date.now()}`,
+        price: 0.25, // Below minimum
+        sku: `LOW-${Date.now()}-001`,
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(productData)
+        .expect(400);
+
+      expect(response.body.statusCode).toBe(400);
+      expect(response.body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('Price must be at least $0.50')]),
+      );
     });
 
     it('should return 409 with duplicate SKU', async () => {
@@ -693,6 +776,21 @@ describe('Products API (E2E)', () => {
       expect(responseData.name).toContain('Original Product');
     });
 
+    it('should return 403 when regular USER tries to update product', async () => {
+      const updateData = {
+        price: 999.99,
+      };
+
+      const response = await request(app.getHttpServer())
+        .patch(`/products/${productId}`)
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .send(updateData)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
+    });
+
     it('should return 404 with non-existent product ID', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
       const response = await request(app.getHttpServer())
@@ -838,6 +936,16 @@ describe('Products API (E2E)', () => {
 
       // Verify accessing soft deleted product returns 404
       await request(app.getHttpServer()).get(`/products/${productToDeleteId}`).expect(404);
+    });
+
+    it('should return 403 when regular USER tries to delete product', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(`/products/${productToDeleteId}`)
+        .set('Authorization', `Bearer ${regularUserToken}`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.statusCode).toBe(403);
     });
 
     it('should return 404 with non-existent product ID', async () => {

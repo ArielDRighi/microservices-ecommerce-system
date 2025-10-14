@@ -5,6 +5,7 @@ import { AuthService } from '../auth.service';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
 import { RegisterDto, LoginDto } from '../dto';
+import { UserRole } from '../../users/enums/user-role.enum';
 
 /**
  * Factory to create a mock User entity
@@ -17,6 +18,7 @@ export const createMockUser = (overrides: Partial<User> = {}): User => {
     lastName: 'Doe',
     passwordHash: '$2b$10$hashedpassword',
     isActive: true,
+    role: UserRole.USER,
     phoneNumber: '+1234567890',
     dateOfBirth: new Date('1990-01-01'),
     language: 'en',

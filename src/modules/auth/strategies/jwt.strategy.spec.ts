@@ -4,6 +4,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { JwtStrategy, JwtPayload } from './jwt.strategy';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
+import { UserRole } from '../../users/enums/user-role.enum';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
@@ -17,6 +18,7 @@ describe('JwtStrategy', () => {
     lastName: 'Doe',
     passwordHash: '$2b$10$hashedpassword',
     isActive: true,
+    role: UserRole.USER,
     phoneNumber: '+1234567890',
     dateOfBirth: new Date('1990-01-01'),
     language: 'en',
@@ -86,6 +88,7 @@ describe('JwtStrategy', () => {
       email: 'test@example.com',
       firstName: 'John',
       lastName: 'Doe',
+      role: UserRole.USER,
       type: 'access',
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600,

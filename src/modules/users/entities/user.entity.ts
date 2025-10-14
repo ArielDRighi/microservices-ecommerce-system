@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   BeforeInsert,
   BeforeUpdate,
@@ -12,6 +13,7 @@ import {
 import { Exclude } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { Order } from '../../orders/entities/order.entity';
+import { UserRole } from '../enums/user-role.enum';
 
 @Entity('users')
 @Index('idx_users_email', ['email'], { unique: true })
@@ -62,6 +64,15 @@ export class User {
   })
   @Index('idx_users_is_active')
   isActive: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+    nullable: false,
+  })
+  @Index('idx_users_role')
+  role: UserRole;
 
   @Column({
     type: 'varchar',
@@ -119,6 +130,13 @@ export class User {
     name: 'updated_at',
   })
   updatedAt: Date;
+
+  @DeleteDateColumn({
+    type: 'timestamptz',
+    name: 'deleted_at',
+    nullable: true,
+  })
+  deletedAt?: Date;
 
   // Relations
   @OneToMany(() => Order, (order) => order.user, { lazy: true })

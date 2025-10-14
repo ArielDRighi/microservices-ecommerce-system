@@ -8,6 +8,7 @@ describe('Orders API (E2E)', () => {
   let app: INestApplication;
   let userToken: string;
   let user2Token: string;
+  let adminToken: string;
   let userId: string;
   let productId1: string;
   let productId2: string;
@@ -16,6 +17,34 @@ describe('Orders API (E2E)', () => {
     app = await TestAppHelper.createTestApp();
 
     await app.init();
+
+    // Create admin user for product creation
+    const adminData = {
+      email: `admin${Date.now()}@test.com`,
+      password: 'AdminPass123!@',
+      firstName: 'Admin',
+      lastName: 'User',
+    };
+
+    await request(app.getHttpServer()).post('/auth/register').send(adminData).expect(201);
+
+    // Manually update admin role in database
+    const { DataSource } = await import('typeorm');
+    const dataSource = app.get(DataSource);
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
+
+    // Login to get token with updated role
+    const adminLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: adminData.email,
+        password: adminData.password,
+      })
+      .expect(200);
+
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(
+      adminLoginResponse,
+    ).accessToken;
 
     // Create test users
     const userTimestamp = Date.now().toString().slice(-6); // Últimos 6 dígitos
@@ -51,11 +80,11 @@ describe('Orders API (E2E)', () => {
       userResponse1,
     ).user.id;
 
-    // Create test products
+    // Create test products (using admin token because products require ADMIN role)
     const timestamp = Date.now();
     const product1Response = await request(app.getHttpServer())
       .post('/products')
-      .set('Authorization', `Bearer ${userToken}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: `Test Product 1 ${timestamp}`,
         description: 'Test product description',
@@ -69,7 +98,7 @@ describe('Orders API (E2E)', () => {
 
     const product2Response = await request(app.getHttpServer())
       .post('/products')
-      .set('Authorization', `Bearer ${userToken}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: `Test Product 2 ${timestamp}`,
         description: 'Test product description 2',

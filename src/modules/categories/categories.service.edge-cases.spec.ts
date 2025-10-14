@@ -1,31 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CategoriesService } from './categories.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/category.entity';
 import { BadRequestException } from '@nestjs/common';
 import {
   createMockCategory,
   createMockCategoryRepository,
+  createMockProductRepository,
+  setupCategoriesTestModule,
 } from './helpers/categories.test-helpers';
 
 describe('CategoriesService - Edge Cases & Special Scenarios', () => {
-  let service: CategoriesService;
+  let service: any;
   let mockRepository: ReturnType<typeof createMockCategoryRepository>;
+  let mockProductRepository: ReturnType<typeof createMockProductRepository>;
 
   beforeEach(async () => {
     mockRepository = createMockCategoryRepository();
+    mockProductRepository = createMockProductRepository();
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CategoriesService,
-        {
-          provide: getRepositoryToken(Category),
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    service = module.get<CategoriesService>(CategoriesService);
+    const testModule = await setupCategoriesTestModule(mockRepository, mockProductRepository);
+    service = testModule.service;
   });
 
   afterEach(() => {
@@ -257,8 +248,8 @@ describe('CategoriesService - Edge Cases & Special Scenarios', () => {
 
       mockRepository.save.mockImplementation((cat: any) => Promise.resolve(cat));
       jest
-        .spyOn(service, 'findOne')
-        .mockImplementation((id: string) => Promise.resolve(createMockCategory({ id }) as any));
+        .spyOn(service as any, 'findOne')
+        .mockImplementation(((id: string) => Promise.resolve(createMockCategory({ id }))) as any);
 
       const promises = Array.from({ length: 5 }, (_, i) =>
         service.create({ name: `Category ${i}` }),

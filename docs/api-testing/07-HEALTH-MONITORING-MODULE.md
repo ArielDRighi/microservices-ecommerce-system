@@ -488,18 +488,49 @@ curl -s "$BASE_URL/metrics" | grep "nodejs_heap"
 
 ---
 
-## 6️⃣ Bull Board Dashboard (Web UI)
+## 6️⃣ Bull Board Dashboard (Web UI) **[🔐 Basic Auth]**
 
-### ✅ Test 6.1: Acceder al dashboard de queues
+### 🔐 Autenticación Bull Board
 
-**Endpoint:** `GET /admin/queues`  
-**Autenticación:** No requerida (⚠️ Proteger en producción)  
-**Tipo:** Web UI (HTML)
+Bull Board está protegido con **Basic Authentication** usando credenciales configuradas en variables de entorno.
 
-**Comando curl:**
+**Variables de Entorno Requeridas:**
 
 ```bash
-curl -X GET "$BASE_URL/admin/queues"
+# .env o .env.production
+BULL_BOARD_USERNAME=admin
+BULL_BOARD_PASSWORD=your-secure-password-here
+```
+
+**⚠️ Seguridad:**
+
+- Basic Auth implementado para prevenir acceso no autorizado
+- Credenciales configurables por entorno
+- Sin credenciales = error 401 Unauthorized
+- Protege operaciones sensibles: retry, delete, pause queues
+
+---
+
+### ✅ Test 6.1: Acceder al dashboard CON autenticación
+
+**Endpoint:** `GET /admin/queues`  
+**Autenticación:** Basic Auth (Username + Password)  
+**Tipo:** Web UI (HTML)  
+**Status Code:** `200 OK` (con auth) o `401 Unauthorized` (sin auth)
+
+**Comando curl CON Basic Auth:**
+
+```bash
+# Usando credenciales de .env
+curl -X GET "$BASE_URL/admin/queues" \
+  --user "admin:your-secure-password-here"
+
+# Usando variables
+export BULL_BOARD_USERNAME="admin"
+export BULL_BOARD_PASSWORD="your-secure-password-here"
+
+curl -X GET "$BASE_URL/admin/queues" \
+  --user "$BULL_BOARD_USERNAME:$BULL_BOARD_PASSWORD"
 ```
 
 **Acceso desde navegador:**
@@ -507,6 +538,11 @@ curl -X GET "$BASE_URL/admin/queues"
 ```
 http://localhost:3000/admin/queues
 ```
+
+El navegador solicitará credenciales automáticamente (popup de Basic Auth):
+
+- **Username:** `admin` (o valor configurado en `BULL_BOARD_USERNAME`)
+- **Password:** tu password configurado en `BULL_BOARD_PASSWORD`
 
 **Dashboard incluye:**
 
@@ -534,22 +570,65 @@ http://localhost:3000/admin/queues
 
 **Checklist:**
 
-- [ ] Dashboard accesible en `/admin/queues`
+- [ ] Dashboard accesible en `/admin/queues` con credenciales
+- [ ] Basic Auth funciona correctamente
+- [ ] Sin credenciales retorna 401 Unauthorized
 - [ ] Muestra las 4 queues principales
 - [ ] Estadísticas en tiempo real
 - [ ] Se pueden ver jobs individuales
 - [ ] Se pueden hacer retry de jobs fallidos
 - [ ] Interfaz web responsive
 
-**⚠️ Seguridad en Producción:**
+---
 
-```typescript
-// Proteger con autenticación
-@Controller('admin/queues')
-@UseGuards(JwtAuthGuard, AdminGuard)
-export class BullBoardController {
-  // ...
-}
+### ❌ Test 6.2: Intento de acceso SIN autenticación (401 Unauthorized)
+
+**Comando curl sin credenciales:**
+
+```bash
+curl -X GET "$BASE_URL/admin/queues" -i
+```
+
+**Respuesta Esperada (401 Unauthorized):**
+
+```
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Basic realm="Bull Board"
+Content-Length: 0
+```
+
+**Checklist:**
+
+- [ ] Status code es 401
+- [ ] Header `WWW-Authenticate: Basic` presente
+- [ ] No se muestra el dashboard sin autenticación
+
+**💡 Nota:** El navegador solicitará credenciales automáticamente cuando vea el header `WWW-Authenticate: Basic`.
+
+---
+
+### 📝 Configuración de Credenciales
+
+**Archivo `.env` o `.env.production`:**
+
+```bash
+# Bull Board Authentication
+BULL_BOARD_USERNAME=admin
+BULL_BOARD_PASSWORD=SuperSecurePassword123!
+
+# Cambiar en producción:
+# - Usar contraseñas fuertes (min 16 caracteres)
+# - Incluir mayúsculas, minúsculas, números y símbolos
+# - No usar credenciales por defecto
+# - Rotar periódicamente
+```
+
+**Verificar configuración:**
+
+```bash
+# Ver variables configuradas (sin mostrar valores)
+echo "Username configurado: ${BULL_BOARD_USERNAME:-'NOT SET'}"
+[ -z "$BULL_BOARD_PASSWORD" ] && echo "Password: NOT SET" || echo "Password: CONFIGURED"
 ```
 
 ---
@@ -649,16 +728,34 @@ else
   echo "❌ Metrics endpoint not responding"
 fi
 
-# 6. Bull Board Dashboard
+# 6. Bull Board Dashboard (Basic Auth)
 echo ""
 echo "6️⃣ Bull Board Dashboard..."
-BULLBOARD=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/admin/queues")
 
-if [ "$BULLBOARD" == "200" ] || [ "$BULLBOARD" == "302" ]; then
-  echo "✅ Bull Board accessible at $BASE_URL/admin/queues"
+# Test sin autenticación (debe retornar 401)
+BULL_UNAUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/admin/queues")
+
+if [ "$BULL_UNAUTH" == "401" ]; then
+  echo "✅ Basic Auth protecting Bull Board (401 without credentials)"
 else
-  echo "❌ Bull Board not accessible (HTTP $BULLBOARD)"
+  echo "⚠️  Bull Board accessible without auth (HTTP $BULL_UNAUTH)"
 fi
+
+# Test con autenticación (requiere env vars)
+if [ ! -z "$BULL_BOARD_USERNAME" ] && [ ! -z "$BULL_BOARD_PASSWORD" ]; then
+  BULL_AUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/admin/queues" \
+    --user "$BULL_BOARD_USERNAME:$BULL_BOARD_PASSWORD")
+
+  if [ "$BULL_AUTH" == "200" ]; then
+    echo "✅ Bull Board accessible with credentials (HTTP 200)"
+  else
+    echo "❌ Bull Board auth failed (HTTP $BULL_AUTH)"
+  fi
+else
+  echo "⚠️  BULL_BOARD credentials not set - skipping auth test"
+fi
+
+echo "   Access via browser: $BASE_URL/admin/queues"
 
 echo ""
 echo "=== ✅ Testing completado ==="
@@ -759,6 +856,23 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 - Pausar/reanudar queue
 - Ver detalles y logs
 
+### 🔐 Seguridad Bull Board
+
+**Basic Authentication:**
+
+- Protege dashboard de queues sensible
+- Credenciales configurables por entorno (`BULL_BOARD_USERNAME`, `BULL_BOARD_PASSWORD`)
+- Sin credenciales válidas = 401 Unauthorized
+- Navegadores muestran popup de autenticación automáticamente
+
+**Recomendaciones:**
+
+- Usar contraseñas fuertes (16+ caracteres)
+- Cambiar credenciales por defecto en producción
+- Rotar passwords periódicamente
+- No exponer credenciales en logs o código
+- Considerar IP whitelisting adicional para mayor seguridad
+
 ---
 
 **Estado del Módulo:** ✅ Completado  
@@ -766,4 +880,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 **Tests Críticos:** 5  
 **Prometheus:** ✅ Integrado  
 **Kubernetes:** ✅ Ready  
-**Última Actualización:** 2025-10-11
+**Seguridad:** ✅ Bull Board protegido con Basic Auth  
+**Última Actualización:** 2025-10-14

@@ -18,6 +18,7 @@ import {
   ApiConflictResponse,
   ApiBody,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, RefreshTokenDto, AuthResponseDto, MessageResponseDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -33,10 +34,15 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 registrations per hour
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
     description: 'Create a new user account with email, password, and personal information',
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'Too Many Requests - Rate limit exceeded (max 3 registrations per hour)',
   })
   @ApiBody({
     type: RegisterDto,
@@ -83,10 +89,16 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User login',
-    description: 'Authenticate user with email and password',
+    description:
+      'Authenticate user with email and password. Rate limited to 5 attempts per minute to prevent brute force attacks.',
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'Too Many Requests - Rate limit exceeded (max 5 login attempts per minute)',
   })
   @ApiBody({
     type: LoginDto,

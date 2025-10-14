@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
+import expressBasicAuth from 'express-basic-auth';
 import { createBullBoard } from '@bull-board/api';
 import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
@@ -44,7 +45,7 @@ async function bootstrap() {
   // Compression
   app.use(compression());
 
-  // Setup Bull Board Dashboard
+  // Setup Bull Board Dashboard with Basic Auth Protection
   try {
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/api/v1/admin/queues');
@@ -65,11 +66,35 @@ async function bootstrap() {
       serverAdapter,
     });
 
+    // Setup Basic Auth Protection
+    const bullBoardUsername = configService.get<string>('BULL_BOARD_USERNAME', 'admin');
+    const bullBoardPassword = configService.get<string>(
+      'BULL_BOARD_PASSWORD',
+      'changeme_in_production',
+    );
+
+    // Apply Basic Auth middleware
+    app.use(
+      '/api/v1/admin/queues',
+      expressBasicAuth({
+        users: { [bullBoardUsername]: bullBoardPassword },
+        challenge: true,
+        realm: 'Bull Board Dashboard - Restricted Access',
+      }),
+    );
+
     // Mount Bull Board before setting global prefix
     app.use('/api/v1/admin/queues', serverAdapter.getRouter());
+
     logger.log(
       `📊 Bull Board dashboard available at: http://localhost:${port}/api/v1/admin/queues`,
     );
+    logger.warn('🔒 Bull Board protected with Basic Auth (credentials from environment variables)');
+    if (bullBoardPassword === 'changeme_in_production') {
+      logger.warn(
+        '⚠️  WARNING: Using default Bull Board password! Set BULL_BOARD_PASSWORD in environment.',
+      );
+    }
   } catch (error) {
     logger.warn('⚠️  Could not setup Bull Board dashboard:', (error as Error).message);
   }

@@ -1,7 +1,8 @@
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+import { UserRole } from './enums/user-role.enum';
 import { createMockUser, setupUsersTestModule } from './helpers/users.test-helpers';
 
 describe('UsersService - Updates & Status Changes', () => {
@@ -151,23 +152,37 @@ describe('UsersService - Updates & Status Changes', () => {
       ).rejects.toThrow(BadRequestException);
       await expect(
         service.update('123e4567-e89b-12d3-a456-426614174000', updateDto),
-      ).rejects.toThrow('Failed to update user');
+      ).rejects.toThrow('An unexpected error occurred while updating user');
     });
   });
 
   describe('remove', () => {
-    it('should soft delete user by setting isActive to false', async () => {
+    it('should soft delete user using softDelete method', async () => {
       // Arrange
-      repository.findOne.mockResolvedValue(mockUser);
-      repository.update.mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] });
+      const regularUser = { ...mockUser, role: UserRole.USER } as unknown as User;
+      repository.findOne.mockResolvedValue(regularUser);
+      repository.softDelete.mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] });
 
       // Act
       await service.remove('123e4567-e89b-12d3-a456-426614174000');
 
       // Assert
-      expect(repository.update).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000', {
-        isActive: false,
-      });
+      expect(repository.softDelete).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
+    });
+
+    it('should throw ForbiddenException when trying to delete admin user', async () => {
+      // Arrange
+      const adminUser = { ...mockUser, role: UserRole.ADMIN } as unknown as User;
+      repository.findOne.mockResolvedValue(adminUser);
+
+      // Act & Assert
+      await expect(service.remove('123e4567-e89b-12d3-a456-426614174000')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.remove('123e4567-e89b-12d3-a456-426614174000')).rejects.toThrow(
+        'Admin users cannot be deleted',
+      );
+      expect(repository.softDelete).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
@@ -181,15 +196,16 @@ describe('UsersService - Updates & Status Changes', () => {
 
     it('should throw BadRequestException when database error occurs during remove', async () => {
       // Arrange
-      repository.findOne.mockResolvedValue(mockUser);
-      repository.update.mockRejectedValue(new Error('Database error'));
+      const regularUser = { ...mockUser, role: UserRole.USER } as unknown as User;
+      repository.findOne.mockResolvedValue(regularUser);
+      repository.softDelete.mockRejectedValue(new Error('Database error'));
 
       // Act & Assert
       await expect(service.remove('123e4567-e89b-12d3-a456-426614174000')).rejects.toThrow(
         BadRequestException,
       );
       await expect(service.remove('123e4567-e89b-12d3-a456-426614174000')).rejects.toThrow(
-        'Failed to delete user',
+        'An unexpected error occurred while deleting user',
       );
     });
   });
@@ -244,7 +260,7 @@ describe('UsersService - Updates & Status Changes', () => {
         BadRequestException,
       );
       await expect(service.activate('123e4567-e89b-12d3-a456-426614174000')).rejects.toThrow(
-        'Failed to activate user',
+        'An unexpected error occurred while activating user',
       );
     });
   });

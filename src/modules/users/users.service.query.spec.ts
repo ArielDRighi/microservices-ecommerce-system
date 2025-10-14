@@ -133,7 +133,7 @@ describe('UsersService - Queries & Pagination', () => {
       // Act & Assert
       await expect(service.findAll({ page: 1, limit: 10 })).rejects.toThrow(BadRequestException);
       await expect(service.findAll({ page: 1, limit: 10 })).rejects.toThrow(
-        'Failed to fetch users',
+        'An unexpected error occurred while fetching users',
       );
     });
   });

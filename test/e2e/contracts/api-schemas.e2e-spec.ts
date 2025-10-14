@@ -92,18 +92,31 @@ describe('API Response Schemas - Contract Testing (E2E)', () => {
     testUser = { id: userData.user.id, email: testUserEmail } as User;
 
     // Crear admin vía API
-    const adminResponse = await request(app.getHttpServer())
+    const adminEmail = `admin${timestamp}@test.com`;
+    await request(app.getHttpServer())
       .post('/auth/register')
       .send({
-        email: `admin${timestamp}@test.com`,
+        email: adminEmail,
         password: 'Test123!',
         firstName: 'Admin',
         lastName: 'User',
       })
       .expect(201);
 
+    // Update user role to ADMIN in database
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminEmail]);
+
+    // Login to get token with updated role
+    const adminLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: adminEmail,
+        password: 'Test123!',
+      })
+      .expect(200);
+
     // La respuesta viene con estructura anidada: body.data.data
-    const adminData = adminResponse.body.data.data;
+    const adminData = adminLoginResponse.body.data.data;
     adminToken = adminData.accessToken;
 
     // Crear categoría y producto de prueba usando factories

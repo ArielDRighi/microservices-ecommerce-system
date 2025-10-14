@@ -3,12 +3,14 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { User } from './entities/user.entity';
+import { UserRole } from './enums/user-role.enum';
 import {
   CreateUserDto,
   UpdateUserDto,
@@ -45,13 +47,17 @@ export class UsersService {
 
       return savedUser;
     } catch (error) {
+      // Re-throw known exceptions
       if (error instanceof ConflictException) {
         throw error;
       }
+
+      // Log unexpected errors with stack trace
       this.logger.error(
-        `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Unexpected error creating user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
-      throw new BadRequestException('Failed to create user');
+      throw new BadRequestException('An unexpected error occurred while creating user');
     }
   }
 
@@ -99,17 +105,20 @@ export class UsersService {
         },
       };
     } catch (error) {
+      // Log unexpected errors with stack trace
       this.logger.error(
-        `Failed to fetch users: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Unexpected error fetching users: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
-      throw new BadRequestException('Failed to fetch users');
+      throw new BadRequestException('An unexpected error occurred while fetching users');
     }
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: string, includeDeleted = false): Promise<User | null> {
     try {
       const user = await this.userRepository.findOne({
         where: { id },
+        withDeleted: includeDeleted, // Include soft-deleted records if needed
       });
       return user || null;
     } catch (error) {
@@ -176,13 +185,17 @@ export class UsersService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      // Re-throw known exceptions
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
+
+      // Log unexpected errors with stack trace
       this.logger.error(
-        `Failed to update user ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Unexpected error updating user ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
-      throw new BadRequestException('Failed to update user');
+      throw new BadRequestException('An unexpected error occurred while updating user');
     }
   }
 
@@ -193,28 +206,47 @@ export class UsersService {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
-      // Soft delete: deactivate user
-      await this.userRepository.update(id, { isActive: false });
+      // Prevent admin from deleting themselves
+      if (user.role === UserRole.ADMIN) {
+        throw new ForbiddenException(
+          'Admin users cannot be deleted. Please contact support for assistance.',
+        );
+      }
 
-      this.logger.log(`User soft deleted: ${user.email}`);
+      // Soft delete using TypeORM's softDelete method
+      await this.userRepository.softDelete(id);
+
+      this.logger.log(`User soft deleted (marked with deletedAt): ${user.email}`);
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      // Re-throw known exceptions
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
+
+      // Log unexpected errors with stack trace
       this.logger.error(
-        `Failed to delete user ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Unexpected error deleting user ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
-      throw new BadRequestException('Failed to delete user');
+      throw new BadRequestException('An unexpected error occurred while deleting user');
     }
   }
 
   async activate(id: string): Promise<UserResponseDto> {
     try {
-      const user = await this.findById(id);
+      // Include soft-deleted users in the search for activation
+      const user = await this.findById(id, true);
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
 
+      // If user was soft-deleted, restore them
+      if (user.deletedAt) {
+        await this.userRepository.restore(id);
+        this.logger.log(`User restored from soft delete: ${user.email}`);
+      }
+
+      // Activate the user
       await this.userRepository.update(id, { isActive: true });
 
       const activatedUser = await this.findById(id);
@@ -228,13 +260,17 @@ export class UsersService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      // Re-throw known exceptions
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
+
+      // Log unexpected errors with stack trace
       this.logger.error(
-        `Failed to activate user ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Unexpected error activating user ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
       );
-      throw new BadRequestException('Failed to activate user');
+      throw new BadRequestException('An unexpected error occurred while activating user');
     }
   }
 

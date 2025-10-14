@@ -31,12 +31,25 @@ describe('Order Processing Saga - Happy Path (E2E)', () => {
       lastName: 'User',
     };
 
-    const adminResponse = await request(app.getHttpServer())
-      .post('/auth/register')
-      .send(adminData)
-      .expect(201);
+    await request(app.getHttpServer()).post('/auth/register').send(adminData).expect(201);
 
-    adminToken = ResponseHelper.extractData<{ accessToken: string }>(adminResponse).accessToken;
+    // Update user role to ADMIN in database
+    const { DataSource } = await import('typeorm');
+    const dataSource = app.get(DataSource);
+    await dataSource.query(`UPDATE users SET role = 'ADMIN' WHERE email = $1`, [adminData.email]);
+
+    // Login to get token with updated role
+    const adminLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: adminData.email,
+        password: adminData.password,
+      })
+      .expect(200);
+
+    adminToken = ResponseHelper.extractData<{ accessToken: string }>(
+      adminLoginResponse,
+    ).accessToken;
 
     // Create user for orders
     const userData = {

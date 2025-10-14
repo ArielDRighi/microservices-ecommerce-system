@@ -2,18 +2,19 @@
 
 **Módulo:** Authentication  
 **Base URL:** `http://localhost:3000/auth`  
-**Descripción:** Gestión de autenticación, registro, login y tokens JWT
+**Descripción:** Gestión de autenticación, registro, login, tokens JWT y rate limiting
 
 ---
 
 ## 📋 Índice de Tests
 
-- [x] ✅ 1. Registro de Usuario (POST /auth/register)
-- [x] ✅ 2. Login de Usuario (POST /auth/login)
+- [x] ✅ 1. Registro de Usuario (POST /auth/register) [Rate Limited]
+- [x] ✅ 2. Login de Usuario (POST /auth/login) [Rate Limited]
 - [x] ✅ 3. Refresh Token (POST /auth/refresh)
-- [x] ✅ 4. Obtener Perfil (GET /auth/profile)
-- [x] ✅ 5. Obtener Usuario Actual (GET /auth/me)
-- [x] ✅ 6. Logout (POST /auth/logout)
+- [x] ✅ 4. Obtener Perfil (GET /auth/profile) [Auth Required]
+- [x] ✅ 5. Obtener Usuario Actual (GET /auth/me) [Auth Required]
+- [x] ✅ 6. Logout (POST /auth/logout) [Auth Required]
+- [x] ✅ 7. Rate Limiting Tests
 
 ---
 
@@ -24,6 +25,30 @@ export BASE_URL="http://localhost:3000"
 export TOKEN=""
 export REFRESH_TOKEN=""
 export USER_ID=""
+export ADMIN_TOKEN=""
+```
+
+---
+
+## ⚠️ Rate Limiting Configurado
+
+Este módulo tiene rate limiting para prevenir ataques de fuerza bruta:
+
+| Endpoint            | Límite      | Ventana de Tiempo      | Status Code           |
+| ------------------- | ----------- | ---------------------- | --------------------- |
+| POST /auth/login    | 5 requests  | 60 segundos (1 minuto) | 429 Too Many Requests |
+| POST /auth/register | 3 requests  | 3600 segundos (1 hora) | 429 Too Many Requests |
+| Otros endpoints     | 10 requests | 60 segundos (general)  | 429 Too Many Requests |
+
+**Nota:** Los límites se resetean automáticamente después del tiempo especificado.
+
+### Respuesta 429 (Too Many Requests)
+
+```json
+{
+  "statusCode": 429,
+  "message": "ThrottlerException: Too Many Requests"
+}
 ```
 
 ---
@@ -81,6 +106,7 @@ curl -X POST "$BASE_URL/auth/register" \
     "dateOfBirth": "1990-01-01",
     "language": "es",
     "timezone": "America/Argentina/Buenos_Aires",
+    "role": "USER",
     "isActive": true,
     "emailVerifiedAt": null,
     "createdAt": "2025-10-11T...",
@@ -91,6 +117,8 @@ curl -X POST "$BASE_URL/auth/register" \
   "expiresIn": 3600
 }
 ```
+
+**Nota:** El campo `role` es nuevo y por defecto es `"USER"` para registros normales.
 
 **Guardar tokens:**
 
@@ -710,6 +738,152 @@ echo "=== ✅ Testing completado ==="
 
 ---
 
+## 7️⃣ Tests de Rate Limiting
+
+### ✅ Test 7.1: Rate limit en Login (5 requests/min)
+
+**Endpoint:** `POST /auth/login`  
+**Límite:** 5 intentos por minuto  
+**Status Code esperado:** `429 Too Many Requests` en el 6to intento
+
+**Script de Testing:**
+
+```bash
+#!/bin/bash
+# Test de rate limiting en login
+
+BASE_URL="http://localhost:3000"
+
+echo "=== Testing Rate Limiting en Login ==="
+echo "Límite: 5 requests por minuto"
+echo ""
+
+# Hacer 6 intentos rápidos
+for i in {1..6}; do
+  echo "Intento $i..."
+
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/auth/login" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "email": "test@example.com",
+      "password": "password123"
+    }')
+
+  if [ "$HTTP_CODE" == "429" ]; then
+    echo "✅ Intento $i: Rate limit activado (429)"
+    break
+  else
+    echo "   Intento $i: HTTP $HTTP_CODE"
+  fi
+
+  sleep 0.5  # Pequeña pausa entre requests
+done
+
+echo ""
+echo "⏳ Esperando 60 segundos para reset..."
+sleep 60
+
+echo "Intentando nuevamente después del reset..."
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "password123"
+  }')
+
+if [ "$HTTP_CODE" != "429" ]; then
+  echo "✅ Rate limit reseteado correctamente (HTTP $HTTP_CODE)"
+else
+  echo "❌ Rate limit no se reseteó"
+fi
+```
+
+**Respuesta Esperada (429 Too Many Requests):**
+
+```json
+{
+  "statusCode": 429,
+  "message": "ThrottlerException: Too Many Requests"
+}
+```
+
+**Checklist:**
+
+- [ ] Primeros 5 intentos retornan 401 o 200
+- [ ] 6to intento retorna 429
+- [ ] Después de 60 segundos, el límite se resetea
+- [ ] Nuevos intentos funcionan normalmente
+
+---
+
+### ✅ Test 7.2: Rate limit en Register (3 requests/hora)
+
+**Endpoint:** `POST /auth/register`  
+**Límite:** 3 registros por hora  
+**Status Code esperado:** `429 Too Many Requests` en el 4to intento
+
+**Script de Testing:**
+
+```bash
+#!/bin/bash
+# Test de rate limiting en register
+
+BASE_URL="http://localhost:3000"
+
+echo "=== Testing Rate Limiting en Register ==="
+echo "Límite: 3 requests por hora"
+echo ""
+
+# Hacer 4 intentos rápidos con emails diferentes
+for i in {1..4}; do
+  echo "Intento $i de registro..."
+
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/auth/register" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"email\": \"test$i@example.com\",
+      \"password\": \"Test123!@#\",
+      \"firstName\": \"Test\",
+      \"lastName\": \"User$i\"
+    }")
+
+  if [ "$HTTP_CODE" == "429" ]; then
+    echo "✅ Intento $i: Rate limit activado (429)"
+    break
+  elif [ "$HTTP_CODE" == "201" ]; then
+    echo "   Intento $i: Registro exitoso (201)"
+  else
+    echo "   Intento $i: HTTP $HTTP_CODE"
+  fi
+
+  sleep 1
+done
+
+echo ""
+echo "⚠️  Para resetear este límite, espera 1 hora o reinicia el servidor"
+```
+
+**Checklist:**
+
+- [ ] Primeros 3 registros exitosos (201)
+- [ ] 4to intento retorna 429
+- [ ] Rate limit se mantiene por 1 hora
+
+---
+
+### ⚠️ Notas sobre Rate Limiting
+
+1. **Por IP Address**: El rate limiting es por dirección IP del cliente
+2. **Headers de Rate Limit**: Revisa los headers de respuesta:
+   - `X-RateLimit-Limit`: Límite máximo
+   - `X-RateLimit-Remaining`: Requests restantes
+   - `X-RateLimit-Reset`: Timestamp de reset
+3. **Desarrollo vs Producción**: Los límites pueden variar según el entorno
+4. **Bypass en Testing**: Considera diferentes IPs o espera los tiempos de reset
+5. **Protección de Seguridad**: Previene ataques de fuerza bruta y credential stuffing
+
+---
+
 ## 📝 Notas Importantes
 
 ### Seguridad
@@ -741,6 +915,8 @@ Authorization: Bearer <token>
 ---
 
 **Estado del Módulo:** ✅ Completado  
-**Tests Totales:** 15  
-**Tests Críticos:** 6  
-**Última Actualización:** 2025-10-11
+**Tests Totales:** 25+  
+**Tests Críticos:** 10  
+**Rate Limiting:** ✅ Implementado (Login: 5/min, Register: 3/hora)  
+**Seguridad:** ✅ Roles JWT incluidos en tokens  
+**Última Actualización:** 2025-01-11
