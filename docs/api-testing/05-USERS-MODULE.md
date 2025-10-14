@@ -77,6 +77,56 @@ echo "USER_TOKEN: ${USER_TOKEN:0:50}..."
 
 ---
 
+## 🔐 Obtener Usuario Autenticado
+
+**Endpoint:** `GET /auth/me`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `200 OK`
+
+**Propósito:** Obtener información del usuario autenticado extraída del token JWT. Útil para obtener el ID del usuario actual sin necesidad de conocerlo previamente.
+
+**Comando curl:**
+
+```bash
+curl -s -X GET "http://localhost:3002/api/v1/auth/me" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<USER_UUID>",
+    "email": "<email>@example.com",
+    "firstName": "<FirstName>",
+    "lastName": "<LastName>",
+    "fullName": "<FirstName> <LastName>",
+    "isActive": true
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/auth/me"
+}
+```
+
+**Características:**
+
+- Retorna información básica del usuario autenticado
+- Extrae el ID del usuario desde el JWT token
+- Funciona con cualquier rol (USER o ADMIN)
+- Útil para tests que requieren el ID del usuario actual
+
+**Checklist:**
+
+- [ ] Status code es 200 OK
+- [ ] Retorna información del usuario autenticado
+- [ ] Incluye campos: id, email, firstName, lastName, fullName, isActive
+- [ ] Funciona con ADMIN_TOKEN y USER_TOKEN
+
+---
+
 ## �🔐 Sistema de Autorización RBAC
 
 ### Roles Disponibles
@@ -286,17 +336,20 @@ curl -s -X POST "http://localhost:3002/api/v1/users" \
 
 ### ❌ Test 1.3: Crear usuario con email duplicado (409 Conflict)
 
+**Propósito:** Verificar que el sistema impide crear usuarios con emails duplicados.
+
 **Comando curl:**
 
 ```bash
-curl -X POST "http://localhost:3002/api/v1/users" \
+# Usar un email que ya existe (admin@test.com del seed)
+curl -s -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "john.doe@example.com",
+    "email": "admin@test.com",
     "passwordHash": "SecurePassword123!",
-    "firstName": "John",
-    "lastName": "Doe"
+    "firstName": "Duplicate",
+    "lastName": "Test"
   }'
 ```
 
@@ -305,15 +358,21 @@ curl -X POST "http://localhost:3002/api/v1/users" \
 ```json
 {
   "statusCode": 409,
-  "message": "Email already exists",
-  "error": "Conflict"
+  "message": "User with this email already exists",
+  "error": "CONFLICT",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users",
+  "method": "POST"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 409
+- [ ] Status code es 409 Conflict
+- [ ] Mensaje indica que el email ya existe
 - [ ] Email debe ser único en el sistema
+- [ ] No se crea usuario duplicado
 
 ---
 
@@ -501,10 +560,16 @@ curl -X POST "http://localhost:3002/api/v1/users" \
 **Query Params opcionales:**
 
 - `page` (number, default: 1): Número de página
-- `limit` (number, default: 10): Cantidad de resultados por página
-- `isActive` (boolean): Filtrar por estado activo
-- `email` (string): Buscar por email (partial match)
+- `limit` (number, default: 10, max: 100): Cantidad de resultados por página
+- `status` (string, default: 'all'): Filtrar por estado - valores: `'active'`, `'inactive'`, `'all'`
 - `search` (string): Búsqueda en firstName, lastName, email
+- `sortBy` (string, default: 'createdAt'): Campo de ordenamiento - valores: `'createdAt'`, `'updatedAt'`, `'firstName'`, `'lastName'`, `'email'`
+- `sortOrder` (string, default: 'DESC'): Orden - valores: `'ASC'`, `'DESC'`
+
+**⚠️ Nota:** El filtro de estado usa el parámetro `status` (no `isActive`):
+- `?status=active` - Solo usuarios activos (`isActive: true`)
+- `?status=inactive` - Solo usuarios inactivos (`isActive: false`)
+- `?status=all` - Todos los usuarios (default)
 
 **Comando curl:**
 
@@ -592,13 +657,43 @@ curl -s -X GET "http://localhost:3002/api/v1/users?page=1&limit=10" \
 
 ### ✅ Test 2.2: Filtrar usuarios activos
 
-**Query Params:** `?isActive=true`
+**Query Params:** `?status=active`
 
 **Comando curl:**
 
 ```bash
-curl -X GET "http://localhost:3002/api/v1/users?isActive=true&page=1&limit=10" \
+curl -s -X GET "http://localhost:3002/api/v1/users?status=active&page=1&limit=10" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [
+      {
+        "id": "<USER_UUID>",
+        "email": "<email>@example.com",
+        "firstName": "<FirstName>",
+        "lastName": "<LastName>",
+        "fullName": "<FirstName> <LastName>",
+        "isActive": true,
+        ...
+      }
+    ],
+    "meta": {
+      "total": 5,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  }
+}
 ```
 
 **Checklist:**
@@ -610,19 +705,41 @@ curl -X GET "http://localhost:3002/api/v1/users?isActive=true&page=1&limit=10" \
 
 ### ✅ Test 2.3: Filtrar usuarios inactivos
 
-**Query Params:** `?isActive=false`
+**Query Params:** `?status=inactive`
 
 **Comando curl:**
 
 ```bash
-curl -X GET "http://localhost:3002/api/v1/users?isActive=false&page=1&limit=10" \
+curl -s -X GET "http://localhost:3002/api/v1/users?status=inactive&page=1&limit=10" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [],
+    "meta": {
+      "total": 0,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 0,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+**Nota:** Si hay usuarios eliminados (soft delete), aparecerán aquí con `isActive: false`.
 
 **Checklist:**
 
 - [ ] Status code es 200
-- [ ] Todos los usuarios tienen `isActive: false`
+- [ ] Todos los usuarios tienen `isActive: false` (o array vacío si no hay inactivos)
 
 ---
 
@@ -1143,12 +1260,14 @@ curl -s -X GET "http://localhost:3002/api/v1/users/$USER_ID" \
 **Comando curl:**
 
 ```bash
-# Obtener ID del usuario admin actual
+# Obtener ID del usuario admin actual usando /auth/me
 ADMIN_USER_ID=$(curl -s -X GET "http://localhost:3002/api/v1/auth/me" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "ADMIN_USER_ID: $ADMIN_USER_ID"
 
 # Intentar eliminar el propio usuario admin
-curl -X DELETE "http://localhost:3002/api/v1/users/$ADMIN_USER_ID" \
+curl -s -X DELETE "http://localhost:3002/api/v1/users/$ADMIN_USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
@@ -1158,16 +1277,20 @@ curl -X DELETE "http://localhost:3002/api/v1/users/$ADMIN_USER_ID" \
 {
   "statusCode": 403,
   "message": "Admin users cannot be deleted. Please contact support for assistance.",
-  "error": "Forbidden"
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/<ADMIN_UUID>",
+  "method": "DELETE"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 403
+- [ ] Status code es 403 Forbidden
 - [ ] Admin NO puede eliminarse a sí mismo
-- [ ] Mensaje claro de prohibición
-- [ ] Usuario admin sigue activo
+- [ ] Mensaje claro de prohibición: "Admin users cannot be deleted"
+- [ ] Usuario admin sigue activo después del intento
 
 ---
 
