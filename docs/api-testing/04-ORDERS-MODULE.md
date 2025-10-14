@@ -1,30 +1,86 @@
 # 🛒 API Testing - Módulo de Órdenes (Orders)
 
 **Módulo:** Orders  
-**Base URL:** `http://localhost:3000/orders`  
+**Base URL:** `http://localhost:3002/api/v1/orders`  
 **Descripción:** Gestión de órdenes de compra con procesamiento asíncrono y saga pattern
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Crear Orden (POST /orders) [Auth Required]
-- [ ] ✅ 2. Listar Órdenes del Usuario (GET /orders) [Auth Required]
-- [ ] ✅ 3. Obtener Orden por ID (GET /orders/:id) [Auth Required]
-- [ ] ✅ 4. Obtener Estado de Orden (GET /orders/:id/status) [Auth Required]
-- [ ] ✅ 5. Idempotencia - Mismo request retorna orden existente
+- [ ] 1️⃣ **Crear Orden** (POST /orders) **[🟡 Auth Required]** - **EMPEZAR AQUÍ**
+- [ ] 2️⃣ Idempotencia - Mismo request retorna orden existente
+- [ ] 3️⃣ Crear orden sin autenticación (401 Unauthorized)
+- [ ] 4️⃣ Crear orden con items vacíos (400 Bad Request)
+- [ ] 5️⃣ Listar Órdenes del Usuario (GET /orders) **[🟡 Auth Required]**
+- [ ] 6️⃣ Obtener Orden por ID (GET /orders/:id) **[🟡 Auth Required]**
+- [ ] 7️⃣ Obtener Estado de Orden (GET /orders/:id/status) **[🟡 Auth Required]**
+
+**NOTA:** Marca cada checkbox `[x]` conforme completes cada test exitosamente.
+
+---
+
+## 🚀 Pre-requisitos y Estado Inicial
+
+### Antes de empezar, asegúrate de tener:
+
+1. **✅ Servidor corriendo:** `npm run start:dev` en puerto 3002
+2. **✅ Base de datos iniciada:** PostgreSQL con migraciones aplicadas
+3. **✅ Productos creados:** Al menos 2 productos activos en DB
+4. **✅ Inventario creado:** Los productos deben tener inventario (usar `03-INVENTORY-MODULE.md`)
+5. **✅ Usuarios seed:** Usuarios de prueba deben existir:
+   - `admin@test.com` / `Admin123!` (rol: ADMIN)
+   - `user@test.com` / `Admin123!` (rol: USER)
+
+### Estado esperado de la DB:
+
+- **Productos:** Al menos 2 productos activos
+- **Inventario:** Productos con stock disponible (> 0)
+- **Órdenes:** Pueden existir órdenes previas (no afecta los tests)
+
+### ⚠️ Importante:
+
+Este documento usa **placeholders genéricos** (`<ORDER_UUID>`, `<PRODUCT_UUID>`, `<timestamp>`, etc.) en las respuestas de ejemplo. Los valores reales en tu sistema serán diferentes pero deben seguir la misma estructura.
 
 ---
 
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
-export TOKEN="your-jwt-token-here"
-export ORDER_ID=""
-export IDEMPOTENCY_KEY=""
-export PRODUCT_ID_1=""
-export PRODUCT_ID_2=""
+export BASE_URL="http://localhost:3002/api/v1"
+export USER_TOKEN=""      # Se obtendrá en la sección de autenticación
+export ADMIN_TOKEN=""     # Se obtendrá en la sección de autenticación
+export ORDER_ID=""        # Se guardará después de crear orden (Test 1)
+export IDEMPOTENCY_KEY="" # Se generará al crear orden (Test 1)
+export PRODUCT_ID_1=""    # Se obtendrá dinámicamente en Test 1
+export PRODUCT_ID_2=""    # Se obtendrá dinámicamente en Test 1
+```
+
+**NOTA:** Estas variables se llenarán automáticamente conforme ejecutes los tests en orden.
+
+---
+
+## 🔑 Obtener Tokens de Autenticación
+
+```bash
+# Token de USUARIO (crear órdenes)
+export USER_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+# Token de ADMINISTRADOR (opcional, para operaciones admin)
+export ADMIN_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+echo "USER_TOKEN: $USER_TOKEN"
+echo "ADMIN_TOKEN: $ADMIN_TOKEN"
 ```
 
 ---
@@ -37,10 +93,13 @@ Las órdenes se procesan **asíncronamente** mediante:
 - 🎭 **Saga Pattern** para transacciones distribuidas
 - ⏱️ **202 Accepted** - La orden se crea inmediatamente en estado `PENDING`
 - 📊 **Estados progresivos**: PENDING → CONFIRMED → PAID → SHIPPED → DELIVERED
+- ❌ **Estados de fallo**: CANCELLED (si falla reserva de stock o pago)
+
+**NOTA:** El estado cambia automáticamente en background. Usa polling del endpoint `/orders/:id/status` para monitorear progreso.
 
 ---
 
-## 1️⃣ Crear Orden
+## 1️⃣ Crear Orden **[🟡 Auth Required]** - **EMPEZAR AQUÍ**
 
 ### ✅ Test 1.1: Crear orden exitosamente
 
@@ -54,180 +113,224 @@ Las órdenes se procesan **asíncronamente** mediante:
 {
   "items": [
     {
-      "productId": "uuid-product-1",
+      "productId": "<PRODUCT_UUID_1>",
       "quantity": 2
     },
     {
-      "productId": "uuid-product-2",
+      "productId": "<PRODUCT_UUID_2>",
       "quantity": 1
     }
   ],
-  "idempotencyKey": "order-2025-10-11-001"
+  "idempotencyKey": "order_<timestamp>_<random>"
 }
 ```
 
 **Campos requeridos:**
 - `items` (array): Array de items con `productId` (UUID) y `quantity` (integer >= 1)
-- `idempotencyKey` (string, opcional): Clave para prevenir órdenes duplicadas. Si no se provee, se genera automáticamente
 
-**Preparar productos para la orden:**
+**Campos opcionales:**
+- `idempotencyKey` (string): Clave para prevenir órdenes duplicadas. **Si no se provee, se genera automáticamente**
+
+**⚠️ PRE-REQUISITO:** Necesitas al menos 2 productos con inventario disponible.
+
+**Paso 1: Obtener productos existentes dinámicamente**
 
 ```bash
-# Obtener IDs de productos existentes de la lista actual
-# Ya tenemos algunos productos creados en el test anterior
-curl -X GET "$BASE_URL/products" | head -50
+# Obtener los primeros 2 productos disponibles
+export PRODUCT_ID_1=$(curl -s "http://localhost:3002/api/v1/products?page=1&limit=2" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+export PRODUCT_ID_2=$(curl -s "http://localhost:3002/api/v1/products?page=1&limit=2" | grep -o '"id":"[^"]*"' | head -2 | tail -1 | cut -d'"' -f4)
 
-# Guardar IDs manualmente (ejemplo con los productos que creamos):
-export PRODUCT_ID_1="a5585341-86ff-4849-8558-678a8af7c444"  # Samsung Galaxy S24
-export PRODUCT_ID_2="82fe0c9a-72c0-4720-8da5-f81e96532348"  # MacBook Pro
-
-echo "Product 1: $PRODUCT_ID_1"
-echo "Product 2: $PRODUCT_ID_2"
+echo "PRODUCT_ID_1: $PRODUCT_ID_1"
+echo "PRODUCT_ID_2: $PRODUCT_ID_2"
 ```
 
-**Comando curl:**
+**Paso 2: Generar idempotency key único**
 
 ```bash
-# Generar idempotency key único
-export IDEMPOTENCY_KEY="order-$(date +%s)"
+export IDEMPOTENCY_KEY="order_$(date +%s)_$RANDOM"
+echo "IDEMPOTENCY_KEY: $IDEMPOTENCY_KEY"
+```
 
-curl -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
+**Paso 3: Crear orden**
+
+```bash
+curl -s -X POST "http://localhost:3002/api/v1/orders" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [
+  -d '{
+    "items": [
       {
-        \"productId\": \"$PRODUCT_ID_1\",
-        \"quantity\": 2
+        "productId": "'$PRODUCT_ID_1'",
+        "quantity": 2
       },
       {
-        \"productId\": \"$PRODUCT_ID_2\",
-        \"quantity\": 1
+        "productId": "'$PRODUCT_ID_2'",
+        "quantity": 1
       }
     ],
-    \"idempotencyKey\": \"$IDEMPOTENCY_KEY\"
-  }"
+    "idempotencyKey": "'$IDEMPOTENCY_KEY'"
+  }'
 ```
 
 **Respuesta Esperada (202 Accepted):**
 
 ```json
 {
-  "id": "order-uuid-here",
-  "userId": "user-uuid-here",
-  "status": "PENDING",
-  "items": [
-    {
-      "id": "item-uuid-1",
-      "productId": "product-uuid-1",
-      "productName": "Product Name 1",
-      "quantity": 2,
-      "unitPrice": 99.99,
-      "subtotal": 199.98
-    },
-    {
-      "id": "item-uuid-2",
-      "productId": "product-uuid-2",
-      "productName": "Product Name 2",
-      "quantity": 1,
-      "unitPrice": 149.99,
-      "subtotal": 149.99
-    }
-  ],
-  "subtotal": 349.97,
-  "tax": 73.49,
-  "shippingCost": 15.0,
-  "total": 438.46,
-  "shippingAddress": {
-    "street": "123 Main St",
-    "city": "Buenos Aires",
-    "state": "CABA",
-    "postalCode": "1000",
-    "country": "Argentina"
+  "statusCode": 202,
+  "message": "Order created successfully",
+  "data": {
+    "id": "<ORDER_UUID>",
+    "userId": "<USER_UUID>",
+    "status": "PENDING",
+    "totalAmount": "509.97",
+    "currency": "USD",
+    "idempotencyKey": "order_<timestamp>_<random>",
+    "items": [
+      {
+        "id": "<ITEM_UUID_1>",
+        "productId": "<PRODUCT_UUID_1>",
+        "productName": "<Product_Name_1>",
+        "quantity": 2,
+        "unitPrice": "179.99",
+        "totalPrice": "359.98"
+      },
+      {
+        "id": "<ITEM_UUID_2>",
+        "productId": "<PRODUCT_UUID_2>",
+        "productName": "<Product_Name_2>",
+        "quantity": 1,
+        "unitPrice": "149.99",
+        "totalPrice": "149.99"
+      }
+    ],
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
   },
-  "paymentMethod": "CREDIT_CARD",
-  "idempotencyKey": "order-2025-10-11-001",
-  "createdAt": "2025-10-11T10:30:00.000Z",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders"
 }
 ```
 
-**Guardar Order ID:**
+**Campos en la respuesta:**
+
+- `id`: UUID de la orden creada (**Guardar como ORDER_ID**)
+- `status`: Estado inicial `PENDING` (cambiará asíncronamente)
+- `totalAmount`: Total de la orden en string decimal
+- `currency`: Moneda (USD)
+- `items`: Array con detalles de cada producto
+  - `totalPrice`: quantity × unitPrice por item
+- `idempotencyKey`: Clave de idempotencia enviada
+
+**Paso 4: Guardar ORDER_ID para tests siguientes**
 
 ```bash
-# Nota: Extraer el ID de la respuesta JSON manualmente o parseando con grep/sed
-# Ejemplo después de crear una orden, copiar el ID de la respuesta
+# Extraer el ID de la orden de la respuesta anterior
+export ORDER_ID=$(curl -s -X GET "http://localhost:3002/api/v1/orders" -H "Authorization: Bearer $USER_TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+echo "ORDER_ID guardado: $ORDER_ID"
 ```
 
 **Checklist:**
 
-- [ ] Status code es **202 Accepted** (no 201)
+- [ ] Status code es **202 Accepted** (no 201 Created)
 - [ ] Respuesta contiene `id` de la orden
 - [ ] `status` es `PENDING`
-- [ ] `total` está calculado correctamente (subtotal + tax + shipping)
-- [ ] `items` array contiene todos los productos
-- [ ] Cada item tiene `subtotal` calculado (quantity \* unitPrice)
+- [ ] `totalAmount` está calculado correctamente
+- [ ] `items` array contiene todos los productos solicitados
+- [ ] Cada item tiene `totalPrice` = quantity × unitPrice
 - [ ] `idempotencyKey` coincide con el enviado
+- [ ] Variable `ORDER_ID` guardada correctamente
 
 ---
 
-### ✅ Test 1.2: Idempotencia - Mismo request retorna orden existente
+## 2️⃣ Idempotencia - Mismo Request Retorna Orden Existente **[🟡 Auth Required]**
+
+### ✅ Test 2.1: Idempotencia - Mismo idempotencyKey retorna orden existente
 
 **Concepto:** Enviar el mismo `idempotencyKey` dos veces debe retornar la **misma orden** sin crear una nueva.
+
+**Endpoint:** `POST /orders`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `202 Accepted` (ambas llamadas)
 
 **Comando curl:**
 
 ```bash
-# Primera llamada - crea la orden
-FIRST_CALL=$(curl -s -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
+# Segunda llamada con el MISMO idempotencyKey (reusar el del Test 1.1)
+curl -s -X POST "http://localhost:3002/api/v1/orders" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [{
-      \"productId\": \"$PRODUCT_ID_1\",
-      \"quantity\": 1,
-      \"price\": 99.99
-    }],
-    \"shippingAddress\": {
-      \"street\": \"Test St\",
-      \"city\": \"Test City\",
-      \"state\": \"TC\",
-      \"postalCode\": \"12345\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
-    \"idempotencyKey\": \"idempotency-test-001\"
-  }")
+  -d '{
+    "items": [
+      {
+        "productId": "'$PRODUCT_ID_1'",
+        "quantity": 2
+      },
+      {
+        "productId": "'$PRODUCT_ID_2'",
+        "quantity": 1
+      }
+    ],
+    "idempotencyKey": "'$IDEMPOTENCY_KEY'"
+  }'
+```
 
-FIRST_ORDER_ID=$(echo $FIRST_CALL | jq -r '.id')
+**Respuesta Esperada (202 Accepted):**
 
-# Segunda llamada - mismo idempotencyKey
-SECOND_CALL=$(curl -s -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
+```json
+{
+  "statusCode": 202,
+  "message": "Order created successfully",
+  "data": {
+    "id": "<SAME_ORDER_UUID>",
+    "userId": "<USER_UUID>",
+    "status": "PENDING",
+    "totalAmount": "509.97",
+    "currency": "USD",
+    "idempotencyKey": "order_<timestamp>_<random>",
+    "items": [
+      {
+        "id": "<SAME_ITEM_UUID_1>",
+        "productId": "<PRODUCT_UUID_1>",
+        "productName": "<Product_Name_1>",
+        "quantity": 2,
+        "unitPrice": "179.99",
+        "totalPrice": "359.98"
+      },
+      {
+        "id": "<SAME_ITEM_UUID_2>",
+        "productId": "<PRODUCT_UUID_2>",
+        "productName": "<Product_Name_2>",
+        "quantity": 1,
+        "unitPrice": "149.99",
+        "totalPrice": "149.99"
+      }
+    ],
+    "createdAt": "<same_timestamp>",
+    "updatedAt": "<same_timestamp>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders"
+}
+```
+
+**Validación de idempotencia:**
+
+```bash
+# Comparar IDs manualmente o con script
+echo "Primer ORDER_ID del Test 1.1: $ORDER_ID"
+
+# Extraer ID de la segunda llamada
+SECOND_ORDER_ID=$(curl -s -X POST "http://localhost:3002/api/v1/orders" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [{
-      \"productId\": \"$PRODUCT_ID_1\",
-      \"quantity\": 1,
-      \"price\": 99.99
-    }],
-    \"shippingAddress\": {
-      \"street\": \"Test St\",
-      \"city\": \"Test City\",
-      \"state\": \"TC\",
-      \"postalCode\": \"12345\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
-    \"idempotencyKey\": \"idempotency-test-001\"
-  }")
+  -d '{
+    "items": [{"productId": "'$PRODUCT_ID_1'", "quantity": 2}],
+    "idempotencyKey": "'$IDEMPOTENCY_KEY'"
+  }' | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-SECOND_ORDER_ID=$(echo $SECOND_CALL | jq -r '.id')
+echo "Segundo ORDER_ID (debe ser igual): $SECOND_ORDER_ID"
 
-echo "First Order ID: $FIRST_ORDER_ID"
-echo "Second Order ID: $SECOND_ORDER_ID"
-
-if [ "$FIRST_ORDER_ID" == "$SECOND_ORDER_ID" ]; then
+if [ "$ORDER_ID" == "$SECOND_ORDER_ID" ]; then
   echo "✅ Idempotencia funciona correctamente"
 else
   echo "❌ Idempotencia falló - IDs diferentes"
@@ -236,245 +339,34 @@ fi
 
 **Checklist:**
 
-- [ ] Status code es 202 en ambas llamadas
+- [ ] Status code es 202 Accepted en ambas llamadas
 - [ ] El `id` de la orden es **idéntico** en ambas respuestas
-- [ ] No se creó una segunda orden
-- [ ] `createdAt` es igual en ambas respuestas
+- [ ] No se creó una segunda orden en la base de datos
+- [ ] `createdAt` y `updatedAt` son iguales en ambas respuestas
+- [ ] `idempotencyKey` es el mismo en ambas respuestas
 
 ---
 
-### ❌ Test 1.3: Crear orden sin autenticación (401 Unauthorized)
+## 3️⃣ Crear Orden Sin Autenticación (401 Unauthorized)
+
+### ❌ Test 3.1: Crear orden sin token Bearer
+
+**Endpoint:** `POST /orders`  
+**Autenticación:** None (sin Authorization header)  
+**Status Code esperado:** `401 Unauthorized`
 
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/orders" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [{
-      \"productId\": \"$PRODUCT_ID_1\",
-      \"quantity\": 1,
-      \"price\": 99.99
-    }],
-    \"shippingAddress\": {
-      \"street\": \"Test St\",
-      \"city\": \"Test City\",
-      \"state\": \"TC\",
-      \"postalCode\": \"12345\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\"
-  }" | jq '.'
-```
-
-**Respuesta Esperada (401 Unauthorized):**
-
-```json
-{
-  "statusCode": 401,
-  "message": "Unauthorized",
-  "error": "Unauthorized"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 401
-- [ ] Requiere autenticación
-
----
-
-### ❌ Test 1.4: Crear orden con items vacíos (400 Bad Request)
-
-**Comando curl:**
-
-```bash
-curl -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "items": [],
-    "shippingAddress": {
-      "street": "Test St",
-      "city": "Test City",
-      "state": "TC",
-      "postalCode": "12345",
-      "country": "Argentina"
-    },
-    "paymentMethod": "CREDIT_CARD"
-  }' | jq '.'
-```
-
-**Respuesta Esperada (400 Bad Request):**
-
-```json
-{
-  "statusCode": 400,
-  "message": ["items must contain at least 1 element"],
-  "error": "Bad Request"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 400
-- [ ] Mensaje indica que items no puede estar vacío
-
----
-
-### ❌ Test 1.5: Crear orden con productos inexistentes (400 Bad Request)
-
-**Comando curl:**
-
-```bash
-curl -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -s -X POST "http://localhost:3002/api/v1/orders" \
   -H "Content-Type: application/json" \
   -d '{
     "items": [{
-      "productId": "00000000-0000-0000-0000-000000000000",
-      "quantity": 1,
-      "price": 99.99
+      "productId": "'$PRODUCT_ID_1'",
+      "quantity": 1
     }],
-    "shippingAddress": {
-      "street": "Test St",
-      "city": "Test City",
-      "state": "TC",
-      "postalCode": "12345",
-      "country": "Argentina"
-    },
-    "paymentMethod": "CREDIT_CARD"
-  }' | jq '.'
-```
-
-**Respuesta Esperada (400 Bad Request):**
-
-```json
-{
-  "statusCode": 400,
-  "message": "One or more products not found",
-  "error": "Bad Request"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 400
-- [ ] Valida existencia de productos
-
----
-
-### ❌ Test 1.6: Crear orden con dirección de envío inválida (400 Bad Request)
-
-**Comando curl:**
-
-```bash
-curl -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [{
-      \"productId\": \"$PRODUCT_ID_1\",
-      \"quantity\": 1,
-      \"price\": 99.99
-    }],
-    \"shippingAddress\": {
-      \"street\": \"\",
-      \"city\": \"\",
-      \"state\": \"\",
-      \"postalCode\": \"\",
-      \"country\": \"\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\"
-  }" | jq '.'
-```
-
-**Respuesta Esperada (400 Bad Request):**
-
-```json
-{
-  "statusCode": 400,
-  "message": [
-    "street should not be empty",
-    "city should not be empty",
-    "state should not be empty",
-    "postalCode should not be empty",
-    "country should not be empty"
-  ],
-  "error": "Bad Request"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 400
-- [ ] Valida campos requeridos de dirección
-
----
-
-## 2️⃣ Listar Órdenes del Usuario Autenticado
-
-### ✅ Test 2.1: Listar todas las órdenes del usuario
-
-**Endpoint:** `GET /orders`  
-**Autenticación:** Bearer Token (JWT) - Required
-
-**Comando curl:**
-
-```bash
-curl -X GET "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (200 OK):**
-
-```json
-[
-  {
-    "id": "order-uuid-1",
-    "userId": "user-uuid-here",
-    "status": "DELIVERED",
-    "total": 438.46,
-    "items": [
-      {
-        "id": "item-uuid-1",
-        "productName": "Product 1",
-        "quantity": 2,
-        "unitPrice": 99.99,
-        "subtotal": 199.98
-      }
-    ],
-    "createdAt": "2025-10-10T10:00:00.000Z",
-    "updatedAt": "2025-10-10T12:00:00.000Z"
-  },
-  {
-    "id": "order-uuid-2",
-    "userId": "user-uuid-here",
-    "status": "PENDING",
-    "total": 199.99,
-    "items": [...],
-    "createdAt": "2025-10-11T09:00:00.000Z",
-    "updatedAt": "2025-10-11T09:00:00.000Z"
-  }
-]
-```
-
-**Checklist:**
-
-- [ ] Status code es 200
-- [ ] Respuesta es un array de órdenes
-- [ ] Todas las órdenes pertenecen al usuario autenticado
-- [ ] Órdenes ordenadas por fecha de creación (más recientes primero)
-- [ ] No incluye órdenes de otros usuarios
-
----
-
-### ❌ Test 2.2: Listar órdenes sin autenticación (401 Unauthorized)
-
-**Comando curl:**
-
-```bash
-curl -X GET "$BASE_URL/orders" | jq '.'
+    "idempotencyKey": "test_no_auth"
+  }'
 ```
 
 **Respuesta Esperada (401 Unauthorized):**
@@ -483,414 +375,357 @@ curl -X GET "$BASE_URL/orders" | jq '.'
 {
   "statusCode": 401,
   "message": "Unauthorized",
-  "error": "Unauthorized"
+  "error": "UNAUTHORIZED",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders",
+  "method": "POST"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 401
-- [ ] Requiere autenticación
+- [ ] Status code es 401 Unauthorized
+- [ ] Mensaje indica falta de autenticación
+- [ ] No se crea ninguna orden
 
 ---
 
-## 3️⃣ Obtener Orden por ID
+## 4️⃣ Crear Orden con Items Vacíos (400 Bad Request)
 
-### ✅ Test 3.1: Obtener orden propia exitosamente
+### ❌ Test 4.1: Crear orden sin productos en items
 
-**Endpoint:** `GET /orders/:id`  
-**Autenticación:** Bearer Token (JWT) - Required
+**Endpoint:** `POST /orders`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code esperado:** `400 Bad Request`
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/orders/$ORDER_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+curl -s -X POST "http://localhost:3002/api/v1/orders" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [],
+    "idempotencyKey": "test_empty"
+  }'
+```
+
+**Respuesta Esperada (400 Bad Request):**
+
+```json
+{
+  "statusCode": 400,
+  "message": "At least one item is required",
+  "error": "BAD_REQUEST",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders",
+  "method": "POST"
+}
+```
+
+**Checklist:**
+
+- [ ] Status code es 400 Bad Request
+- [ ] Mensaje indica que se requiere al menos un item
+- [ ] Validación ocurre antes de procesar la orden
+
+---
+
+## 5️⃣ Listar Órdenes del Usuario Autenticado **[🟡 Auth Required]**
+
+### ✅ Test 5.1: Listar todas las órdenes del usuario
+
+**Endpoint:** `GET /orders`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `200 OK`
+
+**Comando curl:**
+
+```bash
+curl -s -X GET "http://localhost:3002/api/v1/orders" \
+  -H "Authorization: Bearer $USER_TOKEN"
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "id": "order-uuid-here",
-  "userId": "user-uuid-here",
-  "status": "PENDING",
-  "items": [
+  "statusCode": 200,
+  "message": "Success",
+  "data": [
     {
-      "id": "item-uuid-1",
-      "productId": "product-uuid-1",
-      "productName": "Product Name",
-      "productSku": "PROD-001",
-      "quantity": 2,
-      "unitPrice": 99.99,
-      "subtotal": 199.98
+      "id": "<ORDER_UUID_1>",
+      "userId": "<USER_UUID>",
+      "status": "CANCELLED",
+      "totalAmount": "509.97",
+      "currency": "USD",
+      "idempotencyKey": "order_<timestamp>_<random>",
+      "items": [
+        {
+          "id": "<ITEM_UUID_1>",
+          "productId": "<PRODUCT_UUID_1>",
+          "productName": "<Product_Name_1>",
+          "quantity": 2,
+          "unitPrice": "179.99",
+          "totalPrice": "359.98"
+        },
+        {
+          "id": "<ITEM_UUID_2>",
+          "productId": "<PRODUCT_UUID_2>",
+          "productName": "<Product_Name_2>",
+          "quantity": 1,
+          "unitPrice": "149.99",
+          "totalPrice": "149.99"
+        }
+      ],
+      "createdAt": "<timestamp>",
+      "updatedAt": "<timestamp>"
+    },
+    {
+      "id": "<ORDER_UUID_2>",
+      "userId": "<USER_UUID>",
+      "status": "PENDING",
+      "totalAmount": "329.98",
+      "currency": "USD",
+      "idempotencyKey": "order_<timestamp>_<random>",
+      "items": [...],
+      "createdAt": "<timestamp>",
+      "updatedAt": "<timestamp>"
     }
   ],
-  "subtotal": 199.98,
-  "tax": 41.99,
-  "shippingCost": 15.0,
-  "total": 256.97,
-  "shippingAddress": {
-    "street": "123 Main St",
-    "city": "Buenos Aires",
-    "state": "CABA",
-    "postalCode": "1000",
-    "country": "Argentina"
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders"
+}
+```
+
+**Estructura de respuesta:**
+
+- `data`: Array de órdenes del usuario autenticado
+- Cada orden incluye:
+  - `id`, `userId`, `status`, `totalAmount`, `currency`
+  - `items`: Array con detalles completos de productos
+  - `idempotencyKey`: Clave de idempotencia usada
+  - `createdAt`, `updatedAt`: Timestamps
+
+**Estados posibles:**
+
+- `PENDING`: Orden creada, en procesamiento
+- `CONFIRMED`: Orden confirmada, stock reservado
+- `PAID`: Pago procesado exitosamente
+- `CANCELLED`: Orden cancelada (fallo en stock o pago)
+- `SHIPPED`: Orden enviada
+- `DELIVERED`: Orden entregada
+
+**Checklist:**
+
+- [ ] Status code es 200 OK
+- [ ] Respuesta es un array de órdenes en `data`
+- [ ] Todas las órdenes pertenecen al usuario autenticado (mismo `userId`)
+- [ ] Cada orden incluye `items` completos con detalles de productos
+- [ ] No incluye órdenes de otros usuarios
+
+
+
+---
+
+## 6️⃣ Obtener Orden por ID **[🟡 Auth Required]**
+
+### ✅ Test 6.1: Obtener orden propia exitosamente
+
+**Endpoint:** `GET /orders/:id`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `200 OK`
+
+**Comando curl:**
+
+```bash
+# Usar el ORDER_ID guardado del Test 1.1
+curl -s -X GET "http://localhost:3002/api/v1/orders/$ORDER_ID" \
+  -H "Authorization: Bearer $USER_TOKEN"
+```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<ORDER_UUID>",
+    "userId": "<USER_UUID>",
+    "status": "CANCELLED",
+    "totalAmount": "509.97",
+    "currency": "USD",
+    "idempotencyKey": "order_<timestamp>_<random>",
+    "items": [
+      {
+        "id": "<ITEM_UUID_1>",
+        "productId": "<PRODUCT_UUID_1>",
+        "productName": "<Product_Name_1>",
+        "quantity": 2,
+        "unitPrice": "179.99",
+        "totalPrice": "359.98"
+      },
+      {
+        "id": "<ITEM_UUID_2>",
+        "productId": "<PRODUCT_UUID_2>",
+        "productName": "<Product_Name_2>",
+        "quantity": 1,
+        "unitPrice": "149.99",
+        "totalPrice": "149.99"
+      }
+    ],
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
   },
-  "paymentMethod": "CREDIT_CARD",
-  "paymentStatus": "PENDING",
-  "idempotencyKey": "order-key-here",
-  "createdAt": "2025-10-11T10:30:00.000Z",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders/<ORDER_UUID>"
 }
 ```
 
+**Estructura de respuesta:**
+
+- `data`: Objeto con detalles completos de la orden
+  - `id`: UUID de la orden
+  - `userId`: UUID del usuario propietario
+  - `status`: Estado actual de la orden
+  - `totalAmount`: Total en string decimal
+  - `currency`: Moneda (USD)
+  - `idempotencyKey`: Clave de idempotencia usada
+  - `items`: Array completo con todos los productos
+  - `createdAt`, `updatedAt`: Timestamps
+
 **Checklist:**
 
-- [ ] Status code es 200
+- [ ] Status code es 200 OK
 - [ ] Orden contiene todos los detalles completos
-- [ ] `items` incluye información de productos
-- [ ] Cálculos de totales son correctos
+- [ ] `items` incluye información completa de productos
 - [ ] `userId` coincide con el usuario autenticado
+- [ ] Solo puede ver sus propias órdenes
 
 ---
 
-### ❌ Test 3.2: Obtener orden inexistente (404 Not Found)
+## 7️⃣ Obtener Estado de Orden (Endpoint Ligero) **[🟡 Auth Required]**
 
-**Comando curl:**
-
-```bash
-curl -X GET "$BASE_URL/orders/00000000-0000-0000-0000-000000000000" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (404 Not Found):**
-
-```json
-{
-  "statusCode": 404,
-  "message": "Order 00000000-0000-0000-0000-000000000000 not found",
-  "error": "Not Found"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 404
-- [ ] Mensaje indica orden no encontrada
-
----
-
-### ❌ Test 3.3: Obtener orden de otro usuario (403 Forbidden / 404 Not Found)
-
-**Nota:** Depende de la implementación - puede ser 403 o 404 por seguridad.
-
-**Comando curl:**
-
-```bash
-# Asumiendo que otro usuario tiene una orden
-curl -X GET "$BASE_URL/orders/other-user-order-uuid" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (404 Not Found):**
-
-```json
-{
-  "statusCode": 404,
-  "message": "Order not found or does not belong to user",
-  "error": "Not Found"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 404 o 403
-- [ ] Usuario solo puede ver sus propias órdenes
-
----
-
-## 4️⃣ Obtener Estado de Orden (Endpoint Ligero)
-
-### ✅ Test 4.1: Obtener solo el estado de la orden
+### ✅ Test 7.1: Obtener solo el estado de la orden
 
 **Endpoint:** `GET /orders/:id/status`  
 **Autenticación:** Bearer Token (JWT) - Required  
-**Propósito:** Polling ligero para verificar progreso
+**Status Code:** `200 OK`  
+**Propósito:** Polling ligero para verificar progreso sin transferir toda la orden
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/orders/$ORDER_ID/status" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+# Usar el ORDER_ID guardado del Test 1.1
+curl -s -X GET "http://localhost:3002/api/v1/orders/$ORDER_ID/status" \
+  -H "Authorization: Bearer $USER_TOKEN"
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "orderId": "order-uuid-here",
-  "status": "PENDING",
-  "paymentStatus": "PENDING",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "orderId": "<ORDER_UUID>",
+    "status": "CANCELLED"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/orders/<ORDER_UUID>/status"
 }
 ```
 
-**Checklist:**
+**Estructura de respuesta:**
 
-- [ ] Status code es 200
-- [ ] Respuesta contiene solo `orderId`, `status`, `paymentStatus`, `updatedAt`
-- [ ] Más ligera que GET /orders/:id (no incluye items ni detalles)
+- `data.orderId`: UUID de la orden
+- `data.status`: Estado actual (solo el campo necesario)
 
----
+**📝 Notas:**
 
-### ⏱️ Test 4.2: Polling para verificar progreso de orden
+- ⚠️ **El endpoint NO retorna `paymentStatus` ni `updatedAt`** (solo `orderId` y `status`)
+- ✅ Respuesta mucho más ligera que GET /orders/:id
+- ✅ Ideal para polling en loops sin consumir ancho de banda innecesario
+- ✅ Útil para monitorear progreso de órdenes en procesamiento asíncrono
 
-**Escenario:** Verificar el estado de la orden cada X segundos hasta que cambie de PENDING.
+**Estados posibles:**
 
-**Comando curl (con loop):**
-
-```bash
-#!/bin/bash
-# Polling del estado de la orden
-
-MAX_ATTEMPTS=20
-SLEEP_SECONDS=3
-ATTEMPT=1
-
-echo "Polling estado de orden: $ORDER_ID"
-
-while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-  echo "Intento $ATTEMPT/$MAX_ATTEMPTS..."
-
-  STATUS_RESPONSE=$(curl -s -X GET "$BASE_URL/orders/$ORDER_ID/status" \
-    -H "Authorization: Bearer $TOKEN")
-
-  STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
-  PAYMENT_STATUS=$(echo $STATUS_RESPONSE | jq -r '.paymentStatus')
-
-  echo "  Status: $STATUS | Payment: $PAYMENT_STATUS"
-
-  if [ "$STATUS" != "PENDING" ]; then
-    echo "✅ Orden procesada con estado: $STATUS"
-    break
-  fi
-
-  sleep $SLEEP_SECONDS
-  ATTEMPT=$((ATTEMPT + 1))
-done
-
-if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
-  echo "⚠️ Orden aún en estado PENDING después de $MAX_ATTEMPTS intentos"
-fi
-```
-
-**Estados Posibles:**
-
-- `PENDING` - Orden creada, esperando procesamiento
-- `CONFIRMED` - Orden confirmada, stock reservado
-- `PAID` - Pago procesado exitosamente
-- `SHIPPED` - Orden enviada
-- `DELIVERED` - Orden entregada
-- `CANCELLED` - Orden cancelada
-- `FAILED` - Orden falló en procesamiento
+- `PENDING`: Orden creada, esperando procesamiento
+- `CONFIRMED`: Stock reservado exitosamente
+- `PAID`: Pago procesado
+- `CANCELLED`: Orden cancelada (falta stock, pago rechazado, etc.)
+- `SHIPPED`: Orden enviada
+- `DELIVERED`: Orden entregada
 
 **Checklist:**
 
-- [ ] Endpoint responde rápidamente (< 100ms)
-- [ ] Estado progresa correctamente: PENDING → CONFIRMED → PAID → SHIPPED
-- [ ] `updatedAt` cambia cuando el estado cambia
+- [ ] Status code es 200 OK
+- [ ] Respuesta contiene solo `orderId` y `status`
+- [ ] Más ligera que GET /orders/:id completo
+- [ ] Útil para polling frecuente
 
----
 
-## 🧪 Script de Testing Completo
-
-```bash
-#!/bin/bash
-# Testing completo de Orders Module
-
-BASE_URL="http://localhost:3000"
-TOKEN="your-jwt-token"
-
-echo "=== 🛒 Testing Orders Module ==="
-echo ""
-
-# Preparar productos
-echo "0️⃣ Obteniendo productos..."
-PRODUCT_ID_1=$(curl -s -X GET "$BASE_URL/products?limit=1" | jq -r '.data[0].id')
-PRODUCT_ID_2=$(curl -s -X GET "$BASE_URL/products?limit=2" | jq -r '.data[1].id')
-echo "✅ Productos: $PRODUCT_ID_1, $PRODUCT_ID_2"
-
-# 1. Crear orden
-echo "1️⃣ Creando orden..."
-IDEMPOTENCY_KEY="test-order-$(date +%s)"
-
-CREATE_RESPONSE=$(curl -s -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [
-      {
-        \"productId\": \"$PRODUCT_ID_1\",
-        \"quantity\": 2,
-        \"price\": 99.99
-      },
-      {
-        \"productId\": \"$PRODUCT_ID_2\",
-        \"quantity\": 1,
-        \"price\": 149.99
-      }
-    ],
-    \"shippingAddress\": {
-      \"street\": \"123 Test St\",
-      \"city\": \"Test City\",
-      \"state\": \"TC\",
-      \"postalCode\": \"12345\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
-    \"idempotencyKey\": \"$IDEMPOTENCY_KEY\"
-  }")
-
-ORDER_ID=$(echo $CREATE_RESPONSE | jq -r '.id')
-STATUS=$(echo $CREATE_RESPONSE | jq -r '.status')
-TOTAL=$(echo $CREATE_RESPONSE | jq -r '.total')
-
-if [ "$ORDER_ID" != "null" ]; then
-  echo "✅ Orden creada: $ORDER_ID"
-  echo "   Status: $STATUS | Total: \$$TOTAL"
-else
-  echo "❌ Error al crear orden"
-  exit 1
-fi
-
-# 2. Test de idempotencia
-echo "2️⃣ Probando idempotencia..."
-SECOND_RESPONSE=$(curl -s -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [
-      {
-        \"productId\": \"$PRODUCT_ID_1\",
-        \"quantity\": 2,
-        \"price\": 99.99
-      }
-    ],
-    \"shippingAddress\": {
-      \"street\": \"123 Test St\",
-      \"city\": \"Test City\",
-      \"state\": \"TC\",
-      \"postalCode\": \"12345\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
-    \"idempotencyKey\": \"$IDEMPOTENCY_KEY\"
-  }")
-
-SECOND_ORDER_ID=$(echo $SECOND_RESPONSE | jq -r '.id')
-
-if [ "$ORDER_ID" == "$SECOND_ORDER_ID" ]; then
-  echo "✅ Idempotencia funciona - mismo ID retornado"
-else
-  echo "❌ Idempotencia falló - IDs diferentes"
-fi
-
-# 3. Obtener orden por ID
-echo "3️⃣ Obteniendo orden por ID..."
-ORDER_DETAIL=$(curl -s -X GET "$BASE_URL/orders/$ORDER_ID" \
-  -H "Authorization: Bearer $TOKEN")
-
-ITEMS_COUNT=$(echo $ORDER_DETAIL | jq '.items | length')
-echo "✅ Orden obtenida con $ITEMS_COUNT items"
-
-# 4. Listar órdenes del usuario
-echo "4️⃣ Listando órdenes del usuario..."
-USER_ORDERS=$(curl -s -X GET "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN")
-
-ORDERS_COUNT=$(echo $USER_ORDERS | jq '. | length')
-echo "✅ Usuario tiene $ORDERS_COUNT órdenes"
-
-# 5. Obtener estado de orden
-echo "5️⃣ Obteniendo estado de orden..."
-STATUS_RESPONSE=$(curl -s -X GET "$BASE_URL/orders/$ORDER_ID/status" \
-  -H "Authorization: Bearer $TOKEN")
-
-CURRENT_STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
-PAYMENT_STATUS=$(echo $STATUS_RESPONSE | jq -r '.paymentStatus')
-
-echo "✅ Estado: $CURRENT_STATUS | Pago: $PAYMENT_STATUS"
-
-# 6. Polling de estado (esperar procesamiento)
-echo "6️⃣ Esperando procesamiento de orden (max 30 segundos)..."
-
-MAX_ATTEMPTS=10
-ATTEMPT=1
-
-while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-  sleep 3
-
-  STATUS_RESPONSE=$(curl -s -X GET "$BASE_URL/orders/$ORDER_ID/status" \
-    -H "Authorization: Bearer $TOKEN")
-
-  STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
-
-  echo "   Intento $ATTEMPT: $STATUS"
-
-  if [ "$STATUS" != "PENDING" ]; then
-    echo "✅ Orden procesada: $STATUS"
-    break
-  fi
-
-  ATTEMPT=$((ATTEMPT + 1))
-done
-
-echo ""
-echo "=== ✅ Testing completado ==="
-```
 
 ---
 
 ## 📝 Notas Importantes
 
-### Payment Methods Soportados
-
-- `CREDIT_CARD`
-- `DEBIT_CARD`
-- `PAYPAL`
-- `BANK_TRANSFER`
-- `CASH_ON_DELIVERY`
-
 ### Estados de Orden
 
-1. **PENDING** - Orden creada, en cola de procesamiento
-2. **CONFIRMED** - Stock verificado y reservado
+El sistema implementa **procesamiento asíncrono** con los siguientes estados:
+
+1. **PENDING** - Orden creada, esperando procesamiento en cola
+2. **CONFIRMED** - Stock verificado y reservado exitosamente
 3. **PAID** - Pago procesado exitosamente
-4. **SHIPPED** - Orden enviada al cliente
-5. **DELIVERED** - Orden entregada
-6. **CANCELLED** - Orden cancelada
-7. **FAILED** - Error en procesamiento (stock insuficiente, pago rechazado)
+4. **CANCELLED** - Orden cancelada (stock insuficiente, pago rechazado, timeout, etc.)
+5. **SHIPPED** - Orden enviada al cliente
+6. **DELIVERED** - Orden entregada al cliente
+
+**⚠️ IMPORTANTE:** El estado cambia automáticamente en background mediante **Bull Queue** y **Saga Pattern**. Usa el endpoint `/orders/:id/status` para hacer polling ligero.
 
 ### Idempotencia
 
-- **Clave:** `idempotencyKey` (opcional pero recomendado)
-- **Uso:** Previene creación de órdenes duplicadas en caso de retry
-- **Comportamiento:** Mismo key retorna la orden existente sin crear nueva
+- **Clave:** `idempotencyKey` (opcional)
+- **Generación:** Si no se provee, el backend genera uno automáticamente
+- **Uso:** Previene creación de órdenes duplicadas en caso de retry/timeout
+- **Comportamiento:** Mismo key retorna la orden existente (202) sin crear nueva
+- **Recomendación:** Usa formato `order_<timestamp>_<random>` para garantizar unicidad
 
-### Cálculo de Totales
+### Estructura de Precios
 
 ```
-subtotal = Σ(item.quantity * item.unitPrice)
-tax = subtotal * 0.21  (21% IVA)
-shippingCost = 15.00 (fijo por ahora)
-total = subtotal + tax + shippingCost
+totalPrice (por item) = quantity × unitPrice
+totalAmount (orden) = Σ(item.totalPrice)
+currency = "USD" (fijo)
 ```
+
+**📝 Nota:** En la implementación actual:
+- No hay campos separados para `tax` o `shippingCost`
+- El `totalAmount` es la suma directa de todos los `item.totalPrice`
+- La moneda es siempre `USD`
+
+### Flujo Asíncrono (Saga Pattern)
+
+```
+1. POST /orders → 202 Accepted (status: PENDING)
+2. Background: Reservar stock en Inventory
+3. Background: Procesar pago
+4. Status cambia: PENDING → CONFIRMED → PAID
+5. Si falla: PENDING → CANCELLED
+```
+
+**Polling recomendado:**
+- Usa `GET /orders/:id/status` cada 3-5 segundos
+- Timeout después de 60 segundos si sigue en PENDING
+- Máximo 20 intentos de polling
 
 ---
 
 **Estado del Módulo:** ✅ Completado  
-**Tests Totales:** 15+  
-**Tests Críticos:** 6  
-**Procesamiento:** Asíncrono (Saga Pattern)  
-**Última Actualización:** 2025-10-11
+**Tests Ejecutados:** 7  
+**Tests Críticos:** 7  
+**Procesamiento:** Asíncrono (Bull Queue + Saga Pattern)  
+**Última Actualización:** 2025-10-14
