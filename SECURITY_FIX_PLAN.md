@@ -1144,11 +1144,11 @@ export class LoginDto {
 
 **Checklist de Completitud:**
 
-- [ ] Rate limiting implementado en Auth endpoints
-- [ ] Bull Board protegido con Basic Auth
-- [ ] LoginDto solo valida presencia de campos (no formato)
-- [ ] Tests E2E pasan para rate limiting
-- [ ] Variables de entorno documentadas en .env.example
+- [x] Rate limiting implementado en Auth endpoints
+- [x] Bull Board protegido con Basic Auth
+- [x] LoginDto solo valida presencia de campos (no formato)
+- [x] Tests E2E pasan para rate limiting
+- [x] Variables de entorno documentadas en .env.example
 
 ---
 
@@ -1352,11 +1352,13 @@ npm run test:e2e -- auth.e2e-spec.ts
 
 **Checklist de Completitud:**
 
-- [ ] Soft delete implementado correctamente con deletedAt
-- [ ] Admin no puede eliminarse a sí mismo
-- [ ] Manejo de excepciones consistente en todos los services
-- [ ] Todos los tests unitarios pasan
-- [ ] Todos los tests E2E pasan
+- [x] Soft delete implementado correctamente con deletedAt
+- [x] Admin no puede eliminarse a sí mismo
+- [x] Manejo de excepciones consistente en todos los services
+- [x] Todos los tests unitarios pasan (arreglados y actualizados)
+- [x] Linting sin errores
+- [x] Type-check sin errores
+- [ ] Todos los tests E2E pasan (pendiente validación individual por módulo)
 - [ ] Coverage >75%
 
 ---

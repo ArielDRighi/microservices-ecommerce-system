@@ -93,7 +93,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User login',
-    description: 'Authenticate user with email and password. Rate limited to 5 attempts per minute to prevent brute force attacks.',
+    description:
+      'Authenticate user with email and password. Rate limited to 5 attempts per minute to prevent brute force attacks.',
   })
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,

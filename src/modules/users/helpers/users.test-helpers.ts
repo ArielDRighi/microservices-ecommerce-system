@@ -65,6 +65,7 @@ export const createMockUserRepository = () => ({
   save: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
+  softDelete: jest.fn(),
   createQueryBuilder: jest.fn(),
 });
 

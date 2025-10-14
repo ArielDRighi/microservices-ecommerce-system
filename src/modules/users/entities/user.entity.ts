@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   BeforeInsert,
   BeforeUpdate,
@@ -129,6 +130,13 @@ export class User {
     name: 'updated_at',
   })
   updatedAt: Date;
+
+  @DeleteDateColumn({
+    type: 'timestamptz',
+    name: 'deleted_at',
+    nullable: true,
+  })
+  deletedAt?: Date;
 
   // Relations
   @OneToMany(() => Order, (order) => order.user, { lazy: true })
