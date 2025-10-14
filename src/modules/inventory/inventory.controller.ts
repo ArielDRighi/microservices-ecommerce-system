@@ -502,13 +502,13 @@ export class InventoryController {
     return await this.inventoryService.getInventoryList(queryDto);
   }
 
-  @Public()
   @Get('stats')
   @ApiOperation({
     summary: 'Get inventory statistics',
-    description: 'Get overview statistics about inventory levels and status distribution',
+    description: 'Get overview statistics about inventory levels and status distribution. Requires authentication.',
   })
   @ApiQuery({ name: 'location', required: false, type: String, description: 'Filter by location' })
+  @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @ApiResponse({
     status: 200,
     description: 'Inventory statistics',
