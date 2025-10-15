@@ -9,6 +9,7 @@ on:
         task-17-refactor-tests-unitarios,
         task-18-tests-e2e-plan,
         refactor/e2e-real-dependencies,
+        docs/api-testing-documentation,
       ]
   pull_request:
     branches: [main, develop]
@@ -120,6 +121,20 @@ jobs:
         run: |
           timeout 30s bash -c 'until nc -z localhost 6379; do sleep 1; done'
 
+      - name: Run database migrations
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-key-for-testing
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+        run: npm run migration:run
+
       - name: Run unit tests
         env:
           DATABASE_HOST: localhost
@@ -137,6 +152,21 @@ jobs:
       - name: Create E2E test database
         run: |
           PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;" || echo "Database might already exist"
+
+      - name: Run E2E database migrations
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db_e2e
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-key-for-testing
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+          NODE_ENV: e2e
+        run: npm run migration:run
 
       - name: Run E2E tests
         env:
@@ -258,6 +288,20 @@ jobs:
         run: |
           timeout 30s bash -c 'until nc -z localhost 6379; do sleep 1; done'
 
+      - name: Run database migrations for quality gate
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-key-for-testing
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+        run: npm run migration:run
+
       - name: Check test coverage threshold
         env:
           DATABASE_HOST: localhost
@@ -278,6 +322,21 @@ jobs:
       - name: Create E2E test database for coverage
         run: |
           PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;" || echo "Database might already exist"
+
+      - name: Run E2E database migrations for quality gate
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db_e2e
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-key-for-testing
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+          NODE_ENV: e2e
+        run: npm run migration:run
 
       - name: Generate E2E coverage report
         env:
