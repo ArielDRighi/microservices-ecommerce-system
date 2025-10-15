@@ -1,7 +1,7 @@
 # 🏥 API Testing - Módulo de Health & Monitoring
 
 **Módulo:** Health & Monitoring  
-**Base URL:** `http://localhost:3000/api/v1`  
+**Base URL:** `http://localhost:3002/api/v1/health`  
 **Descripción:** Endpoints de salud, métricas Prometheus y monitoreo de queues
 
 ---
@@ -20,7 +20,7 @@
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
+export BASE_URL="http://localhost:3002/api/v1"
 ```
 
 ---
@@ -217,7 +217,7 @@ curl -X GET "$BASE_URL/api/v1/health/ready" | jq '.'
 readinessProbe:
   httpGet:
     path: /api/v1/health/ready
-    port: 3000
+    port: 3002
   initialDelaySeconds: 10
   periodSeconds: 5
 ```
@@ -277,7 +277,7 @@ curl -X GET "$BASE_URL/api/v1/health/live" | jq '.'
 livenessProbe:
   httpGet:
     path: /api/v1/health/live
-    port: 3000
+    port: 3002
   initialDelaySeconds: 30
   periodSeconds: 10
 ```
@@ -512,7 +512,7 @@ scrape_configs:
   - job_name: 'ecommerce-api'
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:3000']
+      - targets: ['localhost:3002']
     metrics_path: '/api/v1/metrics'
 ```
 
@@ -582,7 +582,7 @@ curl -X GET "$BASE_URL/api/v1/admin/queues" \
 **Acceso desde navegador:**
 
 ```
-http://localhost:3000/api/v1/admin/queues
+http://localhost:3002/api/v1/admin/queues
 ```
 
 El navegador solicitará credenciales automáticamente (popup de Basic Auth):
@@ -685,7 +685,7 @@ echo "Username configurado: ${BULL_BOARD_USERNAME:-'NOT SET'}"
 #!/bin/bash
 # Testing completo de Health & Monitoring Module
 
-BASE_URL="http://localhost:3000"
+BASE_URL="http://localhost:3002"
 
 echo "=== 🏥 Testing Health & Monitoring Module ==="
 echo ""
@@ -833,11 +833,11 @@ spec:
     - name: api
       image: ecommerce-api:latest
       ports:
-        - containerPort: 3000
+        - containerPort: 3002
       livenessProbe:
         httpGet:
           path: /api/v1/health/live
-          port: 3000
+          port: 3002
         initialDelaySeconds: 30
         periodSeconds: 10
         timeoutSeconds: 5
@@ -845,7 +845,7 @@ spec:
       readinessProbe:
         httpGet:
           path: /api/v1/health/ready
-          port: 3000
+          port: 3002
         initialDelaySeconds: 10
         periodSeconds: 5
         timeoutSeconds: 3
@@ -856,7 +856,7 @@ spec:
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/api/v1/health/live || exit 1
+  CMD curl -f http://localhost:3002/api/v1/health/live || exit 1
 ```
 
 ### Métricas Prometheus Disponibles
