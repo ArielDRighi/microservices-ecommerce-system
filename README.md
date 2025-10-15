@@ -5,13 +5,13 @@
     <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/ecommerce-async-resilient-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/tests-1059%20passed%20(104%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
+    <img src="https://img.shields.io/badge/tests-1187%20passed%20(109%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/coverage-75.31%25%20(threshold%2070%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
+    <img src="https://img.shields.io/badge/coverage-72.11%25%20(threshold%2071%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/e2e-233%2F234%20(99.6%25)-brightgreen?style=for-the-badge" alt="E2E Tests"/>
+    <img src="https://img.shields.io/badge/e2e-261%2F262%20(99.6%25)-brightgreen?style=for-the-badge" alt="E2E Tests"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/queues-4%20specialized-blue?style=for-the-badge" alt="Queue System"/>
@@ -123,7 +123,7 @@ Este proyecto no es solo código; es el resultado de un proceso de ingeniería d
 
 Este enfoque demuestra un compromiso con la planificación estratégica, la gestión de riesgos y la comunicación técnica clara, aplicando más de 10 años de experiencia en gestión de proyectos al desarrollo de software.
 
-➡️ **[Explora aquí los 25 ADRs para entender el "porqué" detrás de cada decisión técnica.](https://github.com/ArielDRighi/ecommerce-async-resilient-system/tree/docs/complete-documentation/docs/adr)**
+➡️ **[Explora aquí los 25 ADRs para entender el "porqué" detrás de cada decisión técnica.](./docs/adr/)**
 
 ---
 
@@ -140,12 +140,12 @@ Este enfoque demuestra un compromiso con la planificación estratégica, la gest
 - **Monitoreo con Prometheus:** Métricas de negocio y sistema expuestas en /metrics para scraping.
 - **Bull Board Dashboard:** UI web en /api/v1/admin/queues para monitoreo en tiempo real de colas y jobs.
 - **Logging Estructurado con Winston:** Logs en formato JSON con correlation IDs, rotation diaria, levels configurables.
-- **Sistema de Testing Exhaustivo:** 1033 tests unitarios + 14 suites E2E, cobertura 74.69%, configuración Jest profesional.
+- **Sistema de Testing Exhaustivo:** 1187 tests unitarios + 14 suites E2E, cobertura 72.11%, configuración Jest profesional.
 - **Contenerización Completa:** Docker multi-stage builds, docker-compose para dev/test/prod, healthchecks configurados.
 - **Pipeline CI/CD con GitHub Actions:** Linting, testing, security scanning, build validation automatizado.
 - **Documentación API con Swagger:** OpenAPI completo con ejemplos, schemas detallados, endpoints documentados.
 
-➡️ **[📊 Ver Resultados de Testing Completos](./TESTING_SUMMARY.md)** - 35/37 tests E2E exitosos (94.6%), arquitectura asíncrona 100% verificada
+➡️ **[📊 Ver Reporte de Issues de Testing](./docs/TESTING_ISSUES_REPORT.md)** - 261/262 tests E2E pasando (99.6%), arquitectura asíncrona 100% verificada
 
 ---
 
@@ -443,14 +443,14 @@ El sistema implementa **4 colas especializadas** para procesar jobs asíncronos:
 
 ### Testing
 
-| Comando                | Descripción                                        |
-| :--------------------- | :------------------------------------------------- |
-| `npm test`             | Ejecuta 103 tests unitarios                        |
-| `npm run test:watch`   | Tests en modo watch para desarrollo                |
-| `npm run test:cov`     | Genera reporte de cobertura (20% actual, meta 80%) |
-| `npm run test:debug`   | Tests con debugger para troubleshooting            |
-| `npm run test:e2e`     | Ejecuta 14 suites de tests End-to-End completas    |
-| `npm run test:e2e:cov` | Tests E2E con coverage                             |
+| Comando                | Descripción                                             |
+| :--------------------- | :------------------------------------------------------ |
+| `npm test`             | Ejecuta 1187 tests unitarios (109 suites)               |
+| `npm run test:watch`   | Tests en modo watch para desarrollo                     |
+| `npm run test:cov`     | Genera reporte de cobertura (72% actual, threshold 71%) |
+| `npm run test:debug`   | Tests con debugger para troubleshooting                 |
+| `npm run test:e2e`     | Ejecuta 262 tests E2E (14 suites)                       |
+| `npm run test:e2e:cov` | Tests E2E con coverage                                  |
 
 ### Code Quality
 
@@ -477,19 +477,19 @@ El sistema implementa **4 colas especializadas** para procesar jobs asíncronos:
 
 ## ✅ Testing
 
-El proyecto cuenta con una suite de pruebas empresarial con **1033 tests unitarios** (102 suites) y **14 suites E2E** completas.
+El proyecto cuenta con una suite de pruebas empresarial con **1187 tests unitarios** (109 suites) y **14 suites E2E** completas.
 
 ### Métricas de Testing
 
-- **1033 tests unitarios** ✅ distribuidos en 102 suites de test (6 skipped)
+- **1187 tests unitarios** ✅ distribuidos en 109 suites de test (6 skipped)
 - **14 suites E2E** ✅ (smoke, API, integration, business flows, contracts)
-- **74.66% cobertura de código** (umbral profesional: **70%**, superado ✅)
-  - Statements: 74.66% ✅ (2986/3999) - Threshold: 70%
-  - Branches: 63.32% ⚠️ (720/1137) - Threshold: 70% (en progreso)
-  - Functions: 76.45% ✅ (565/739) - Threshold: 70%
-  - Lines: 75.08% ✅ (2764/3681) - Threshold: 70%
-- **Módulos críticos**: 80% threshold (payments, orders)
-- **Tiempo de ejecución**: ~120 segundos (unit con coverage), variables (E2E con servicios reales)
+- **72.11% cobertura de código** (umbral profesional: **71%**, superado ✅)
+  - Statements: 72.11% ✅ - Threshold: 71%
+  - Branches: 60.52% ⚠️ - Threshold: 62% (en progreso)
+  - Functions: 76.37% ✅ - Threshold: 72%
+  - Lines: 72.16% ✅ - Threshold: 71%
+- **Módulos críticos**: Thresholds configurados (payments, orders)
+- **Tiempo de ejecución**: ~57 segundos (unit), ~9 minutos (E2E con servicios reales)
 
 ### Tests Unitarios por Módulo
 
@@ -521,8 +521,9 @@ El proyecto cuenta con una suite de pruebas empresarial con **1033 tests unitari
 
 ### Estrategia de Cobertura
 
-- **Umbral Actual**: 20% configurado en `jest.config.js`
-- **Meta Futura**: 80%+ una vez completada suite completa
+- **Umbral Actual**: 71% configurado en `jest.config.js`
+- **Coverage Actual**: 72.11% (superando threshold ✅)
+- **Meta Futura**: 75-80% una vez completada suite completa
 - **Prioridades de Testing**:
   - ✅ Lógica de negocio crítica (Order, Payment, Inventory)
   - ✅ Procesadores de colas y workers
@@ -876,7 +877,9 @@ Este proyecto utiliza **GitHub Actions** para la integración y el despliegue co
 ### CI/CD Metrics
 
 - **Pipeline Stages**: 6 stages automatizados
-- **Test Execution Time**: Variables según tests E2E
+- **Test Execution Time (Unit)**: ~57 segundos (1,187 tests)
+- **Test Execution Time (E2E)**: ~9 minutos (262 tests, 14 suites)
+- **Total Testing Time**: ~10 minutos
 - **Build Time**: <3 minutos
 - **Security Checks**: npm audit en cada push
 
@@ -1011,7 +1014,7 @@ Este proyecto forma parte de mi portfolio profesional demostrando expertise en:
 - ✅ **Patrones de Resiliencia** (Circuit Breaker, Retry, Idempotency, Compensation)
 - ✅ **Backend Enterprise** con NestJS, TypeScript, PostgreSQL, TypeORM
 - ✅ **RESTful APIs** con documentación OpenAPI/Swagger completa
-- ✅ **Testing Exhaustivo** (103 unit + 14 E2E, coverage 20% hacia 80%)
+- ✅ **Testing Exhaustivo** (1187 unit + 262 E2E, coverage 72.11%)
 - ✅ **DevOps y CI/CD** con Docker multi-stage, GitHub Actions
 - ✅ **Observability** (Health Checks con Terminus, Prometheus metrics, Winston logging)
 - ✅ **Security** (JWT authentication, RBAC, Helmet headers, input validation)
@@ -1171,4 +1174,4 @@ echo "✨ Verificación completada!"
 
 ---
 
-**Proyecto 2 de 3** del Portfolio Profesional | **Última actualización**: Octubre 2025
+**Proyecto 2 de 3** del Portfolio Profesional | **Última actualización**: 15 de Octubre, 2025
