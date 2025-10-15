@@ -45,11 +45,13 @@ export class OutboxProcessor implements IOutboxProcessor, OnModuleInit, OnModule
     private readonly paymentQueue: Queue,
   ) {
     // Set default configuration
+    // Disable OutboxProcessor in E2E tests to prevent race conditions with dropSchema
+    const isE2ETest = process.env['NODE_ENV'] === 'e2e' || process.env['NODE_ENV'] === 'test';
     this.config = {
       batchSize: 50,
       maxRetries: 5,
       retryDelay: 1000,
-      enabled: true,
+      enabled: !isE2ETest, // Disabled in test environments
       processingInterval: 5000,
     };
   }

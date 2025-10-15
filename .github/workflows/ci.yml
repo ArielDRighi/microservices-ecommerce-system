@@ -118,6 +118,21 @@ jobs:
         run: |
           timeout 30s bash -c 'until nc -z localhost 6379; do sleep 1; done'
 
+      - name: Debug environment variables
+        run: |
+          echo "DATABASE_HOST: ${DATABASE_HOST:-not set}"
+          echo "DATABASE_PORT: ${DATABASE_PORT:-not set}"
+          echo "DATABASE_NAME: ${DATABASE_NAME:-not set}"
+          echo "DATABASE_USERNAME: ${DATABASE_USERNAME:-not set}"
+          echo "DATABASE_USER: ${DATABASE_USER:-not set}"
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+
       - name: Run database migrations
         env:
           DATABASE_HOST: localhost
