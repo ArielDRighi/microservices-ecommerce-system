@@ -6,7 +6,17 @@
 
 ---
 
-## 📋 Descripción General
+## � Quick Start
+
+**¿Primera vez aquí? Comienza con la demo de 5 minutos:**
+
+➡️ **[Quick Start Demo (5 min)](/docs/api-testing/00-QUICK-START-DEMO.md)**
+
+Esta guía express te permite probar el core del sistema (procesamiento asíncrono de órdenes con Saga Pattern) directamente desde Swagger en 5 minutos.
+
+---
+
+## �📋 Descripción General
 
 Este directorio contiene **documentación detallada de testing manual** para cada módulo de la API REST del sistema de e-commerce. Cada documento está diseñado para ser seguido paso a paso, permitiendo a cualquier miembro del equipo técnico validar la funcionalidad completa de cada módulo.
 
@@ -208,6 +218,7 @@ Además del testing manual con `curl`, puedes usar **Swagger UI** para una exper
 **URL:** `http://localhost:3002/api/docs`
 
 **Características:**
+
 - ✅ **Exploración visual** de todos los endpoints organizados por módulos
 - ✅ **Pruebas interactivas** directamente desde el navegador (sin necesidad de curl)
 - ✅ **Autenticación integrada**: Click en "Authorize" → Pegar tu JWT token

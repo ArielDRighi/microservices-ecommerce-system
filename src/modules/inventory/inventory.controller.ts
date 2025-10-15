@@ -50,7 +50,7 @@ const TRANSFORM_VALIDATION_PIPE = new ValidationPipe({ transform: true });
 
 @ApiTags('Inventory')
 @Controller('inventory')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
@@ -278,6 +278,7 @@ export class InventoryController {
   @Post('add-stock')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Add stock',
@@ -302,6 +303,7 @@ export class InventoryController {
   @Post('remove-stock')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Remove stock',
@@ -505,7 +507,8 @@ export class InventoryController {
   @Get('stats')
   @ApiOperation({
     summary: 'Get inventory statistics',
-    description: 'Get overview statistics about inventory levels and status distribution. Requires authentication.',
+    description:
+      'Get overview statistics about inventory levels and status distribution. Requires authentication.',
   })
   @ApiQuery({ name: 'location', required: false, type: String, description: 'Filter by location' })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })

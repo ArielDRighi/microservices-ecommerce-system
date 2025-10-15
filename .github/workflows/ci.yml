@@ -134,18 +134,24 @@ jobs:
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: npm run test
 
+      - name: Create E2E test database
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;" || echo "Database might already exist"
+
       - name: Run E2E tests
         env:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
-          DATABASE_NAME: test_db
+          DATABASE_NAME: test_db_e2e
           DATABASE_USERNAME: test_user
           DATABASE_PASSWORD: test_password
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 1
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
+          NODE_ENV: e2e
         run: npm run test:e2e
 
       - name: Generate coverage report
@@ -269,18 +275,24 @@ jobs:
           echo "Checking coverage threshold..."
           # The coverage threshold is configured in jest.config.js
 
+      - name: Create E2E test database for coverage
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;" || echo "Database might already exist"
+
       - name: Generate E2E coverage report
         env:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
-          DATABASE_NAME: test_db
+          DATABASE_NAME: test_db_e2e
           DATABASE_USERNAME: test_user
           DATABASE_PASSWORD: test_password
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 1
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
+          NODE_ENV: e2e
         run: npm run test:e2e:cov
 
       - name: Quality Gate Summary

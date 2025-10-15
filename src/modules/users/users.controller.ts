@@ -43,7 +43,7 @@ import { User } from './entities/user.entity';
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
 

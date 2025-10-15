@@ -49,8 +49,9 @@ export class CategoryQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by parent category ID ("null" string for root categories, or UUID)',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    description:
+      'Filter by parent category ID. Use "null" (as string) for root categories only, or provide a valid UUID to get subcategories of a specific parent. Leave empty to get all categories.',
+    example: 'null',
   })
   @IsOptional()
   @Transform(({ value }) => {

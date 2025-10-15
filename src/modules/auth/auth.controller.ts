@@ -104,20 +104,20 @@ export class AuthController {
     type: LoginDto,
     description: 'User login credentials',
     examples: {
-      userLogin: {
-        summary: 'Standard user login',
-        description: 'Example login with email and password',
+      adminLogin: {
+        summary: 'Admin user login (from seed)',
+        description: 'Login with admin user created by database seed',
         value: {
-          email: 'john.doe@example.com',
-          password: 'SecurePassword123!',
+          email: 'admin@test.com',
+          password: 'Admin123!',
         },
       },
-      alternativeUser: {
-        summary: 'Alternative user login',
-        description: 'Another example with different credentials',
+      regularUserLogin: {
+        summary: 'Regular user login (from seed)',
+        description: 'Login with regular user created by database seed',
         value: {
-          email: 'jane.smith@example.com',
-          password: 'MySecurePass456@',
+          email: 'user@test.com',
+          password: 'Admin123!',
         },
       },
     },
@@ -175,7 +175,7 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get current user profile',
     description: 'Retrieve the profile information of the authenticated user',
@@ -210,7 +210,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'User logout',
     description: 'Logout the authenticated user (client should discard tokens)',
@@ -233,7 +233,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get current user information',
     description: 'Get minimal information about the authenticated user',

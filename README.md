@@ -26,6 +26,7 @@
 </p>
 
 <p align="center">
+  <a href="#-quick-start--demo-rápida">🚀 Quick Start</a> •
   <a href="#-acerca-del-proyecto">Acerca del Proyecto</a> •
   <a href="#-stack-tecnológico">Stack Tecnológico</a> •
   <a href="#-arquitectura-del-sistema">Arquitectura</a> •
@@ -39,7 +40,51 @@
 
 ---
 
-## 📖 Acerca del Proyecto
+## � Quick Start / Demo Rápida
+
+¿Quieres ver el sistema en acción **en 5 minutos**? Sigue esta guía express:
+
+### 📌 Para Evaluadores/Reclutadores
+
+**Opción 1: Demo Ultra-Rápida (5 min)**
+
+```bash
+# 1. Clonar y levantar
+git clone https://github.com/ArielDRighi/ecommerce-async-resilient-system.git
+cd ecommerce-async-resilient-system
+docker-compose up -d
+npm install && npm run seed:all
+
+# 2. Abrir Swagger y seguir la guía
+# http://localhost:3002/api/docs
+```
+
+➡️ **[Guía de 5 minutos: Quick Start Demo](/docs/api-testing/00-QUICK-START-DEMO.md)**
+
+Esta guía incluye:
+- ✅ Procesamiento asíncrono con respuesta inmediata (< 100ms)
+- ✅ Saga Pattern con 5 steps orquestados
+- ✅ Compensación automática en fallos
+- ✅ Idempotencia (prevención de duplicados)
+- ✅ Visualización en Bull Board Dashboard
+
+### 🎯 TL;DR - ¿Qué hace este proyecto?
+
+**Antes (Síncrono):** Cliente espera 3-5 segundos mientras se procesa stock, pago, emails → Timeouts, mala UX, no escalable
+
+**Ahora (Asíncrono):** Cliente recibe respuesta en <100ms (202 Accepted) → Procesamiento en background con workers → Auto-recuperación en fallos
+
+**Core Técnico:**
+
+- 🔹 **Patrón Outbox**: Garantía de eventos publicados transaccionalmente
+- 🔹 **Saga Pattern**: Orquestación de transacciones distribuidas con compensación
+- 🔹 **Circuit Breaker**: Protección contra cascading failures
+- 🔹 **Idempotencia**: Requests duplicados no crean órdenes duplicadas
+- 🔹 **Bull + Redis**: 4 colas especializadas con retry y DLQ
+
+---
+
+## �📖 Acerca del Proyecto
 
 Este proyecto es un sistema de procesamiento asíncrono de órdenes para e-commerce, robusto y listo para un entorno empresarial. Construido con **NestJS**, **TypeScript**, **PostgreSQL**, **Redis** y **Bull**, sirve como una demostración de las mejores prácticas en arquitecturas event-driven, patrones de resiliencia y procesamiento asíncrono de alto rendimiento.
 
@@ -284,7 +329,8 @@ Para obtener una copia local y ponerla en marcha, sigue estos sencillos pasos.
 6.  **Ejecuta los seeds (datos iniciales):**
 
     ```sh
-    npm run seed:run
+    npm run seed:all
+    # o alternativamente: npm run seed:run (alias de seed:all)
     ```
 
 7.  **Inicia la aplicación:**
@@ -416,13 +462,15 @@ El sistema implementa **4 colas especializadas** para procesar jobs asíncronos:
 
 ### Base de Datos
 
-| Comando                                              | Descripción                      |
-| :--------------------------------------------------- | :------------------------------- |
-| `npm run migration:generate -- --name MigrationName` | Generar migración desde entities |
-| `npm run migration:create -- --name MigrationName`   | Crear migración vacía            |
-| `npm run migration:run`                              | Ejecutar migraciones pendientes  |
-| `npm run migration:revert`                           | Revertir última migración        |
-| `npm run seed:run`                                   | Ejecutar seeds (datos iniciales) |
+| Comando                                              | Descripción                                         |
+| :--------------------------------------------------- | :-------------------------------------------------- |
+| `npm run migration:generate -- --name MigrationName` | Generar migración desde entities                    |
+| `npm run migration:create -- --name MigrationName`   | Crear migración vacía                               |
+| `npm run migration:run`                              | Ejecutar migraciones pendientes                     |
+| `npm run migration:revert`                           | Revertir última migración                           |
+| `npm run seed:all`                                   | Ejecutar todos los seeds (users, categories, etc.)  |
+| `npm run seed:run`                                   | Alias de seed:all                                   |
+| `npm run seed:clear`                                 | 🧹 Limpiar todos los datos insertados por los seeds |
 
 ---
 
@@ -802,13 +850,14 @@ docker-compose -f docker-compose.yml up -d
 
 ### Comandos de Despliegue Disponibles
 
-| Comando                    | Descripción                             |
-| :------------------------- | :-------------------------------------- |
-| `npm run build`            | Construye la aplicación para producción |
-| `npm run start:prod`       | Inicia la aplicación en modo producción |
-| `npm run migration:run`    | Ejecuta migraciones de base de datos    |
-| `npm run migration:revert` | Revierte la última migración            |
-| `npm run seed:run`         | Ejecuta seeds para datos iniciales      |
+| Comando                    | Descripción                                        |
+| :------------------------- | :------------------------------------------------- |
+| `npm run build`            | Construye la aplicación para producción            |
+| `npm run start:prod`       | Inicia la aplicación en modo producción            |
+| `npm run migration:run`    | Ejecuta migraciones de base de datos               |
+| `npm run migration:revert` | Revierte la última migración                       |
+| `npm run seed:all`         | Ejecuta todos los seeds (users, categories, etc.)  |
+| `npm run seed:clear`       | 🧹 Limpia todos los datos insertados por los seeds |
 
 ---
 
