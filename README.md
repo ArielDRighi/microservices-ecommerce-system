@@ -438,31 +438,31 @@ El sistema implementa el **Saga Pattern** para coordinar transacciones distribui
 ```mermaid
 graph TB
     Start([🚀 Order Created]) --> Step1[Step 1: Verify Stock]
-    
+
     Step1 -->|✅ Success| Step2[Step 2: Reserve Inventory]
     Step1 -->|❌ Failure| End1([❌ Order Cancelled])
-    
+
     Step2 -->|✅ Success| Step3[Step 3: Process Payment]
     Step2 -->|❌ Failure| Comp1[🔄 Compensate: Nothing to release]
     Comp1 --> End2([❌ Order Cancelled])
-    
+
     Step3 -->|✅ Success| Step4[Step 4: Confirm Reservation]
     Step3 -->|❌ Failure| Comp2[🔄 Compensate: Release Reservation]
     Comp2 --> End3([❌ Order Cancelled])
-    
+
     Step4 -->|✅ Success| Step5[Step 5: Send Confirmation]
     Step4 -->|❌ Failure| Comp3[🔄 Compensate: Refund Payment]
     Comp3 --> Comp4[🔄 Release Reservation]
     Comp4 --> End4([❌ Order Cancelled])
-    
+
     Step5 -->|✅ Success| Step6[Step 6: Complete Order]
     Step5 -->|❌ Failure| Comp5[🔄 Compensate: Send Cancellation]
     Comp5 --> Comp6[🔄 Refund Payment]
     Comp6 --> Comp7[🔄 Release Reservation]
     Comp7 --> End5([❌ Order Cancelled])
-    
+
     Step6 --> End6([✅ Order Completed])
-    
+
     style Start fill:#e1f5ff
     style Step1 fill:#fff3e0
     style Step2 fill:#fff3e0
@@ -487,14 +487,14 @@ graph TB
 
 #### Características del Saga
 
-| Característica | Implementación | Beneficio |
-|----------------|----------------|-----------|
-| **Estado Persistido** | Cada step guarda estado en `saga_states` table | Recovery después de crashes |
-| **Compensación Automática** | Rollback de steps completados en orden inverso | Consistencia garantizada |
-| **Idempotencia** | Correlation IDs únicos por orden | Evita duplicados en retries |
-| **Timeout Handling** | Timeouts configurables por step | No bloquea indefinidamente |
-| **Retry Logic** | 3 reintentos con exponential backoff | Auto-recuperación de fallos transitorios |
-| **Observabilidad** | Logs estructurados + estado en DB | Debugging y auditoría completa |
+| Característica              | Implementación                                 | Beneficio                                |
+| --------------------------- | ---------------------------------------------- | ---------------------------------------- |
+| **Estado Persistido**       | Cada step guarda estado en `saga_states` table | Recovery después de crashes              |
+| **Compensación Automática** | Rollback de steps completados en orden inverso | Consistencia garantizada                 |
+| **Idempotencia**            | Correlation IDs únicos por orden               | Evita duplicados en retries              |
+| **Timeout Handling**        | Timeouts configurables por step                | No bloquea indefinidamente               |
+| **Retry Logic**             | 3 reintentos con exponential backoff           | Auto-recuperación de fallos transitorios |
+| **Observabilidad**          | Logs estructurados + estado en DB              | Debugging y auditoría completa           |
 
 #### Estados del Saga
 
@@ -515,7 +515,7 @@ Order Created
   → Step 1: ✅ Stock verified (50 units available)
   → Step 2: ✅ Inventory reserved (50 units)
   → Step 3: ❌ Payment failed (card declined)
-  
+
   🔄 Compensating:
     → Step 2 Compensation: ✅ Released 50 units reservation
     → Order Status: CANCELLED

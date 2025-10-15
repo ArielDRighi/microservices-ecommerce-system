@@ -329,6 +329,7 @@ src/modules/users/enums/user-role.enum.ts - UserRole enum (ADMIN, CUSTOMER)
 ```
 
 **Implementation Evidence:**
+
 - Used in 15+ endpoints across users, products, inventory, categories controllers
 - Tests: roles.guard.spec.ts with comprehensive coverage
 - E2E tests: auth.e2e-spec.ts validates role-based access control
