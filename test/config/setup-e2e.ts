@@ -34,7 +34,7 @@ beforeAll(async () => {
     database: process.env['DATABASE_NAME'] || 'ecommerce_async_test',
     entities: ['src/**/*.entity{.ts,.js}'],
     synchronize: true, // Auto-create schema for tests
-    dropSchema: false, // Don't drop on initialization
+    dropSchema: true, // Drop and recreate schema for clean slate
     logging: false,
   });
 

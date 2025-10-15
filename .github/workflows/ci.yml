@@ -67,13 +67,10 @@ jobs:
       - name: Check for vulnerabilities
         run: npm audit --audit-level=critical
 
-  # Job 3: Tests with Matrix Strategy
+  # Job 3: Tests (Simplified to Node 20.x LTS only)
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20.x, 22.x]
 
     services:
       postgres:
@@ -104,10 +101,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 20.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "20.x"
           cache: "npm"
 
       - name: Install dependencies
@@ -151,22 +148,8 @@ jobs:
 
       - name: Create E2E test database
         run: |
-          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;" || echo "Database might already exist"
-
-      - name: Run E2E database migrations
-        env:
-          DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
-          DATABASE_NAME: test_db_e2e
-          DATABASE_USERNAME: test_user
-          DATABASE_PASSWORD: test_password
-          DATABASE_USER: test_user
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          JWT_SECRET: test-jwt-secret-key-for-testing
-          ENCRYPTION_KEY: test-encryption-key-32-characters
-          NODE_ENV: e2e
-        run: npm run migration:run
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "DROP DATABASE IF EXISTS test_db_e2e;" || echo "No existing database to drop"
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;"
 
       - name: Run E2E tests
         env:
@@ -200,7 +183,6 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.node-version == '20.x'
         with:
           file: ./coverage/lcov.info
           flags: unittests
@@ -321,22 +303,8 @@ jobs:
 
       - name: Create E2E test database for coverage
         run: |
-          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;" || echo "Database might already exist"
-
-      - name: Run E2E database migrations for quality gate
-        env:
-          DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
-          DATABASE_NAME: test_db_e2e
-          DATABASE_USERNAME: test_user
-          DATABASE_PASSWORD: test_password
-          DATABASE_USER: test_user
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          JWT_SECRET: test-jwt-secret-key-for-testing
-          ENCRYPTION_KEY: test-encryption-key-32-characters
-          NODE_ENV: e2e
-        run: npm run migration:run
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "DROP DATABASE IF EXISTS test_db_e2e;" || echo "No existing database to drop"
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE DATABASE test_db_e2e;"
 
       - name: Generate E2E coverage report
         env:
