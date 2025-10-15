@@ -121,6 +121,16 @@ jobs:
         run: |
           timeout 30s bash -c 'until nc -z localhost 6379; do sleep 1; done'
 
+      - name: Run database migrations
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+        run: npm run migration:run
+
       - name: Run unit tests
         env:
           DATABASE_HOST: localhost
@@ -252,6 +262,16 @@ jobs:
       - name: Wait for Redis
         run: |
           timeout 30s bash -c 'until nc -z localhost 6379; do sleep 1; done'
+
+      - name: Run database migrations
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_USER: test_user
+        run: npm run migration:run
 
       - name: Check test coverage threshold
         env:
