@@ -45,12 +45,12 @@ async function setupDatabase(): Promise<void> {
   const testDataSource = new DataSource({
     type: 'postgres',
     host: process.env['DATABASE_HOST'] || 'localhost',
-    port: parseInt(process.env['DATABASE_PORT'] || '5433', 10), // Match database.config.ts default
-    username: process.env['DATABASE_USERNAME'] || process.env['DATABASE_USER'] || 'postgres',
-    password: process.env['DATABASE_PASSWORD'] || 'password',
-    database: process.env['DATABASE_NAME'] || 'ecommerce_async_dev', // Match database.config.ts default
+    port: parseInt(process.env['DATABASE_PORT'] || '5432', 10), // Match CI default port
+    username: process.env['DATABASE_USERNAME'] || process.env['DATABASE_USER'] || 'test_user',
+    password: process.env['DATABASE_PASSWORD'] || 'test_password',
+    database: process.env['DATABASE_NAME'] || 'test_db', // Match CI service name
     entities: ['src/**/*.entity{.ts,.js}'],
-    synchronize: false, // Use existing schema (migrations handle this)
+    synchronize: true, // Auto-create schema for tests
     dropSchema: false, // Don't drop schema
     logging: false,
     // Enhanced connection options for E2E tests

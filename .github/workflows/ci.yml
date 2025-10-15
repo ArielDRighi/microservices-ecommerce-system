@@ -123,6 +123,7 @@ jobs:
 
       - name: Run unit tests
         env:
+          NODE_ENV: test
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: test_db
@@ -131,12 +132,15 @@ jobs:
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 0
+          RUN_MIGRATIONS: false
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: npm run test
 
       - name: Run E2E tests
         env:
+          NODE_ENV: test
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: test_db
@@ -145,12 +149,15 @@ jobs:
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 0
+          RUN_MIGRATIONS: false
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: npm run test:e2e
 
       - name: Generate coverage report
         env:
+          NODE_ENV: test
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: test_db
@@ -159,6 +166,8 @@ jobs:
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 0
+          RUN_MIGRATIONS: false
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: npm run test:cov
@@ -255,6 +264,7 @@ jobs:
 
       - name: Check test coverage threshold
         env:
+          NODE_ENV: test
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: test_db
@@ -263,6 +273,8 @@ jobs:
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 0
+          RUN_MIGRATIONS: false
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: |
@@ -272,6 +284,7 @@ jobs:
 
       - name: Generate E2E coverage report
         env:
+          NODE_ENV: test
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: test_db
@@ -280,6 +293,8 @@ jobs:
           DATABASE_USER: test_user
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          REDIS_DB: 0
+          RUN_MIGRATIONS: false
           JWT_SECRET: test-jwt-secret-key-for-testing
           ENCRYPTION_KEY: test-encryption-key-32-characters
         run: npm run test:e2e:cov

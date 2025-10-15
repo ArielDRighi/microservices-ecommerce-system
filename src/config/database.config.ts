@@ -16,7 +16,8 @@ export const databaseConfig = registerAs(
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
 
     // Migration Configuration
-    synchronize: false, // Disabled to prevent TypeORM metadata issues
+    // Enable synchronize in test/e2e environments to auto-create schema
+    synchronize: process.env['NODE_ENV'] === 'test' || process.env['NODE_ENV'] === 'e2e',
     migrationsRun: process.env['RUN_MIGRATIONS'] === 'true',
     migrationsTableName: 'migrations_history',
 
@@ -92,9 +93,9 @@ export const databaseTestConfig = registerAs(
       process.env['TEST_DATABASE_NAME'] || process.env['DATABASE_NAME'] || 'ecommerce_async_test',
 
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
-    synchronize: false, // Use migrations for schema changes
+    synchronize: true, // Enable synchronize for tests to auto-create schema
     logging: false,
-    dropSchema: false, // Never drop schema - migrations handle schema changes
+    dropSchema: false, // Don't drop schema - let synchronize handle it
     keepConnectionAlive: false,
 
     // Minimal pool for testing
