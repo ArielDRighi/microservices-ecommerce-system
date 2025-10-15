@@ -566,9 +566,7 @@ curl -X POST "$BASE_URL/categories" \
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "Parent ID must be a valid UUID"
-  ],
+  "message": ["Parent ID must be a valid UUID"],
   "error": "BAD_REQUEST",
   "success": false,
   "timestamp": "2025-10-14T10:30:00.000Z",
@@ -1475,6 +1473,7 @@ curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/activate" \
 **⚠️ Soft Delete:** Las categorías usan `@DeleteDateColumn` con campo `deletedAt`. No se eliminan físicamente de la base de datos.
 
 **📌 IMPORTANTE - Comportamiento del Soft Delete:**
+
 - Cuando se elimina una categoría, el campo `deletedAt` se establece con un timestamp
 - Los queries normales (`GET /categories`, `GET /categories/:id`, etc.) **excluyen automáticamente** registros con `deletedAt != null`
 - Intentar obtener una categoría eliminada por ID retornará `404 Not Found`

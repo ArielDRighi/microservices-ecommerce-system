@@ -567,6 +567,7 @@ curl -X POST "http://localhost:3002/api/v1/users" \
 - `sortOrder` (string, default: 'DESC'): Orden - valores: `'ASC'`, `'DESC'`
 
 **⚠️ Nota:** El filtro de estado usa el parámetro `status` (no `isActive`):
+
 - `?status=active` - Solo usuarios activos (`isActive: true`)
 - `?status=inactive` - Solo usuarios inactivos (`isActive: false`)
 - `?status=all` - Todos los usuarios (default)

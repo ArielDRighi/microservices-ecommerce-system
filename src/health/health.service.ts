@@ -34,7 +34,7 @@ export class HealthService {
       ? 3000 * 1024 * 1024 // 3GB for tests (increased from 1.2GB)
       : 300 * 1024 * 1024; // 300MB for production
 
-    return this.health.check([
+    const checks = [
       // Database health check
       () => this.db.pingCheck('database'),
 
@@ -50,15 +50,29 @@ export class HealthService {
           path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.9, // 90% usage threshold
         }),
-    ]);
+    ];
+
+    // Add Redis check if available
+    if (this.redis) {
+      checks.push(() => this.redis!.isHealthy('redis'));
+    }
+
+    return this.health.check(checks);
   }
 
   @HealthCheck()
   checkReadiness() {
-    return this.health.check([
+    const checks = [
       // Only check critical dependencies for readiness
       () => this.db.pingCheck('database'),
-    ]);
+    ];
+
+    // Add Redis check if available (critical for queues)
+    if (this.redis) {
+      checks.push(() => this.redis!.isHealthy('redis'));
+    }
+
+    return this.health.check(checks);
   }
 
   @HealthCheck()
@@ -89,17 +103,10 @@ export class HealthService {
       ? 3000 * 1024 * 1024 // 3GB for tests (increased from 1.2GB)
       : 300 * 1024 * 1024; // 300MB for production
 
-    return this.health.check([
+    const checks = [
       // Database checks
       () => this.db.pingCheck('database'),
       () => this.database.pingCheck('database_detailed'),
-
-      // Redis checks (commented out until Redis client is properly configured)
-      // () => this.redis.isHealthy('redis'),
-      // () => this.redis.checkLatency('redis_latency', 100), // 100ms threshold
-
-      // Queue checks (commented out until properly configured)
-      // () => this.queue?.isHealthy('queues'),
 
       // Memory checks
       () => this.memory.checkHeap('memory_heap', heapThreshold),
@@ -111,6 +118,18 @@ export class HealthService {
           path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.9,
         }),
-    ]);
+    ];
+
+    // Add Redis checks if available
+    if (this.redis) {
+      checks.push(() => this.redis!.isHealthy('redis'));
+    }
+
+    // Add Queue checks if available
+    if (this.queue) {
+      checks.push(() => this.queue!.isHealthy('queues'));
+    }
+
+    return this.health.check(checks);
   }
 }
