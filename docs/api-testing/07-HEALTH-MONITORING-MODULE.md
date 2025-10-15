@@ -25,7 +25,40 @@ export BASE_URL="http://localhost:3002/api/v1"
 
 ---
 
-## ⚠️ Importante: Health Checks para Kubernetes/Docker
+## ⚠️ Importante: Estado Actual de Health Checks
+
+### 📌 Componentes Monitoreados Actualmente
+
+Los health checks actuales verifican:
+
+- ✅ **Database (PostgreSQL)** - Conexión y ping
+- ✅ **Memory (Heap & RSS)** - Uso de memoria
+- ✅ **Storage (Disk)** - Espacio disponible
+
+### 🚧 Componentes Implementados pero NO Habilitados
+
+Los siguientes health indicators están **completamente implementados** en el código pero **NO están registrados** en el `HealthModule`:
+
+- ⚠️ **RedisHealthIndicator** - Implementado en `src/health/indicators/redis.health-indicator.ts`
+  - Razón: Requiere provider global `REDIS_CLIENT` que no existe
+  - Redis funciona internamente para Bull queues pero no hay cliente global
+- ⚠️ **QueueHealthIndicator** - Implementado en `src/health/indicators/queue.health-indicator.ts`
+  - Razón: No está registrado en los providers de `HealthModule`
+  - Las queues funcionan correctamente (verificable en Bull Board)
+
+**💡 Nota:** El código en `health.service.ts` usa `@Optional()` para degradar gracefully si estos indicators no están disponibles. Por eso los endpoints funcionan sin errores aunque Redis/Queues no aparezcan en las respuestas.
+
+### 🎯 Para Habilitar Redis/Queues Health Checks
+
+Si necesitas monitorear Redis y Queues en los health checks:
+
+1. **Redis:** Crear `RedisModule` con provider global `REDIS_CLIENT`
+2. **Queues:** Descomentar `QueueHealthIndicator` en `health.module.ts` providers
+3. Los checks condicionales ya están implementados en `health.service.ts`
+
+---
+
+## ⚠️ Health Checks para Kubernetes/Docker
 
 Estos endpoints están diseñados para:
 
@@ -67,9 +100,6 @@ curl -X GET "$BASE_URL/api/v1/health" | jq '.'
       "database": {
         "status": "up"
       },
-      "redis": {
-        "status": "up"
-      },
       "memory_heap": {
         "status": "up"
       },
@@ -83,9 +113,6 @@ curl -X GET "$BASE_URL/api/v1/health" | jq '.'
     "error": {},
     "details": {
       "database": {
-        "status": "up"
-      },
-      "redis": {
         "status": "up"
       },
       "memory_heap": {
@@ -114,10 +141,13 @@ curl -X GET "$BASE_URL/api/v1/health" | jq '.'
   "data": {
     "status": "error",
     "info": {
-      "redis": {
+      "memory_heap": {
         "status": "up"
       },
-      "memory_heap": {
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
         "status": "up"
       }
     },
@@ -132,10 +162,13 @@ curl -X GET "$BASE_URL/api/v1/health" | jq '.'
         "status": "down",
         "message": "Connection refused"
       },
-      "redis": {
+      "memory_heap": {
         "status": "up"
       },
-      "memory_heap": {
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
         "status": "up"
       }
     }
@@ -150,11 +183,15 @@ curl -X GET "$BASE_URL/api/v1/health" | jq '.'
 
 - [ ] Status code 200 cuando todo está saludable
 - [ ] Status code 503 cuando algún componente falla
-- [ ] Verifica: Database (PostgreSQL), Redis, Memory (heap y RSS), Storage
+- [ ] Verifica: Database (PostgreSQL), Memory (heap y RSS), Storage
 - [ ] `data.status: "ok"` indica aplicación saludable
 - [ ] `data.status: "error"` indica problemas
 - [ ] Respuesta envuelta en wrapper estándar con `statusCode`, `message`, `data`, `timestamp`, `path`, `success`
 - [ ] Endpoint público (no requiere auth)
+- [ ] ⚠️ Redis NO aparece (indicator implementado pero no registrado)
+- [ ] ⚠️ Queues NO aparecen (indicator implementado pero no registrado)
+
+**💡 Nota:** Redis y Queues están disponibles a través de Bull Board pero no expuestos en health checks básicos.
 
 ---
 
@@ -183,17 +220,11 @@ curl -X GET "$BASE_URL/api/v1/health/ready" | jq '.'
     "info": {
       "database": {
         "status": "up"
-      },
-      "redis": {
-        "status": "up"
       }
     },
     "error": {},
     "details": {
       "database": {
-        "status": "up"
-      },
-      "redis": {
         "status": "up"
       }
     }
@@ -208,8 +239,11 @@ curl -X GET "$BASE_URL/api/v1/health/ready" | jq '.'
 
 - [ ] Status code 200 cuando está listo
 - [ ] Status code 503 cuando NO está listo
-- [ ] Verifica dependencias críticas (DB, Redis)
+- [ ] Verifica dependencias críticas (Database únicamente)
 - [ ] Kubernetes usa esto para routing de tráfico
+- [ ] ⚠️ Redis NO aparece (indicator implementado pero no registrado como crítico)
+
+**💡 Nota:** Actualmente solo verifica Database. Redis funciona internamente para Bull queues pero no está expuesto como dependencia crítica en readiness.
 
 **Uso en Kubernetes:**
 
@@ -312,40 +346,7 @@ curl -X GET "$BASE_URL/api/v1/health/detailed" | jq '.'
       },
       "database_detailed": {
         "status": "up",
-        "responseTime": 24
-      },
-      "redis": {
-        "status": "up",
-        "responseTime": 2,
-        "version": "7.0.0",
-        "clients": 5
-      },
-      "queues": {
-        "status": "up",
-        "order-processing": {
-          "waiting": 0,
-          "active": 2,
-          "completed": 1234,
-          "failed": 5
-        },
-        "payment-processing": {
-          "waiting": 1,
-          "active": 0,
-          "completed": 987,
-          "failed": 2
-        },
-        "inventory-management": {
-          "waiting": 0,
-          "active": 1,
-          "completed": 2456,
-          "failed": 8
-        },
-        "notification-sending": {
-          "waiting": 3,
-          "active": 2,
-          "completed": 5432,
-          "failed": 12
-        }
+        "responseTime": 23
       },
       "memory_heap": {
         "status": "up"
@@ -364,13 +365,7 @@ curl -X GET "$BASE_URL/api/v1/health/detailed" | jq '.'
       },
       "database_detailed": {
         "status": "up",
-        "responseTime": 24
-      },
-      "redis": {
-        "status": "up"
-      },
-      "queues": {
-        "status": "up"
+        "responseTime": 23
       },
       "memory_heap": {
         "status": "up"
@@ -395,11 +390,31 @@ curl -X GET "$BASE_URL/api/v1/health/detailed" | jq '.'
 - [ ] Respuesta envuelta en wrapper estándar (`statusCode`, `message`, `data`, etc.)
 - [ ] Incluye check básico de Database (`database`)
 - [ ] Incluye check detallado de Database (`database_detailed`) con `responseTime`
-- [ ] Incluye detalles de Redis (version, clients, responseTime)
-- [ ] Incluye estado de todas las queues (Bull) con métricas por queue
 - [ ] Incluye checks de memoria (heap y RSS)
-- [ ] Incluye check de storage (antes llamado "disk")
+- [ ] Incluye check de storage (correctamente nombrado, no "disk")
 - [ ] Métricas de performance incluidas donde aplica
+- [ ] ⚠️ Redis NO aparece (RedisHealthIndicator implementado pero no registrado)
+- [ ] ⚠️ Queues NO aparecen (QueueHealthIndicator implementado pero no registrado)
+
+**💡 Nota Importante sobre Redis y Queues:**
+
+**Estado Actual:**
+
+- ✅ Redis está funcionando correctamente (usado internamente por Bull)
+- ✅ Las 4 queues de Bull están operacionales (order-processing, payment-processing, inventory-management, notification-sending)
+- ✅ Bull Board accesible en `/api/v1/admin/queues` para monitoreo de queues
+
+**Por qué NO aparecen en health checks:**
+
+- `RedisHealthIndicator` está implementado en `src/health/indicators/redis.health-indicator.ts` pero requiere provider global `REDIS_CLIENT` que no existe
+- `QueueHealthIndicator` está implementado en `src/health/indicators/queue.health-indicator.ts` pero no está registrado en `HealthModule` providers
+- El `health.service.ts` usa `@Optional()` para degradar gracefully sin estos indicators
+
+**Para habilitar en el futuro:**
+
+1. Crear `RedisModule` con provider `REDIS_CLIENT`
+2. Registrar `QueueHealthIndicator` en `health.module.ts`
+3. Los checks condicionales ya están listos en el código
 
 ---
 
@@ -730,22 +745,17 @@ echo "4️⃣ Detailed Health Check..."
 DETAILED=$(curl -s -X GET "$BASE_URL/api/v1/health/detailed")
 
 DATABASE_STATUS=$(echo $DETAILED | jq -r '.data.info.database.status')
-REDIS_STATUS=$(echo $DETAILED | jq -r '.data.info.redis.status')
-QUEUES_STATUS=$(echo $DETAILED | jq -r '.data.info.queues.status')
+DATABASE_DETAILED_STATUS=$(echo $DETAILED | jq -r '.data.info.database_detailed.status')
+DATABASE_RESPONSE_TIME=$(echo $DETAILED | jq -r '.data.info.database_detailed.responseTime')
+MEMORY_HEAP_STATUS=$(echo $DETAILED | jq -r '.data.info.memory_heap.status')
+MEMORY_RSS_STATUS=$(echo $DETAILED | jq -r '.data.info.memory_rss.status')
+STORAGE_STATUS=$(echo $DETAILED | jq -r '.data.info.storage.status')
 
 echo "   Database: $DATABASE_STATUS"
-echo "   Redis: $REDIS_STATUS"
-echo "   Queues: $QUEUES_STATUS"
-
-# Queue details
-if [ "$QUEUES_STATUS" == "up" ]; then
-  ORDER_QUEUE=$(echo $DETAILED | jq '.data.info.queues["order-processing"]')
-  echo "   Order Queue:"
-  echo "     Waiting: $(echo $ORDER_QUEUE | jq -r '.waiting')"
-  echo "     Active: $(echo $ORDER_QUEUE | jq -r '.active')"
-  echo "     Completed: $(echo $ORDER_QUEUE | jq -r '.completed')"
-  echo "     Failed: $(echo $ORDER_QUEUE | jq -r '.failed')"
-fi
+echo "   Database Detailed: $DATABASE_DETAILED_STATUS (${DATABASE_RESPONSE_TIME}ms)"
+echo "   Memory Heap: $MEMORY_HEAP_STATUS"
+echo "   Memory RSS: $MEMORY_RSS_STATUS"
+echo "   Storage: $STORAGE_STATUS"
 
 # 5. Prometheus Metrics
 echo ""
@@ -811,8 +821,9 @@ echo "   Health: $HEALTH"
 echo "   Readiness: $READY"
 echo "   Liveness: $LIVE"
 echo "   Database: $DATABASE_STATUS"
-echo "   Redis: $REDIS_STATUS"
-echo "   Queues: $QUEUES_STATUS"
+echo "   Storage: $STORAGE_STATUS"
+echo ""
+echo "💡 Note: Redis and Queues monitored via Bull Board at /api/v1/admin/queues"
 ```
 
 ---
