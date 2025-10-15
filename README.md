@@ -62,6 +62,7 @@ npm install && npm run seed:all
 ➡️ **[Guía de 5 minutos: Quick Start Demo](/docs/api-testing/00-QUICK-START-DEMO.md)**
 
 Esta guía incluye:
+
 - ✅ Procesamiento asíncrono con respuesta inmediata (< 100ms)
 - ✅ Saga Pattern con 5 steps orquestados
 - ✅ Compensación automática en fallos

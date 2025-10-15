@@ -140,7 +140,8 @@ describe('Customer Journey (E2E)', () => {
 
         const inventoryData = ResponseHelper.extractData(inventoryRes);
         expect(inventoryRes.body.success).toBe(true);
-        expect(inventoryData.available).toBeDefined();
+        expect(inventoryData.availableStock).toBeDefined();
+        expect(typeof inventoryData.availableStock).toBe('number');
       }
 
       // ✅ Test validates: Auth flow + Profile access + Inventory integration
@@ -228,8 +229,9 @@ describe('Customer Journey (E2E)', () => {
       let stockAvailable = false;
       if (stockRes.status === 200) {
         const stockData = ResponseHelper.extractData(stockRes);
-        stockAvailable = stockData.available === true;
-        expect(stockData.available).toBeDefined();
+        stockAvailable = stockData.availableStock >= 2; // Check if we have at least 2 items available
+        expect(stockData.availableStock).toBeDefined();
+        expect(typeof stockData.availableStock).toBe('number');
       } else if (stockRes.status === 404) {
         // No inventory exists yet - that's okay for this test
         stockAvailable = false;
@@ -284,7 +286,8 @@ describe('Customer Journey (E2E)', () => {
       expect([200, 404]).toContain(inventoryRes.status);
       if (inventoryRes.status === 200) {
         const inventoryData = ResponseHelper.extractData(inventoryRes);
-        expect(inventoryData.available).toBeDefined();
+        expect(inventoryData.availableStock).toBeDefined();
+        expect(typeof inventoryData.availableStock).toBe('number');
       }
 
       // ✅ Test validates complete customer journey: Register → Browse → Check Stock → (Order if available) → Verify
