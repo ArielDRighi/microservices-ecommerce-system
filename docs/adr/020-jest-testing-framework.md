@@ -234,6 +234,6 @@ coverage/
 - Functions: 76.45% ✅ (70% requerido)
 - Lines: 75.08% ✅ (70% requerido)  
   **Módulos Críticos:** 80% threshold (payments, orders)  
-  **Total de Tests:** 1033 tests unitarios (102 suites) + 14 suites E2E  
+  **Total de Tests:** 1,187 tests unitarios (109 suites) + 262 tests E2E (14 suites)  
   **Configuración:** `jest.config.js`  
   **Última Actualización:** 2025-10-11
