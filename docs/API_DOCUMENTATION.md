@@ -1,8 +1,8 @@
 # 🌐 API Documentation - E-commerce Async Resilient System
 
 > **Version**: 1.0.0  
-> **Base URL**: `http://localhost:3000/api/v1`  
-> **Swagger UI**: `http://localhost:3000/api/docs`  
+> **Base URL**: `http://localhost:3002/api/v1`  
+> **Swagger UI**: `http://localhost:3002/api/docs`  
 > **Last Updated**: October 2025
 
 ## 📋 Table of Contents
@@ -290,7 +290,7 @@ Create a new user account.
 **cURL Example**:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/register \
+curl -X POST http://localhost:3002/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john.doe@example.com",
@@ -351,7 +351,7 @@ Authenticate user and receive tokens.
 **cURL Example**:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -X POST http://localhost:3002/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john.doe@example.com",
@@ -1200,7 +1200,7 @@ This endpoint allows creating inventory via API instead of requiring database se
 **Example cURL**:
 
 ```bash
-curl -X POST "http://localhost:3000/api/v1/inventory" \
+curl -X POST "http://localhost:3002/api/v1/inventory" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1288,7 +1288,7 @@ Use this endpoint to check the current status of a reservation, including whethe
 **Example cURL**:
 
 ```bash
-curl -X GET "http://localhost:3000/api/v1/inventory/reservations/res-1760285000-abc123" \
+curl -X GET "http://localhost:3002/api/v1/inventory/reservations/res-1760285000-abc123" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -1682,7 +1682,7 @@ Headers:
 ### Accessing Swagger UI
 
 ```
-URL: http://localhost:3000/api/docs
+URL: http://localhost:3002/api/docs
 ```
 
 ### Features
@@ -1696,7 +1696,7 @@ URL: http://localhost:3000/api/docs
 
 ### How to Use
 
-1. **Navigate** to `http://localhost:3000/api/docs`
+1. **Navigate** to `http://localhost:3002/api/docs`
 2. **Authenticate**:
    - Click "Authorize" button
    - Login via `/auth/login` endpoint
@@ -1757,10 +1757,10 @@ GET /api/v1/orders/{orderId}/status
 
 | Resource            | URL                                         |
 | ------------------- | ------------------------------------------- |
-| **Swagger UI**      | `http://localhost:3000/api/docs`            |
-| **Health Check**    | `http://localhost:3000/health`              |
-| **Bull Board**      | `http://localhost:3000/api/v1/admin/queues` |
-| **Metrics**         | `http://localhost:3000/metrics`             |
+| **Swagger UI**      | `http://localhost:3002/api/docs`            |
+| **Health Check**    | `http://localhost:3002/health`              |
+| **Bull Board**      | `http://localhost:3002/api/v1/admin/queues` |
+| **Metrics**         | `http://localhost:3002/metrics`             |
 | **PgAdmin**         | `http://localhost:8080`                     |
 | **Redis Commander** | `http://localhost:8081`                     |
 
