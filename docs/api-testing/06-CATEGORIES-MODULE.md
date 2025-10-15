@@ -566,15 +566,23 @@ curl -X POST "$BASE_URL/categories" \
 ```json
 {
   "statusCode": 400,
-  "message": "Parent category not found",
-  "error": "Bad Request"
+  "message": [
+    "Parent ID must be a valid UUID"
+  ],
+  "error": "BAD_REQUEST",
+  "success": false,
+  "timestamp": "2025-10-14T10:30:00.000Z",
+  "path": "/api/v1/categories",
+  "method": "POST",
+  "correlationId": "uuid-correlation"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 400
-- [ ] Valida existencia de parent
+- [ ] Status code es 400 (no 404)
+- [ ] Mensaje: "Parent ID must be a valid UUID"
+- [ ] Valida existencia de parent en la base de datos
 
 ---
 
@@ -1465,6 +1473,13 @@ curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/activate" \
 **Status Code:** `204 No Content`
 
 **⚠️ Soft Delete:** Las categorías usan `@DeleteDateColumn` con campo `deletedAt`. No se eliminan físicamente de la base de datos.
+
+**📌 IMPORTANTE - Comportamiento del Soft Delete:**
+- Cuando se elimina una categoría, el campo `deletedAt` se establece con un timestamp
+- Los queries normales (`GET /categories`, `GET /categories/:id`, etc.) **excluyen automáticamente** registros con `deletedAt != null`
+- Intentar obtener una categoría eliminada por ID retornará `404 Not Found`
+- El parámetro `includeDeleted` existe en `CategoryQueryDto` pero actualmente no está expuesto en los endpoints públicos
+- Para verificar el soft delete en la base de datos, debes consultar directamente: `SELECT * FROM categories WHERE deleted_at IS NOT NULL;`
 
 **Comando curl:**
 

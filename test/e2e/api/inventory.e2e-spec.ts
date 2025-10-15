@@ -561,12 +561,7 @@ describe('Inventory API (E2E)', () => {
   describe('Authentication', () => {
     it('should require authentication for all endpoints', async () => {
       // Test PUBLIC endpoints - should return 200 (these are customer-facing queries)
-      const publicEndpoints = [
-        '/inventory',
-        '/inventory/low-stock',
-        '/inventory/out-of-stock',
-        '/inventory/stats',
-      ];
+      const publicEndpoints = ['/inventory', '/inventory/low-stock', '/inventory/out-of-stock'];
 
       for (const path of publicEndpoints) {
         const response = await request(app.getHttpServer()).get(path);
@@ -586,6 +581,9 @@ describe('Inventory API (E2E)', () => {
       expect(productResponse.status).toBe(404); // Non-existent product
 
       // Test PROTECTED endpoints - should return 401 when no auth
+      const protectedGetStatsResponse = await request(app.getHttpServer()).get('/inventory/stats');
+      expect(protectedGetStatsResponse.status).toBe(401);
+
       const protectedPostResponse = await request(app.getHttpServer())
         .post('/inventory/reserve')
         .send({

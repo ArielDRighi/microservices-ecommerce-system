@@ -196,6 +196,11 @@ export class CategoriesService {
       return null;
     }
 
+    // Load ancestors recursively for correct level and path calculation
+    if (category.parent) {
+      await this.loadAncestorsRecursively(category.parent);
+    }
+
     // Add computed properties
     category.level = category.getLevel();
     category.path = category.getPath();
@@ -435,8 +440,12 @@ export class CategoriesService {
     queryBuilder.where('category.id = :id', { id });
 
     if (options.includeRelations) {
+      // Load parent hierarchy recursively to calculate correct level and path
       queryBuilder
         .leftJoinAndSelect('category.parent', 'parent')
+        .leftJoinAndSelect('parent.parent', 'grandparent')
+        .leftJoinAndSelect('grandparent.parent', 'greatgrandparent')
+        .leftJoinAndSelect('greatgrandparent.parent', 'greatgreatgrandparent')
         .leftJoinAndSelect('category.children', 'children');
     }
 
@@ -448,7 +457,36 @@ export class CategoriesService {
       queryBuilder.andWhere('category.isActive = :isActive', { isActive: true });
     }
 
-    return await queryBuilder.getOne();
+    const category = await queryBuilder.getOne();
+
+    // If we need to load even more levels (depth > 4), load recursively
+    if (category && options.includeRelations && category.parent) {
+      await this.loadAncestorsRecursively(category.parent);
+    }
+
+    return category;
+  }
+
+  /**
+   * Recursively loads all ancestors for a category
+   */
+  private async loadAncestorsRecursively(category: Category): Promise<void> {
+    if (!category.parentId) {
+      return;
+    }
+
+    if (!category.parent) {
+      const parent = await this.categoryRepository.findOne({
+        where: { id: category.parentId },
+      });
+      if (parent) {
+        category.parent = parent;
+      }
+    }
+
+    if (category.parent) {
+      await this.loadAncestorsRecursively(category.parent);
+    }
   }
 
   private createBaseQuery(

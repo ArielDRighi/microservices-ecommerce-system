@@ -20,7 +20,7 @@ export class EnvironmentVariables {
   APP_VERSION: string = '1.0.0';
 
   @IsString()
-  @IsIn(['development', 'staging', 'production', 'test'])
+  @IsIn(['development', 'staging', 'production', 'test', 'e2e'])
   NODE_ENV: string = 'development';
 
   @IsNumber()
