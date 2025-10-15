@@ -5,10 +5,10 @@
     <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/ecommerce-async-resilient-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/tests-1187%20passed%20(109%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
+    <img src="https://img.shields.io/badge/tests-1212%20passed%20(111%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/coverage-72.11%25%20(threshold%2071%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
+    <img src="https://img.shields.io/badge/coverage-72.14%25%20(threshold%2071%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/e2e-261%2F262%20(99.6%25)-brightgreen?style=for-the-badge" alt="E2E Tests"/>
@@ -140,7 +140,7 @@ Este enfoque demuestra un compromiso con la planificación estratégica, la gest
 - **Monitoreo con Prometheus:** Métricas de negocio y sistema expuestas en /metrics para scraping.
 - **Bull Board Dashboard:** UI web en /api/v1/admin/queues para monitoreo en tiempo real de colas y jobs.
 - **Logging Estructurado con Winston:** Logs en formato JSON con correlation IDs, rotation diaria, levels configurables.
-- **Sistema de Testing Exhaustivo:** 1187 tests unitarios + 14 suites E2E, cobertura 72.11%, configuración Jest profesional.
+- **Sistema de Testing Exhaustivo:** 1212 tests unitarios + 14 suites E2E, cobertura 72.14%, configuración Jest profesional.
 - **Contenerización Completa:** Docker multi-stage builds, docker-compose para dev/test/prod, healthchecks configurados.
 - **Pipeline CI/CD con GitHub Actions:** Linting, testing, security scanning, build validation automatizado.
 - **Documentación API con Swagger:** OpenAPI completo con ejemplos, schemas detallados, endpoints documentados.
@@ -542,7 +542,7 @@ Order Created
 
 | Comando                | Descripción                                             |
 | :--------------------- | :------------------------------------------------------ |
-| `npm test`             | Ejecuta 1187 tests unitarios (109 suites)               |
+| `npm test`             | Ejecuta 1212 tests unitarios (111 suites)               |
 | `npm run test:watch`   | Tests en modo watch para desarrollo                     |
 | `npm run test:cov`     | Genera reporte de cobertura (72% actual, threshold 71%) |
 | `npm run test:debug`   | Tests con debugger para troubleshooting                 |
@@ -574,15 +574,15 @@ Order Created
 
 ## ✅ Testing
 
-El proyecto cuenta con una suite de pruebas empresarial con **1187 tests unitarios** (109 suites) y **14 suites E2E** completas.
+El proyecto cuenta con una suite de pruebas empresarial con **1212 tests unitarios** (111 suites) y **14 suites E2E** completas.
 
 ### Métricas de Testing
 
-- **1187 tests unitarios** ✅ distribuidos en 109 suites de test (6 skipped)
+- **1212 tests unitarios** ✅ distribuidos en 111 suites de test (6 skipped)
 - **14 suites E2E** ✅ (smoke, API, integration, business flows, contracts)
-- **72.11% cobertura de código** (umbral profesional: **71%**, superado ✅)
-  - Statements: 72.11% ✅ - Threshold: 71%
-  - Branches: 60.52% ⚠️ - Threshold: 62% (en progreso)
+- **72.14% cobertura de código** (umbral profesional: **71%**, superado ✅)
+  - Statements: 72.14% ✅ - Threshold: 71%
+  - Branches: 61.03% ⚠️ - Threshold: 62% (mejora continua: +0.44%)
   - Functions: 76.37% ✅ - Threshold: 72%
   - Lines: 72.16% ✅ - Threshold: 71%
 - **Módulos críticos**: Thresholds configurados (payments, orders)
@@ -593,14 +593,14 @@ El proyecto cuenta con una suite de pruebas empresarial con **1187 tests unitari
 | Módulo             | Archivos de Test | Descripción                                      |
 | :----------------- | :--------------- | :----------------------------------------------- |
 | **Queue Service**  | 5 archivos       | Core, lifecycle, metrics, management, edge cases |
-| **Processors**     | 18 archivos      | Order, payment, inventory, notification workers  |
+| **Processors**     | 19 archivos      | Order, payment, inventory, notification, base processor branch tests |
 | **Orders**         | 8 archivos       | Service (core, queries, errors), controller      |
 | **Products**       | 5 archivos       | CRUD, search, updates, edge cases                |
 | **Inventory**      | 7 archivos       | Core, reservations, movements, statistics        |
-| **Payments**       | 5 archivos       | Core, refunds, idempotency, errors, stats        |
+| **Payments**       | 6 archivos       | Core, refunds, idempotency, errors, stats, provider helpers branch tests |
 | **Notifications**  | 3 archivos       | Order, payment/shipping, preferences             |
 | **Auth**           | 3 archivos       | Authentication, user operations, JWT strategy    |
-| **Users**          | 5 archivos       | CRUD, queries, updates (service + controller)    |
+| **Users**          | 6 archivos       | CRUD, queries, updates, branch coverage tests    |
 | **Categories**     | 2 archivos       | CRUD controller, service utilities               |
 | **Events**         | 1 archivo        | Event publisher                                  |
 | **Winston Logger** | 1 archivo        | Structured logging service                       |
@@ -619,13 +619,19 @@ El proyecto cuenta con una suite de pruebas empresarial con **1187 tests unitari
 ### Estrategia de Cobertura
 
 - **Umbral Actual**: 71% configurado en `jest.config.js`
-- **Coverage Actual**: 72.11% (superando threshold ✅)
+- **Coverage Actual**: 72.14% (superando threshold ✅)
+- **Branch Coverage**: 61.03% (mejora continua hacia 62%)
 - **Meta Futura**: 75-80% una vez completada suite completa
+- **Últimas Mejoras**: +25 tests estratégicos para branches críticos
+  - Error handling en UsersService (4 tests)
+  - Network error detection en BaseProcessor (11 tests)
+  - Retry logic en MockPaymentProvider helpers (10 tests)
 - **Prioridades de Testing**:
   - ✅ Lógica de negocio crítica (Order, Payment, Inventory)
   - ✅ Procesadores de colas y workers
   - ✅ Patrones de resiliencia (Retry, Circuit Breaker, Saga)
   - ✅ Flujos E2E de usuario completos
+  - ✅ Error handling y edge cases (mejora continua)
 
 ---
 
@@ -1111,7 +1117,7 @@ Este proyecto forma parte de mi portfolio profesional demostrando expertise en:
 - ✅ **Patrones de Resiliencia** (Circuit Breaker, Retry, Idempotency, Compensation)
 - ✅ **Backend Enterprise** con NestJS, TypeScript, PostgreSQL, TypeORM
 - ✅ **RESTful APIs** con documentación OpenAPI/Swagger completa
-- ✅ **Testing Exhaustivo** (1187 unit + 262 E2E, coverage 72.11%)
+- ✅ **Testing Exhaustivo** (1212 unit + 262 E2E, coverage 72.14%)
 - ✅ **DevOps y CI/CD** con Docker multi-stage, GitHub Actions
 - ✅ **Observability** (Health Checks con Terminus, Prometheus metrics, Winston logging)
 - ✅ **Security** (JWT authentication, RBAC, Helmet headers, input validation)
