@@ -92,9 +92,9 @@ export const databaseTestConfig = registerAs(
       process.env['TEST_DATABASE_NAME'] || process.env['DATABASE_NAME'] || 'ecommerce_async_test',
 
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
-    synchronize: false, // Use migrations for schema changes
+    synchronize: true, // Always synchronize in test environment
     logging: false,
-    dropSchema: false, // Never drop schema - migrations handle schema changes
+    dropSchema: true, // Reset database for each test run
     keepConnectionAlive: false,
 
     // Minimal pool for testing
