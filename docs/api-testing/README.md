@@ -32,10 +32,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ## 📚 Módulos Disponibles
 
 ### 1️⃣ [Autenticación (Auth)](./01-AUTH-MODULE.md)
+
 **Endpoint Base:** `POST /api/v1/auth`  
 **Descripción:** Sistema de autenticación con JWT, registro de usuarios, login, refresh tokens y gestión de perfil.
 
 **Funcionalidades:**
+
 - Registro de nuevos usuarios
 - Login con email/password
 - Refresh de access tokens
@@ -48,10 +50,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ---
 
 ### 2️⃣ [Productos (Products)](./02-PRODUCTS-MODULE.md)
+
 **Endpoint Base:** `GET/POST/PATCH/DELETE /api/v1/products`  
 **Descripción:** Gestión completa del catálogo de productos con búsqueda, paginación, filtros y activación/desactivación.
 
 **Funcionalidades:**
+
 - CRUD completo de productos
 - Búsqueda avanzada con filtros
 - Paginación y ordenamiento
@@ -64,10 +68,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ---
 
 ### 3️⃣ [Inventario (Inventory)](./03-INVENTORY-MODULE.md)
+
 **Endpoint Base:** `GET/POST/PUT /api/v1/inventory`  
 **Descripción:** Sistema de gestión de inventario con reservas, disponibilidad, control de stock y estadísticas.
 
 **Funcionalidades:**
+
 - Verificación de disponibilidad
 - Reserva de stock (con TTL)
 - Liberación y fulfillment de reservas
@@ -81,10 +87,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ---
 
 ### 4️⃣ [Órdenes (Orders)](./04-ORDERS-MODULE.md)
+
 **Endpoint Base:** `GET/POST /api/v1/orders`  
 **Descripción:** Procesamiento de órdenes con saga pattern, pagos, reservas de inventario y notificaciones asíncronas.
 
 **Funcionalidades:**
+
 - Creación de órdenes (multi-item)
 - Listado de órdenes con filtros
 - Obtención de órdenes por ID
@@ -97,10 +105,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ---
 
 ### 5️⃣ [Usuarios (Users)](./05-USERS-MODULE.md)
+
 **Endpoint Base:** `GET/POST/PATCH/DELETE /api/v1/users`  
 **Descripción:** Gestión de usuarios con RBAC, soft delete, paginación y control de acceso basado en roles.
 
 **Funcionalidades:**
+
 - CRUD de usuarios (ADMIN only)
 - Listado con paginación y búsqueda
 - Perfil propio (cualquier usuario autenticado)
@@ -114,10 +124,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ---
 
 ### 6️⃣ [Categorías (Categories)](./06-CATEGORIES-MODULE.md)
+
 **Endpoint Base:** `GET/POST/PUT/PATCH/DELETE /api/v1/categories`  
 **Descripción:** Gestión jerárquica de categorías con árbol ilimitado, slugs SEO-friendly, breadcrumbs y relaciones parent-child.
 
 **Funcionalidades:**
+
 - Categorías con estructura de árbol recursiva
 - Slugs únicos y auto-generados
 - Árbol completo con hijos anidados
@@ -133,10 +145,12 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 ---
 
 ### 7️⃣ [Health & Monitoring](./07-HEALTH-MONITORING-MODULE.md)
+
 **Endpoint Base:** `GET /api/v1/health`, `GET /api/v1/metrics`, `GET /api/v1/admin/queues`  
 **Descripción:** Endpoints de salud, métricas Prometheus y dashboard de monitoreo de queues (Bull Board).
 
 **Funcionalidades:**
+
 - Health check general
 - Readiness probe (Kubernetes)
 - Liveness probe (Kubernetes)
@@ -158,9 +172,15 @@ Este directorio contiene **documentación detallada de testing manual** para cad
 Antes de iniciar cualquier testing, asegúrate de tener:
 
 1. **Servidor corriendo:** `npm run start:dev` (puerto 3002)
-2. **Base de datos iniciada:** PostgreSQL con migraciones aplicadas
+2. **Base de datos iniciada:** PostgreSQL con migraciones aplicadas (`npm run migration:run`)
 3. **Redis corriendo:** Para queues de Bull
-4. **Seed data ejecutado:** `npm run seed:run` (usuarios admin y user de prueba)
+4. **Seed data ejecutado:** Ejecutar seeds según necesidad:
+   - `npm run seed:run` - Seed inicial (usuarios admin y user)
+   - `npm run seed:users` - Solo usuarios
+   - `npm run seed:categories` - Categorías de productos
+   - `npm run seed:products` - Productos (requiere categorías)
+   - `npm run seed:inventory` - Inventario (requiere productos)
+   - `npm run seed:all` - Todos los seeds en orden (recomendado para testing completo)
 
 ### Variables de Entorno Comunes
 
@@ -181,6 +201,42 @@ export CATEGORY_ID=""
 export ORDER_ID=""
 ```
 
+### 🎨 Testing con Swagger UI (Alternativa Interactiva)
+
+Además del testing manual con `curl`, puedes usar **Swagger UI** para una experiencia más visual e interactiva:
+
+**URL:** `http://localhost:3002/api/docs`
+
+**Características:**
+- ✅ **Exploración visual** de todos los endpoints organizados por módulos
+- ✅ **Pruebas interactivas** directamente desde el navegador (sin necesidad de curl)
+- ✅ **Autenticación integrada**: Click en "Authorize" → Pegar tu JWT token
+- ✅ **Esquemas detallados**: Ver estructura completa de request/response bodies
+- ✅ **Validación en tiempo real**: Swagger valida tus requests antes de enviarlos
+- ✅ **Ejemplos auto-generados**: Pre-poblado con valores de ejemplo
+- ✅ **Exportar OpenAPI**: Descargar especificación en formato JSON/YAML
+
+**Cómo usar Swagger:**
+
+1. **Iniciar servidor:** `npm run start:dev`
+2. **Abrir Swagger:** Navegar a `http://localhost:3002/api/docs`
+3. **Autenticarse:**
+   - Click en botón "Authorize" (icono de candado arriba a la derecha)
+   - Obtener token desde Auth module (POST `/api/v1/auth/login`)
+   - Pegar token en el campo `Bearer <token>`
+   - Click "Authorize" y "Close"
+4. **Probar endpoints:**
+   - Expandir módulo (ej: "products")
+   - Click en endpoint (ej: GET `/api/v1/products`)
+   - Click "Try it out"
+   - Rellenar parámetros si es necesario
+   - Click "Execute"
+   - Ver respuesta con status code, headers y body
+
+**💡 Tip:** Swagger es ideal para exploración rápida y pruebas ad-hoc. Para testing sistemático y repetible, sigue los documentos de testing manual con `curl`.
+
+---
+
 ### Orden Sugerido de Testing
 
 Para una validación completa del sistema, se recomienda seguir este orden:
@@ -199,24 +255,30 @@ Todos los documentos siguen la misma estructura para facilitar la lectura:
 
 ```markdown
 ## 📋 Índice de Tests
+
 - Checkbox list de todos los tests
 
 ## 🚀 Pre-requisitos
+
 - Setup inicial específico del módulo
 
 ## Variables de Entorno
+
 - Variables necesarias para el módulo
 
 ## 🔑 Obtener Tokens (si aplica)
+
 - Comandos para autenticación
 
 ## Tests Individuales
+
 - Comando curl
 - Respuesta esperada
 - Checklist de validación
 - Explicación de campos importantes
 
 ## ⚠️ Respuestas de Error
+
 - Casos de error comunes
 ```
 
@@ -233,28 +295,28 @@ El sistema implementa control de acceso basado en roles:
 
 ### Niveles de Acceso por Módulo
 
-| Módulo | Endpoint | ADMIN | USER | Público |
-|--------|----------|-------|------|---------|
-| Auth | POST /auth/register | ✅ | ✅ | ✅ |
-| Auth | POST /auth/login | ✅ | ✅ | ✅ |
-| Auth | GET /auth/profile | ✅ | ✅ | ❌ |
-| Users | POST /users | ✅ | ❌ | ❌ |
-| Users | GET /users | ✅ | ❌ | ❌ |
-| Users | GET /users/profile | ✅ | ✅ | ❌ |
-| Products | POST /products | ✅ | ❌ | ❌ |
-| Products | GET /products | ✅ | ✅ | ✅ |
-| Categories | POST /categories | ✅ | ❌ | ❌ |
-| Categories | GET /categories | ✅ | ✅ | ✅ |
-| Inventory | POST /inventory/add-stock | ✅ | ❌ | ❌ |
-| Inventory | GET /inventory | ✅ | ✅ | ❌ |
-| Orders | POST /orders | ✅ | ✅ | ❌ |
-| Orders | GET /orders | ✅ | ✅* | ❌ |
-| Health | GET /health | ✅ | ✅ | ✅ |
-| Metrics | GET /metrics | ✅ | ✅ | ✅ |
-| Bull Board | GET /admin/queues | ✅** | ❌ | ❌ |
+| Módulo     | Endpoint                  | ADMIN  | USER | Público |
+| ---------- | ------------------------- | ------ | ---- | ------- |
+| Auth       | POST /auth/register       | ✅     | ✅   | ✅      |
+| Auth       | POST /auth/login          | ✅     | ✅   | ✅      |
+| Auth       | GET /auth/profile         | ✅     | ✅   | ❌      |
+| Users      | POST /users               | ✅     | ❌   | ❌      |
+| Users      | GET /users                | ✅     | ❌   | ❌      |
+| Users      | GET /users/profile        | ✅     | ✅   | ❌      |
+| Products   | POST /products            | ✅     | ❌   | ❌      |
+| Products   | GET /products             | ✅     | ✅   | ✅      |
+| Categories | POST /categories          | ✅     | ❌   | ❌      |
+| Categories | GET /categories           | ✅     | ✅   | ✅      |
+| Inventory  | POST /inventory/add-stock | ✅     | ❌   | ❌      |
+| Inventory  | GET /inventory            | ✅     | ✅   | ❌      |
+| Orders     | POST /orders              | ✅     | ✅   | ❌      |
+| Orders     | GET /orders               | ✅     | ✅\* | ❌      |
+| Health     | GET /health               | ✅     | ✅   | ✅      |
+| Metrics    | GET /metrics              | ✅     | ✅   | ✅      |
+| Bull Board | GET /admin/queues         | ✅\*\* | ❌   | ❌      |
 
-*USER solo ve sus propias órdenes  
-**Requiere Basic Auth (no JWT)
+\*USER solo ve sus propias órdenes  
+\*\*Requiere Basic Auth (no JWT)
 
 ---
 
@@ -284,7 +346,9 @@ Todos los endpoints siguen un formato estándar de respuesta:
   "statusCode": 200,
   "message": "Success",
   "data": {
-    "data": [ /* array de items */ ],
+    "data": [
+      /* array de items */
+    ],
     "meta": {
       "total": 100,
       "page": 1,
@@ -307,9 +371,7 @@ Todos los endpoints siguen un formato estándar de respuesta:
   "statusCode": 400,
   "message": "Validation failed",
   "error": "BAD_REQUEST",
-  "details": [
-    "Field 'email' must be a valid email address"
-  ],
+  "details": ["Field 'email' must be a valid email address"],
   "timestamp": "2025-10-15T00:00:00.000Z",
   "path": "/api/v1/resource",
   "method": "POST",
@@ -320,35 +382,44 @@ Todos los endpoints siguen un formato estándar de respuesta:
 
 ### Códigos de Estado Comunes
 
-| Código | Significado | Uso |
-|--------|-------------|-----|
-| 200 | OK | Operación exitosa (GET, PATCH, PUT) |
-| 201 | Created | Recurso creado exitosamente (POST) |
-| 204 | No Content | Recurso eliminado exitosamente (DELETE) |
-| 400 | Bad Request | Validación fallida o request inválido |
-| 401 | Unauthorized | Token faltante o inválido |
-| 403 | Forbidden | Sin permisos suficientes (RBAC) |
-| 404 | Not Found | Recurso no encontrado |
-| 409 | Conflict | Conflicto (ej: email duplicado) |
-| 500 | Internal Server Error | Error del servidor |
-| 503 | Service Unavailable | Servicio no disponible (health checks) |
+| Código | Significado           | Uso                                     |
+| ------ | --------------------- | --------------------------------------- |
+| 200    | OK                    | Operación exitosa (GET, PATCH, PUT)     |
+| 201    | Created               | Recurso creado exitosamente (POST)      |
+| 204    | No Content            | Recurso eliminado exitosamente (DELETE) |
+| 400    | Bad Request           | Validación fallida o request inválido   |
+| 401    | Unauthorized          | Token faltante o inválido               |
+| 403    | Forbidden             | Sin permisos suficientes (RBAC)         |
+| 404    | Not Found             | Recurso no encontrado                   |
+| 409    | Conflict              | Conflicto (ej: email duplicado)         |
+| 500    | Internal Server Error | Error del servidor                      |
+| 503    | Service Unavailable   | Servicio no disponible (health checks)  |
 
 ---
 
 ## 🛠️ Herramientas Recomendadas
 
 ### Para Testing Manual
+
 - **curl** - Incluido en los ejemplos de cada documento
 - **Postman** - Importar colecciones desde los comandos curl
 - **Insomnia** - Alternativa a Postman
 - **HTTPie** - CLI más amigable que curl
+- **Swagger UI** - 📚 Documentación interactiva en `http://localhost:3002/api/docs`
+  - Explorar todos los endpoints disponibles
+  - Probar requests directamente desde el navegador
+  - Ver esquemas completos de request/response
+  - Autenticación JWT integrada (botón "Authorize")
+  - Exportar especificaciones OpenAPI
 
 ### Para Monitoreo
+
 - **Bull Board** - Dashboard web para queues (incluido en el proyecto)
 - **Prometheus** - Scraping de métricas (`/api/v1/metrics`)
 - **Grafana** - Visualización de métricas de Prometheus
 
 ### Para Automatización
+
 - **Jest + Supertest** - Tests E2E automatizados (ver `/test/e2e`)
 - **GitHub Actions** - CI/CD pipelines
 - **Postman Collections** - Test runners automatizados
@@ -358,15 +429,18 @@ Todos los endpoints siguen un formato estándar de respuesta:
 ## 📝 Convenciones de Nomenclatura
 
 ### Variables de Entorno
+
 - Mayúsculas con guiones bajos: `ADMIN_TOKEN`, `BASE_URL`
 - Prefijo por tipo: `USER_`, `PRODUCT_`, `ORDER_`
 
 ### Placeholders en Ejemplos
+
 - UUIDs: `<USER_UUID>`, `uuid-generado`
 - Timestamps: `<timestamp>`, `2025-10-15T00:00:00.000Z`
 - Valores dinámicos: `<nombre-campo>`
 
 ### Comandos curl
+
 - Una línea por flag para legibilidad
 - Headers explícitos (`-H "Authorization: Bearer $TOKEN"`)
 - JSON formateado con `python -m json.tool` o `jq`
@@ -376,6 +450,7 @@ Todos los endpoints siguen un formato estándar de respuesta:
 ## 🐛 Troubleshooting
 
 ### Puerto ya en uso (EADDRINUSE)
+
 ```bash
 # Windows
 netstat -ano | findstr :3002
@@ -386,6 +461,7 @@ lsof -ti:3002 | xargs kill -9
 ```
 
 ### Base de datos no responde
+
 ```bash
 # Verificar PostgreSQL corriendo
 npm run db:status
@@ -398,6 +474,7 @@ npm run seed:run
 ```
 
 ### Redis no disponible
+
 ```bash
 # Verificar Redis corriendo
 redis-cli ping  # Debe responder: PONG
@@ -407,6 +484,7 @@ memurai-cli ping
 ```
 
 ### Tokens expirados
+
 ```bash
 # Los tokens expiran después de 15 minutos
 # Volver a obtener tokens desde Auth module
@@ -420,17 +498,22 @@ curl -X POST "$BASE_URL/auth/login" \
 ## 🔄 Actualizaciones y Mantenimiento
 
 ### Última Actualización
+
 **Fecha:** 2025-10-15  
 **Versión API:** v1  
 **Estado:** ✅ Todos los módulos documentados y probados
 
 ### Cambios Recientes
+
+- ✅ Agregada documentación de Swagger UI y testing interactivo
+- ✅ Corrección de comandos de seeds (seed:run → seed:all para testing completo)
 - ✅ Corrección de puerto (3000 → 3002) en Health module
 - ✅ Documentación de Redis/Queues health checks (implementados pero no registrados)
 - ✅ Actualización de ejemplos de respuesta con wrapper estándar
 - ✅ Corrección de rutas con prefijo `/api/v1`
 
 ### Contribuir
+
 Si encuentras discrepancias entre la documentación y el comportamiento real de la API:
 
 1. Verifica que el servidor esté en la última versión
@@ -442,16 +525,27 @@ Si encuentras discrepancias entre la documentación y el comportamiento real de 
 
 ## 📚 Recursos Adicionales
 
+### Documentación Interactiva
+
+- **[📚 Swagger UI - Documentación API Interactiva](http://localhost:3002/api/docs)**
+  - Exploración visual de todos los endpoints
+  - Testing interactivo desde el navegador
+  - Esquemas completos de request/response
+  - Autenticación JWT integrada
+  - Especificaciones OpenAPI exportables
+
 ### Documentación Técnica
+
 - [Arquitectura del Sistema](../ARCHITECTURE.md)
 - [Diseño de Base de Datos](../DATABASE_DESIGN.md)
-- [Documentación API (Swagger)](http://localhost:3002/api/docs)
 
 ### ADRs (Architecture Decision Records)
+
 - [ADR Directory](../adr/README.md)
 - Decisiones arquitectónicas documentadas
 
 ### Testing Automatizado
+
 - Tests E2E en `/test/e2e`
 - Tests unitarios en cada módulo (`*.spec.ts`)
 
