@@ -42,7 +42,7 @@ coverageThreshold: {
 }
 ```
 
-**NOTA:** ✅ **Cobertura actual: 74.66%** (superando el threshold profesional de 70%). Módulos críticos (payments, orders) requieren 80% por seguridad financiera y de transacciones.
+**NOTA:** ✅ **Cobertura actual: 72.11% statements** (superando el threshold profesional de 71%). Módulos críticos (payments, orders) requieren 80% por seguridad financiera y de transacciones.
 
 ---
 
@@ -151,18 +151,18 @@ test:
 -----------------------|---------|----------|---------|---------|---------|
 File                   | % Stmts | % Branch | % Funcs | % Lines | Status  |
 -----------------------|---------|----------|---------|---------|---------|
-All files              |   74.66 |    63.32 |   76.45 |   75.08 |         |
+All files              |   72.11 |    60.52 |   76.37 |   72.16 |         |
 -----------------------|---------|----------|---------|---------|---------|
-Threshold (70%)        |      ✅ |       ⚠️ |      ✅ |      ✅ | 3/4 ✅  |
+Threshold (71%/62%/72%/71%) |  ✅ |       ⚠️ |      ✅ |      ✅ | 3/4 ✅  |
 -----------------------|---------|----------|---------|---------|---------|
 ```
 
 **Análisis Detallado:**
 
-- ✅ **Statements:** 74.66% (2986/3999) - Supera threshold 70%
-- ⚠️ **Branches:** 63.32% (720/1137) - Requiere mejora: +6.68% para alcanzar 70%
-- ✅ **Functions:** 76.45% (565/739) - Supera threshold 70%
-- ✅ **Lines:** 75.08% (2764/3681) - Supera threshold 70%
+- ✅ **Statements:** 72.11% (3004/4166) - Supera threshold 71%
+- ⚠️ **Branches:** 60.52% (755/1247) - Requiere mejora: +1.48% para alcanzar 62%
+- ✅ **Functions:** 76.37% (578/757) - Supera threshold 72%
+- ✅ **Lines:** 72.16% (2829/3920) - Supera threshold 71%
 
 **Módulos con Excelencia (>90%):**
 
@@ -234,21 +234,21 @@ Threshold (70%)        |      ✅ |       ⚠️ |      ✅ |      ✅ | 3/4 ✅
 ### Roadmap de Cobertura
 
 ```
-Current:  74.66% ━━━━━━━━━━━━━━━░░░░░
+Current:  72.11% ━━━━━━━━━━━━━━░░░░░░
 Target:   80.00% ━━━━━━━━━━━━━━━━░░░░
 Goal:     85.00% ━━━━━━━━━━━━━━━━━░░░
 
-Branches: 63.32% ━━━━━━━━━━━━░░░░░░░░  (needs +6.68%)
-Functions: 76.45% ━━━━━━━━━━━━━━━░░░░░  ✅
-Lines:     75.08% ━━━━━━━━━━━━━━━░░░░░  ✅
-Statements: 74.66% ━━━━━━━━━━━━━━░░░░░  ✅
+Branches: 60.52% ━━━━━━━━━━━░░░░░░░░░  (needs +1.48% for threshold)
+Functions: 76.37% ━━━━━━━━━━━━━━━░░░░░  ✅
+Lines:     72.16% ━━━━━━━━━━━━━━░░░░░  ✅
+Statements: 72.11% ━━━━━━━━━━━━━━░░░░░  ✅
 ```
 
 ---
 
 ## Beneficios
 
-✅ **Aseguramiento de Calidad:** 74.66% de cobertura captura bugs temprano  
+✅ **Aseguramiento de Calidad:** 72.11% de cobertura captura bugs temprano  
 ✅ **Confianza:** 1,187 tests unitarios + 262 E2E tests permiten refactorizar con seguridad  
 ✅ **Documentación:** Tests sirven como documentación viva del comportamiento esperado  
 ✅ **Feedback Rápido:** Tests unitarios corren en ~120s con coverage completo  
