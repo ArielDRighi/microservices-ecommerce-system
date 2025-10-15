@@ -29,9 +29,9 @@ beforeAll(async () => {
     type: 'postgres',
     host: process.env['DATABASE_HOST'] || 'localhost',
     port: parseInt(process.env['DATABASE_PORT'] || '5432', 10),
-    username: process.env['DATABASE_USERNAME'] || process.env['DATABASE_USER'] || 'test_user',
-    password: process.env['DATABASE_PASSWORD'] || 'test_password',
-    database: process.env['DATABASE_NAME'] || 'test_db',
+    username: process.env['DATABASE_USER'] || 'postgres',
+    password: process.env['DATABASE_PASSWORD'] || 'postgres',
+    database: process.env['DATABASE_NAME'] || 'ecommerce_async_test',
     entities: ['src/**/*.entity{.ts,.js}'],
     synchronize: true, // Auto-create schema for tests
     dropSchema: false, // Don't drop on initialization
