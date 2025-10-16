@@ -46,7 +46,7 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 #### ✅ T0.1.1: Spike - Selección de API Gateway para Portfolio
 
 - **Status:** ✅ COMPLETADA (2025-10-16)
-- **Decisión tomada:** **Express custom con http-proxy-middleware** 
+- **Decisión tomada:** **Express custom con http-proxy-middleware**
 - **Documento:** [ADR-026: API Gateway Custom con Express](../adr/026-api-gateway-express-custom.md)
 - **Contexto:** Necesitamos un gateway que enrute a Orders (NestJS/REST) e Inventory (Go/REST)
 - **Opciones evaluadas:**

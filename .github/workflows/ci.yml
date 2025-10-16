@@ -5,16 +5,16 @@ on:
     branches:
       - main
       - develop
-      - 'feature/**'
+      - "feature/**"
     paths:
-      - 'services/orders-service/**'
-      - '.github/workflows/ci.yml'
+      - "services/orders-service/**"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches:
       - main
       - develop
     paths:
-      - 'services/orders-service/**'
+      - "services/orders-service/**"
 
 env:
   NODE_ENV: test
@@ -28,7 +28,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
