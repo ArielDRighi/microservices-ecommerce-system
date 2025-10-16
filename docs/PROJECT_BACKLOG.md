@@ -43,25 +43,32 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 **Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
 
-#### ⏳ T0.1.1: Spike - Selección de API Gateway para Portfolio
+#### ✅ T0.1.1: Spike - Selección de API Gateway para Portfolio
 
-- **Status:** ⏳ PENDIENTE
+- **Status:** ✅ COMPLETADA (2025-10-16)
+- **Decisión tomada:** **Express custom con http-proxy-middleware** 
+- **Documento:** [ADR-026: API Gateway Custom con Express](../adr/026-api-gateway-express-custom.md)
 - **Contexto:** Necesitamos un gateway que enrute a Orders (NestJS/REST) e Inventory (Go/REST)
-- **Opciones a evaluar:**
-  - **Express custom con http-proxy-middleware**
-    - ✅ Pro: Control total, fácil de entender para recruiters
-    - ✅ Pro: Mismo stack que Orders (Node.js)
-    - ❌ Contra: Tenés que implementar todo (rate limiting, circuit breaker, etc.)
-  - **Kong (Open Source)**
-    - ✅ Pro: Nivel empresarial, muchas features out-of-the-box
-    - ❌ Contra: Complejidad de setup puede opacar el proyecto
-    - ❌ Contra: Puede parecer "overkill" para un portfolio
-  - **Traefik**
-    - ✅ Pro: Configuración simple con docker labels
-    - ✅ Pro: Auto-descubrimiento de servicios
-    - ❌ Contra: Menos control granular
-- **Decisión esperada:** Express custom (recomendado para portfolio - máxima transparencia)
-- **Entregable:** Documento de decisión con pros/contras evaluados
+- **Opciones evaluadas:**
+  - ✅ **Express custom** - SELECCIONADO
+    - Control total del código y lógica de routing
+    - Máximo valor educativo (implementar patrones desde cero)
+    - Alineación con stack actual (Node.js/TypeScript)
+    - Bajo overhead (<5ms latencia, <200MB RAM)
+  - ❌ **Kong** - RECHAZADO
+    - Overkill para 2-3 servicios
+    - Complejidad operacional (PostgreSQL para metadata)
+  - ❌ **Traefik** - RECHAZADO
+    - Optimizado para Kubernetes (proyecto usa Docker Compose)
+    - Features limitadas para autenticación JWT custom
+- **Stack definido:**
+  - Proxy: `http-proxy-middleware`
+  - Auth: `jsonwebtoken` (JWT custom)
+  - Rate Limiting: `express-rate-limit` + Redis
+  - Circuit Breaker: `opossum`
+  - Logging: `winston` + `morgan`
+  - Métricas: `prom-client` (Prometheus)
+- **Implementación:** Ver Epic 4.1 y 4.2 en Fase 4
 
 #### ⏳ T0.1.2: Spike - Testcontainers en Go - Viabilidad para CI/CD
 
@@ -917,14 +924,24 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 
 **Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
 
-#### ⏳ T4.1.1: Elegir tecnología
+> **📌 Decisión Arquitectónica:** Este Epic implementa la decisión tomada en el Spike T0.1.1 (Fase 0).  
+> Ver [ADR-026: API Gateway Custom con Express](../adr/026-api-gateway-express-custom.md) para contexto completo.
+
+#### ⏳ T4.1.1: Implementar estructura base del API Gateway
 
 - **Status:** ⏳ PENDIENTE
-- **Opción 1**: Express + http-proxy-middleware (Node.js) - **RECOMENDADO**
-- **Opción 2**: Nginx (configuración)
-- **Opción 3**: Kong/Traefik (más avanzado)
-- Decisión basada en Spike 0.1.1 de Fase 0
-- Documentar elección con justificación
+- **Tecnología:** Express + http-proxy-middleware (según decisión ADR-026)
+- **Tareas:**
+  - Crear directorio `services/api-gateway/`
+  - Inicializar proyecto Node.js con TypeScript
+  - Instalar dependencias: `express`, `http-proxy-middleware`, `helmet`, `compression`, `morgan`, `winston`, `dotenv`
+  - Crear `src/index.ts` con servidor Express básico
+  - Configurar variables de entorno (`.env.example`)
+  - Implementar health check: `GET /health`
+  - Configurar puerto (3000) y graceful shutdown
+  - Crear Dockerfile para el gateway
+  - Añadir al `docker-compose.yml`
+- **Entregable:** API Gateway corriendo en `localhost:3000` con health check funcional
 
 #### ⏳ T4.1.2: Configurar rutas
 
@@ -1007,13 +1024,19 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - Health checks para remover instancias no saludables
 - Sticky sessions si es necesario
 
-#### ⏳ T4.2.6: Crear ADR-028: Selección de API Gateway
+#### ⏳ T4.2.6: Documentar patrones implementados en el Gateway
 
 - **Status:** ⏳ PENDIENTE
-- Decisión final: Express custom vs Kong vs Traefik
-- Evaluación de features necesarios vs disponibles
-- Consideraciones de complejidad para portfolio
-- Justificación técnica de la elección
+- **Nota:** La decisión de tecnología ya está en ADR-026
+- **Objetivo:** Documentar CÓMO se implementaron los patrones avanzados
+- **Contenido:**
+  - Arquitectura de middleware stack (orden y razón)
+  - Configuración de Circuit Breaker (thresholds, timeouts)
+  - Estrategia de Rate Limiting (por IP, por usuario, por endpoint)
+  - Logging strategy (qué se loggea, qué se redacta)
+  - Métricas expuestas (latencia, error rate, throughput)
+  - Troubleshooting guide para operadores
+- **Entregable:** Documento en `docs/api-gateway/ARCHITECTURE.md` o ADR-027 si aplica
 
 **✅ Definition of Done - Epic 4.2:**
 
