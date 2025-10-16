@@ -1,8 +1,12 @@
 name: CD Pipeline
 
+# ⚠️ DESHABILITADO TEMPORALMENTE - Fase 0 (Technical Spikes)
+# Este pipeline se reactivará cuando haya código de producción para deployar
+# Actualmente solo tenemos ADRs y PoCs, no servicios implementados
+
 on:
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
   workflow_dispatch:
     inputs:
       environment:
