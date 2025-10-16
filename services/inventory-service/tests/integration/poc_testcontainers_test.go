@@ -17,10 +17,10 @@ import (
 
 // Product es un modelo simple para el PoC
 type Product struct {
-	ID        uint      `gorm:"primaryKey"`
-	Name      string    `gorm:"not null"`
-	Stock     int       `gorm:"not null;default:0"`
-	Version   int       `gorm:"not null;default:1"` // Para optimistic locking
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"not null"`
+	Stock     int    `gorm:"not null;default:0"`
+	Version   int    `gorm:"not null;default:1"` // Para optimistic locking
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -179,16 +179,16 @@ func TestPoCTestcontainers(t *testing.T) {
 	})
 
 	// 📊 Reporte Final
-	t.Logf("\n" +
-		"📊 PoC Results Summary\n" +
-		"======================\n" +
-		"✅ Testcontainer setup: %v\n" +
-		"✅ GORM connection:     %v\n" +
-		"✅ Schema migration:    %v\n" +
-		"✅ Total time:          %v\n" +
-		"======================\n" +
-		"🎯 Target: < 2 min (120s)\n" +
-		"📈 Actual: %.2fs\n" +
+	t.Logf("\n"+
+		"📊 PoC Results Summary\n"+
+		"======================\n"+
+		"✅ Testcontainer setup: %v\n"+
+		"✅ GORM connection:     %v\n"+
+		"✅ Schema migration:    %v\n"+
+		"✅ Total time:          %v\n"+
+		"======================\n"+
+		"🎯 Target: < 2 min (120s)\n"+
+		"📈 Actual: %.2fs\n"+
 		"🚀 Status: %s",
 		setupDuration,
 		gormDuration,
