@@ -1,8 +1,63 @@
 # 🏷️ API Testing - Módulo de Categorías (Categories)
 
 **Módulo:** Categories  
-**Base URL:** `http://localhost:3000/categories`  
+**Base URL:** `http://localhost:3002/api/v1/categories`  
 **Descripción:** Gestión jerárquica de categorías con árbol, slugs, relaciones parent-child y control de acceso basado en roles (RBAC)
+
+---
+
+## 🚀 Pre-requisitos y Estado Inicial
+
+### Antes de empezar, asegúrate de tener:
+
+1. **✅ Servidor corriendo:** `npm run start:dev` en puerto **3002**
+2. **✅ Base de datos iniciada:** PostgreSQL con migraciones aplicadas
+3. **✅ Usuarios seed:** Ejecutar `npm run seed:run` para crear usuarios de prueba:
+   - `admin@test.com` / `Admin123!` (rol: ADMIN)
+   - `user@test.com` / `Admin123!` (rol: USER)
+
+### Comandos de setup rápido:
+
+```bash
+# 1. Iniciar servidor (en una terminal separada)
+npm run start:dev
+
+# 2. Ejecutar seed para crear usuarios de prueba
+npm run seed:run
+```
+
+### Estado esperado de la DB:
+
+- **Categorías:** Pueden existir categorías previas (no afecta los tests)
+- **Usuarios seed:** Los usuarios admin y user deben estar disponibles para autenticación
+
+### ⚠️ Importante:
+
+Este documento usa **placeholders genéricos** (`uuid-de-la-categoria`, `<timestamp>`, etc.) en las respuestas de ejemplo. Los valores reales en tu sistema serán diferentes pero deben seguir la misma estructura.
+
+---
+
+## 🎯 **IMPORTANTE: Valores de Ejemplo vs Valores Reales**
+
+> **📌 Todos los ejemplos en este documento usan valores GENÉRICOS para ilustrar la estructura de las respuestas.**
+
+**Valores Genéricos en el Documento:**
+
+- `"id": "uuid-de-la-categoria"` → **Tu sistema generará:** `"id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"`
+- `"createdAt": "2025-10-14T10:30:00.000Z"` → **Tu sistema mostrará:** Timestamp real de tu zona horaria
+- `"slug": "electronics-<timestamp>"` → **Reemplazar con:** Valor único (ej: `electronics-1697312345`)
+- `<timestamp>` en comandos → **Usar:** `$(date +%s)` o valor manual como `1697312345`
+
+**✅ Lo IMPORTANTE es validar la ESTRUCTURA JSON, no los valores exactos**
+
+**Ejemplo Comparativo:**
+
+| Campo       | Documento (Genérico)         | Tu Sistema (Real)                        | Validar                    |
+| ----------- | ---------------------------- | ---------------------------------------- | -------------------------- |
+| `id`        | `"uuid-generado"`            | `"f47ac10b-58cc-4372-a567-0e02b2c3d479"` | ✅ Formato UUID válido     |
+| `slug`      | `"electronics"`              | `"electronics-1697312345"`               | ✅ Lowercase con guiones   |
+| `isActive`  | `true`                       | `true`                                   | ✅ Valor booleano correcto |
+| `createdAt` | `"2025-10-14T10:30:00.000Z"` | `"2025-10-14T15:42:17.123Z"`             | ✅ Formato ISO 8601        |
 
 ---
 
@@ -30,29 +85,6 @@ Este módulo implementa control de acceso basado en roles:
 - **USER**: Solo lectura (ver categorías y árbol)
 - **Público**: Solo lectura (sin autenticación)
 
-### 🔑 Obtener Tokens por Rol
-
-```bash
-# Token de ADMINISTRADOR (acceso completo)
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@test.com",
-    "password": "Admin123!@#"
-  }' | jq -r '.data.accessToken')
-
-# Token de USUARIO (solo lectura)
-export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@test.com",
-    "password": "User123!@#"
-  }' | jq -r '.data.accessToken')
-
-echo "Admin Token: $ADMIN_TOKEN"
-echo "User Token: $USER_TOKEN"
-```
-
 ### ⚠️ Respuesta 403 Forbidden (Sin Permisos)
 
 Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
@@ -78,34 +110,69 @@ Las categorías usan **soft delete** mediante `@DeleteDateColumn`:
 
 ## 📋 Índice de Tests
 
-- [ ] 1️⃣ Crear Categoría Raíz (POST /categories) **[🔴 ADMIN Only]**
-  - [ ] 1.1 Crear como ADMIN (201)
-  - [ ] 1.2 USER intenta crear (403 Forbidden)
-  - [ ] 1.3 Sin autenticación (401 Unauthorized)
-- [ ] 2️⃣ Crear Sub-categoría (POST /categories) **[🔴 ADMIN Only]**
-- [ ] 3️⃣ Listar Categorías con Paginación (GET /categories) **[🟢 Público]**
-- [ ] 4️⃣ Obtener Árbol de Categorías (GET /categories/tree) **[🟢 Público]**
-- [ ] 5️⃣ Buscar por Slug (GET /categories/slug/:slug) **[🟢 Público]**
-- [ ] 6️⃣ Obtener por ID (GET /categories/:id) **[🟢 Público]**
-- [ ] 7️⃣ Obtener Descendientes (GET /categories/:id/descendants) **[🟢 Público]**
-- [ ] 8️⃣ Obtener Path Completo (GET /categories/:id/path) **[🟢 Público]**
-- [ ] 9️⃣ Actualizar Categoría (PUT /categories/:id) **[🔴 ADMIN Only]**
-- [ ] 🔟 Activar Categoría (PATCH /categories/:id/activate) **[🔴 ADMIN Only]**
-- [ ] 1️⃣1️⃣ Desactivar Categoría (PATCH /categories/:id/deactivate) **[🔴 ADMIN Only]**
-- [ ] 1️⃣2️⃣ Eliminar Categoría (DELETE /categories/:id) **[🔴 ADMIN Only]**
+### Tests Básicos (EMPEZAR AQUÍ)
+
+- [ ] 1️⃣ **Crear Categoría Raíz** (POST /categories) **[🔴 ADMIN Only]**
+  - [ ] 1.1 Crear como ADMIN (201 Created)
+  - [ ] 1.2 Crear sin autenticación (401 Unauthorized)
+  - [ ] 1.3 USER intenta crear (403 Forbidden)
+- [ ] 2️⃣ **Crear Sub-categoría** (POST /categories) **[🔴 ADMIN Only]**
+- [ ] 3️⃣ **Listar Categorías** (GET /categories) **[🟢 Público]**
+- [ ] 4️⃣ **Obtener Árbol** (GET /categories/tree) **[🟢 Público]**
+- [ ] 5️⃣ **Buscar por Slug** (GET /categories/slug/:slug) **[🟢 Público]**
+- [ ] 6️⃣ **Obtener por ID** (GET /categories/:id) **[🟢 Público]**
+- [ ] 7️⃣ **Obtener Descendientes** (GET /categories/:id/descendants) **[🟢 Público]**
+- [ ] 8️⃣ **Obtener Path** (GET /categories/:id/path) **[🟢 Público]**
+- [ ] 9️⃣ **Actualizar Categoría** (PUT /categories/:id) **[🔴 ADMIN Only]**
+- [ ] 🔟 **Activar Categoría** (PATCH /categories/:id/activate) **[🔴 ADMIN Only]**
+- [ ] 1️⃣1️⃣ **Eliminar Categoría** (DELETE /categories/:id) **[🔴 ADMIN Only]**
+
+**NOTA:** Marca cada checkbox `[x]` conforme completes cada test exitosamente.
 
 ---
 
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
+export BASE_URL="http://localhost:3002/api/v1"
 export ADMIN_TOKEN=""  # Token con rol ADMIN (para crear/modificar/eliminar)
 export USER_TOKEN=""   # Token con rol USER (solo lectura)
 export CATEGORY_ID=""
 export PARENT_CATEGORY_ID=""
 export CHILD_CATEGORY_ID=""
 ```
+
+**NOTA:** Estas variables se llenarán automáticamente conforme ejecutes los tests en orden.
+
+---
+
+## 🔑 Obtener Tokens de Autenticación
+
+```bash
+# Token de ADMINISTRADOR (acceso completo a categorías)
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+# Token de USUARIO (solo lectura de categorías)
+export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+echo "ADMIN_TOKEN: ${ADMIN_TOKEN:0:50}..."
+echo "USER_TOKEN: ${USER_TOKEN:0:50}..."
+```
+
+**💡 Tip:** Si los comandos anteriores no devuelven tokens, verifica que:
+
+1. El servidor esté corriendo en el puerto 3002
+2. Hayas ejecutado `npm run seed:run` para crear los usuarios
 
 ---
 
@@ -148,9 +215,9 @@ Electronics (root)
 
 ```json
 {
-  "name": "Electronics",
+  "name": "Electronics <timestamp>",
   "description": "Electronic products and gadgets",
-  "slug": "electronics",
+  "slug": "electronics-<timestamp>",
   "sortOrder": 10,
   "metadata": {
     "color": "#FF5722",
@@ -160,57 +227,89 @@ Electronics (root)
 }
 ```
 
+**⚠️ Nota sobre Timestamps:** Los ejemplos usan `<timestamp>` como placeholder. Reemplázalo con un valor único (ej: `$(date +%s)` en bash o valor manual como `1697312345`) para evitar errores de slug duplicado.
+
 **Comando curl:**
 
 ```bash
+# Opción 1: Con timestamp dinámico (recomendado)
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Electronics",
-    "description": "Electronic products and gadgets",
-    "slug": "electronics",
-    "sortOrder": 10,
-    "metadata": {
-      "color": "#FF5722",
-      "icon": "electronics-icon"
+  -d "{
+    \"name\": \"Electronics $TIMESTAMP\",
+    \"description\": \"Electronic products and gadgets\",
+    \"slug\": \"electronics-$TIMESTAMP\",
+    \"sortOrder\": 10,
+    \"metadata\": {
+      \"color\": \"#FF5722\",
+      \"icon\": \"electronics-icon\"
     }
-  }' | jq '.'
+  }" | jq '.'
+
+# Opción 2: Sin slug (auto-generado desde name con timestamp)
+TIMESTAMP=$(date +%s)
+curl -X POST "$BASE_URL/categories" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"Electronics $TIMESTAMP\",
+    \"description\": \"Electronic products and gadgets\",
+    \"sortOrder\": 10,
+    \"metadata\": {
+      \"color\": \"#FF5722\",
+      \"icon\": \"electronics-icon\"
+    }
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (201 Created):**
 
 ```json
 {
-  "id": "category-uuid-here",
-  "name": "Electronics",
-  "description": "Electronic products and gadgets",
-  "slug": "electronics",
-  "parentId": null,
-  "sortOrder": 10,
-  "isActive": true,
-  "metadata": {
-    "color": "#FF5722",
-    "icon": "electronics-icon"
+  "statusCode": 201,
+  "message": "Created successfully",
+  "data": {
+    "id": "uuid-generado-automaticamente",
+    "name": "Electronics",
+    "description": "Electronic products and gadgets",
+    "slug": "electronics",
+    "parentId": null,
+    "isActive": true,
+    "sortOrder": 10,
+    "metadata": {
+      "color": "#FF5722",
+      "icon": "electronics-icon"
+    },
+    "createdAt": "2025-10-14T10:30:00.000Z",
+    "updatedAt": "2025-10-14T10:30:00.000Z",
+    "parent": null,
+    "children": [],
+    "level": 0,
+    "path": ["Electronics"],
+    "breadcrumb": "Electronics"
   },
-  "createdAt": "2025-10-11T10:30:00.000Z",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "timestamp": "2025-10-14T10:30:00.123Z",
+  "path": "/api/v1/categories",
+  "success": true
 }
 ```
 
 **Guardar Category ID:**
 
 ```bash
-export PARENT_CATEGORY_ID=$(curl -s -X POST "$BASE_URL/categories" \
+# Guardar ID de la categoría creada con timestamp único
+TIMESTAMP=$(date +%s)
+export CATEGORY_ID=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Parent Category",
-    "description": "Category for testing",
-    "slug": "test-parent"
-  }' | jq -r '.id')
+  -d "{
+    \"name\": \"Electronics $TIMESTAMP\",
+    \"description\": \"Electronic products and gadgets\"
+  }" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-echo "Parent Category ID: $PARENT_CATEGORY_ID"
+echo "Category ID: $CATEGORY_ID"
 ```
 
 **Checklist:**
@@ -229,13 +328,15 @@ echo "Parent Category ID: $PARENT_CATEGORY_ID"
 **Comando curl:**
 
 ```bash
+# Usar timestamp para nombre único
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Mobile Devices",
-    "description": "Smartphones and tablets"
-  }' | jq '.'
+  -d "{
+    \"name\": \"Mobile Devices $TIMESTAMP\",
+    \"description\": \"Smartphones and tablets\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada:**
@@ -243,8 +344,8 @@ curl -X POST "$BASE_URL/categories" \
 ```json
 {
   "id": "category-uuid-here",
-  "name": "Mobile Devices",
-  "slug": "mobile-devices",
+  "name": "Mobile Devices 1697312345",
+  "slug": "mobile-devices-1697312345",
   "description": "Smartphones and tablets",
   ...
 }
@@ -267,14 +368,16 @@ curl -X POST "$BASE_URL/categories" \
 **Comando curl:**
 
 ```bash
+# Usar timestamp para evitar conflicto de slug (aunque fallará por permisos)
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Unauthorized Category",
-    "description": "This should fail",
-    "slug": "unauthorized"
-  }' | jq '.'
+  -d "{
+    \"name\": \"Unauthorized Category $TIMESTAMP\",
+    \"description\": \"This should fail\",
+    \"slug\": \"unauthorized-$TIMESTAMP\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (403 Forbidden):**
@@ -282,15 +385,19 @@ curl -X POST "$BASE_URL/categories" \
 ```json
 {
   "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "2025-10-14T10:36:00.000Z",
+  "path": "/api/v1/categories",
+  "method": "POST"
 }
 ```
 
 **Checklist:**
 
 - [ ] Status code es 403 (no 401)
-- [ ] Mensaje indica recurso prohibido
+- [ ] Mensaje indica claramente que se requiere rol ADMIN
 - [ ] Categoría NO fue creada en la base de datos
 
 **💡 Nota:** Error 403 significa que el usuario está autenticado pero no tiene permisos suficientes (rol USER en vez de ADMIN).
@@ -306,12 +413,14 @@ curl -X POST "$BASE_URL/categories" \
 **Comando curl:**
 
 ```bash
+# Usar timestamp para evitar conflicto de slug (aunque fallará por auth)
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "No Auth Category",
-    "slug": "no-auth"
-  }' | jq '.'
+  -d "{
+    \"name\": \"No Auth Category $TIMESTAMP\",
+    \"slug\": \"no-auth-$TIMESTAMP\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (401 Unauthorized):**
@@ -319,20 +428,60 @@ curl -X POST "$BASE_URL/categories" \
 ```json
 {
   "statusCode": 401,
-  "message": "Unauthorized",
-  "error": "Unauthorized"
+  "message": "Access token is required",
+  "error": "UNAUTHORIZED",
+  "success": false,
+  "timestamp": "2025-10-14T10:35:00.000Z"
 }
 ```
 
 **Checklist:**
 
 - [ ] Status code es 401
-- [ ] Requiere autenticación
+- [ ] Mensaje indica que se requiere token de acceso
 - [ ] Diferencia entre 401 (sin token) y 403 (sin permisos)
 
 ---
 
 ## 2️⃣ Crear Sub-categoría **[🔴 ADMIN Only]**
+
+### 📝 Pre-requisito: Inicializar Variable `$PARENT_CATEGORY_ID`
+
+**⚠️ IMPORTANTE:** Antes de crear una sub-categoría, necesitas tener el ID de una categoría padre.
+
+**Opción 1: Usar la categoría creada en Test 1.1**
+
+```bash
+# Si completaste Test 1.1 y guardaste CATEGORY_ID:
+export PARENT_CATEGORY_ID="$CATEGORY_ID"
+echo "Parent Category ID: $PARENT_CATEGORY_ID"
+```
+
+**Opción 2: Crear una nueva categoría para usar como parent**
+
+```bash
+# Crear categoría parent con timestamp único
+TIMESTAMP=$(date +%s)
+export PARENT_CATEGORY_ID=$(curl -s -X POST "$BASE_URL/categories" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"Parent Category $TIMESTAMP\",
+    \"description\": \"Parent for testing sub-categories\"
+  }" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "Parent Category ID: $PARENT_CATEGORY_ID"
+```
+
+**Verificar que la variable está definida:**
+
+```bash
+# Este comando debe mostrar un UUID válido
+echo $PARENT_CATEGORY_ID
+# Ejemplo de salida esperada: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+---
 
 ### ✅ Test 2.1: Crear sub-categoría exitosamente como ADMIN
 
@@ -343,11 +492,13 @@ curl -X POST "$BASE_URL/categories" \
 **Comando curl:**
 
 ```bash
+# Usar timestamp para evitar conflictos de slug
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Laptops\",
+    \"name\": \"Laptops $TIMESTAMP\",
     \"description\": \"Portable computers\",
     \"parentId\": \"$PARENT_CATEGORY_ID\",
     \"sortOrder\": 5
@@ -373,13 +524,15 @@ curl -X POST "$BASE_URL/categories" \
 **Guardar Child Category ID:**
 
 ```bash
+# Crear con timestamp único
+TIMESTAMP=$(date +%s)
 export CHILD_CATEGORY_ID=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Gaming Laptops\",
+    \"name\": \"Gaming Laptops $TIMESTAMP\",
     \"parentId\": \"$PARENT_CATEGORY_ID\"
-  }" | jq -r '.id')
+  }" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 echo "Child Category ID: $CHILD_CATEGORY_ID"
 ```
@@ -397,13 +550,15 @@ echo "Child Category ID: $CHILD_CATEGORY_ID"
 **Comando curl:**
 
 ```bash
+# Usar timestamp para nombre único
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Invalid Child",
-    "parentId": "00000000-0000-0000-0000-000000000000"
-  }' | jq '.'
+  -d "{
+    \"name\": \"Invalid Child $TIMESTAMP\",
+    \"parentId\": \"00000000-0000-0000-0000-000000000000\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -411,30 +566,51 @@ curl -X POST "$BASE_URL/categories" \
 ```json
 {
   "statusCode": 400,
-  "message": "Parent category not found",
-  "error": "Bad Request"
+  "message": ["Parent ID must be a valid UUID"],
+  "error": "BAD_REQUEST",
+  "success": false,
+  "timestamp": "2025-10-14T10:30:00.000Z",
+  "path": "/api/v1/categories",
+  "method": "POST",
+  "correlationId": "uuid-correlation"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 400
-- [ ] Valida existencia de parent
+- [ ] Status code es 400 (no 404)
+- [ ] Mensaje: "Parent ID must be a valid UUID"
+- [ ] Valida existencia de parent en la base de datos
 
 ---
 
 ### ❌ Test 2.3: Crear categoría con slug duplicado (409 Conflict)
 
+**⚠️ Pre-requisito:** Primero crear una categoría, luego intentar crear otra con el mismo slug.
+
 **Comando curl:**
 
 ```bash
+# Paso 1: Crear categoría inicial con slug específico
+TIMESTAMP=$(date +%s)
+SLUG_TEST="test-duplicate-$TIMESTAMP"
+
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Duplicate Category",
-    "slug": "electronics"
-  }' | jq '.'
+  -d "{
+    \"name\": \"First Category $TIMESTAMP\",
+    \"slug\": \"$SLUG_TEST\"
+  }" | jq '.'
+
+# Paso 2: Intentar crear otra con el mismo slug (debe fallar)
+curl -X POST "$BASE_URL/categories" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"Duplicate Category $TIMESTAMP\",
+    \"slug\": \"$SLUG_TEST\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (409 Conflict):**
@@ -459,13 +635,15 @@ curl -X POST "$BASE_URL/categories" \
 **Comando curl:**
 
 ```bash
+# Usar timestamp en nombre, pero slug inválido a propósito
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Invalid Slug",
-    "slug": "Invalid_Slug!"
-  }' | jq '.'
+  -d "{
+    \"name\": \"Invalid Slug $TIMESTAMP\",
+    \"slug\": \"Invalid_Slug!\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -491,11 +669,13 @@ curl -X POST "$BASE_URL/categories" \
 **Comando curl:**
 
 ```bash
+# Usar timestamp para evitar conflictos
+TIMESTAMP=$(date +%s)
 curl -X POST "$BASE_URL/categories" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Unauthorized Category"
-  }' | jq '.'
+  -d "{
+    \"name\": \"Unauthorized Category $TIMESTAMP\"
+  }" | jq '.'
 ```
 
 **Respuesta Esperada (401 Unauthorized):**
@@ -532,35 +712,47 @@ curl -X GET "$BASE_URL/categories?page=1&limit=10" | jq '.'
 
 ```json
 {
-  "data": [
-    {
-      "id": "category-1",
-      "name": "Electronics",
-      "slug": "electronics",
-      "description": "Electronic products",
-      "parentId": null,
-      "sortOrder": 10,
-      "isActive": true,
-      "createdAt": "2025-10-10T10:00:00.000Z"
-    },
-    {
-      "id": "category-2",
-      "name": "Laptops",
-      "slug": "laptops",
-      "parentId": "category-1",
-      "sortOrder": 5,
-      "isActive": true,
-      "createdAt": "2025-10-10T11:00:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [
+      {
+        "id": "uuid-categoria-1",
+        "name": "Electronics",
+        "description": "Electronic devices and accessories",
+        "slug": "electronics",
+        "parentId": null,
+        "isActive": true,
+        "sortOrder": 0,
+        "metadata": null,
+        "createdAt": "2025-10-14T10:00:00.000Z",
+        "updatedAt": "2025-10-14T10:00:00.000Z"
+      },
+      {
+        "id": "uuid-categoria-2",
+        "name": "Computers",
+        "description": "Desktop and laptop computers",
+        "slug": "computers",
+        "parentId": null,
+        "isActive": true,
+        "sortOrder": 0,
+        "metadata": null,
+        "createdAt": "2025-10-14T10:05:00.000Z",
+        "updatedAt": "2025-10-14T10:05:00.000Z"
+      }
+    ],
+    "meta": {
+      "total": 5,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
     }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 25,
-    "totalPages": 3,
-    "hasNextPage": true,
-    "hasPreviousPage": false
-  }
+  },
+  "timestamp": "2025-10-14T11:00:00.000Z",
+  "path": "/api/v1/categories",
+  "success": true
 }
 ```
 
@@ -786,16 +978,28 @@ curl -X GET "$BASE_URL/categories/$PARENT_CATEGORY_ID" | jq '.'
 
 ```json
 {
-  "id": "category-uuid",
-  "name": "Electronics",
-  "slug": "electronics",
-  "description": "Electronic products",
-  "parentId": null,
-  "sortOrder": 10,
-  "isActive": true,
-  "metadata": {},
-  "createdAt": "2025-10-10T10:00:00.000Z",
-  "updatedAt": "2025-10-10T10:00:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "uuid-de-la-categoria",
+    "name": "Computers",
+    "description": "Desktop and laptop computers",
+    "slug": "computers",
+    "parentId": null,
+    "isActive": true,
+    "sortOrder": 0,
+    "metadata": null,
+    "createdAt": "2025-10-14T10:00:00.000Z",
+    "updatedAt": "2025-10-14T10:00:00.000Z",
+    "parent": null,
+    "children": [],
+    "level": 0,
+    "path": ["Computers"],
+    "breadcrumb": "Computers"
+  },
+  "timestamp": "2025-10-14T11:05:00.000Z",
+  "path": "/api/v1/categories/{category-id}",
+  "success": true
 }
 ```
 
@@ -819,14 +1023,19 @@ curl -X GET "$BASE_URL/categories/00000000-0000-0000-0000-000000000000" | jq '.'
 ```json
 {
   "statusCode": 404,
-  "message": "Category not found",
-  "error": "Not Found"
+  "message": "Category with ID 00000000-0000-0000-0000-000000000000 not found",
+  "error": "NOT_FOUND",
+  "success": false,
+  "timestamp": "2025-10-14T11:10:00.000Z",
+  "path": "/api/v1/categories/00000000-0000-0000-0000-000000000000",
+  "method": "GET"
 }
 ```
 
 **Checklist:**
 
 - [ ] Status code es 404
+- [ ] Mensaje indica claramente el ID que no fue encontrado
 
 ---
 
@@ -956,14 +1165,28 @@ curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
 
 ```json
 {
-  "id": "category-uuid",
-  "name": "Consumer Electronics",
-  "slug": "electronics",
-  "description": "Updated description for consumer electronics",
-  "sortOrder": 15,
-  "isActive": true,
-  "updatedAt": "2025-10-11T10:45:00.000Z",
-  ...
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "uuid-de-la-categoria",
+    "name": "Computers & Laptops",
+    "description": "Updated description for computers",
+    "slug": "computers",
+    "parentId": null,
+    "isActive": true,
+    "sortOrder": 0,
+    "metadata": null,
+    "createdAt": "2025-10-14T10:00:00.000Z",
+    "updatedAt": "2025-10-14T11:15:00.000Z",
+    "parent": null,
+    "children": [],
+    "level": 0,
+    "path": ["Computers & Laptops"],
+    "breadcrumb": "Computers & Laptops"
+  },
+  "timestamp": "2025-10-14T11:15:00.123Z",
+  "path": "/api/v1/categories/{category-id}",
+  "success": true
 }
 ```
 
@@ -1024,11 +1247,14 @@ curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
 **Comando curl:**
 
 ```bash
-# Crear nuevo parent primero
+# Crear nuevo parent primero con timestamp único
+TIMESTAMP=$(date +%s)
 NEW_PARENT_ID=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "New Parent"}' | jq -r '.id')
+  -d "{\"name\": \"New Parent $TIMESTAMP\"}" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "New Parent ID: $NEW_PARENT_ID"
 
 # Mover categoría
 curl -X PUT "$BASE_URL/categories/$CHILD_CATEGORY_ID" \
@@ -1051,15 +1277,42 @@ curl -X PUT "$BASE_URL/categories/$CHILD_CATEGORY_ID" \
 
 **Escenario:** Intentar mover un parent como hijo de su propio descendiente
 
+**⚠️ IMPORTANTE:** Este test crea su propia jerarquía temporal para garantizar consistencia, independientemente del orden de tests anteriores.
+
 **Comando curl:**
 
 ```bash
-# Intentar hacer que el parent sea hijo de su propio child
-curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
+# Paso 1: Crear categoría parent para el test
+TIMESTAMP=$(date +%s)
+PARENT_TEST=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"parentId\": \"$CHILD_CATEGORY_ID\"
+    \"name\": \"Parent Test Circular $TIMESTAMP\",
+    \"description\": \"Parent for circular hierarchy test\"
+  }" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "Parent Test ID: $PARENT_TEST"
+
+# Paso 2: Crear categoría child que será hija del parent
+CHILD_TEST=$(curl -s -X POST "$BASE_URL/categories" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"Child Test Circular $TIMESTAMP\",
+    \"description\": \"Child for circular hierarchy test\",
+    \"parentId\": \"$PARENT_TEST\"
+  }" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "Child Test ID: $CHILD_TEST"
+
+# Paso 3: Intentar crear ciclo (mover parent como hijo de su propio child)
+# Esto DEBE fallar con 400 Bad Request
+curl -X PUT "$BASE_URL/categories/$PARENT_TEST" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"parentId\": \"$CHILD_TEST\"
   }" | jq '.'
 ```
 
@@ -1076,7 +1329,9 @@ curl -X PUT "$BASE_URL/categories/$PARENT_CATEGORY_ID" \
 **Checklist:**
 
 - [ ] Status code es 400
+- [ ] Mensaje indica "Circular hierarchy detected"
 - [ ] Previene ciclos en la jerarquía
+- [ ] Test independiente (no depende de tests anteriores)
 
 ---
 
@@ -1217,14 +1472,25 @@ curl -X PATCH "$BASE_URL/categories/$PARENT_CATEGORY_ID/activate" \
 
 **⚠️ Soft Delete:** Las categorías usan `@DeleteDateColumn` con campo `deletedAt`. No se eliminan físicamente de la base de datos.
 
+**📌 IMPORTANTE - Comportamiento del Soft Delete:**
+
+- Cuando se elimina una categoría, el campo `deletedAt` se establece con un timestamp
+- Los queries normales (`GET /categories`, `GET /categories/:id`, etc.) **excluyen automáticamente** registros con `deletedAt != null`
+- Intentar obtener una categoría eliminada por ID retornará `404 Not Found`
+- El parámetro `includeDeleted` existe en `CategoryQueryDto` pero actualmente no está expuesto en los endpoints públicos
+- Para verificar el soft delete en la base de datos, debes consultar directamente: `SELECT * FROM categories WHERE deleted_at IS NOT NULL;`
+
 **Comando curl:**
 
 ```bash
-# Crear categoría temporal para eliminar
+# Crear categoría temporal para eliminar con timestamp único
+TIMESTAMP=$(date +%s)
 TEMP_CATEGORY_ID=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Temp Category"}' | jq -r '.id')
+  -d "{\"name\": \"Temp Category $TIMESTAMP\"}" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "Temp Category ID: $TEMP_CATEGORY_ID"
 
 # Eliminar
 curl -X DELETE "$BASE_URL/categories/$TEMP_CATEGORY_ID" \
@@ -1264,14 +1530,19 @@ curl -X DELETE "$BASE_URL/categories/$TEMP_CATEGORY_ID" \
 ```json
 {
   "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "2025-10-14T11:20:00.000Z",
+  "path": "/api/v1/categories/{category-id}",
+  "method": "DELETE"
 }
 ```
 
 **Checklist:**
 
 - [ ] Status code es 403
+- [ ] Mensaje indica claramente que se requiere rol ADMIN
 - [ ] Categoría NO fue eliminada
 - [ ] Usuario autenticado pero sin permisos
 
@@ -1337,29 +1608,31 @@ USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
 echo "✅ Tokens obtenidos"
 echo ""
 
-# 1. Crear categoría raíz como ADMIN
+# 1. Crear categoría raíz como ADMIN (con timestamp único)
 echo "1️⃣ Creando categoría raíz como ADMIN..."
+TIMESTAMP=$(date +%s)
 ROOT_CATEGORY=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Electronics",
-    "description": "Electronic products for testing",
-    "slug": "test-electronics",
-    "sortOrder": 10
-  }')
+  -d "{
+    \"name\": \"Test Electronics $TIMESTAMP\",
+    \"description\": \"Electronic products for testing\",
+    \"slug\": \"test-electronics-$TIMESTAMP\",
+    \"sortOrder\": 10
+  }")
 
 ROOT_ID=$(echo $ROOT_CATEGORY | jq -r '.id')
 echo "✅ Categoría raíz creada: $ROOT_ID"
 
-# 2. Crear sub-categoría
+# 2. Crear sub-categoría (con timestamp único)
 echo "2️⃣ Creando sub-categoría..."
 SUB_CATEGORY=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Test Laptops\",
+    \"name\": \"Test Laptops $TIMESTAMP\",
     \"description\": \"Laptop computers\",
+    \"slug\": \"test-laptops-$TIMESTAMP\",
     \"parentId\": \"$ROOT_ID\",
     \"sortOrder\": 5
   }")
@@ -1367,13 +1640,14 @@ SUB_CATEGORY=$(curl -s -X POST "$BASE_URL/categories" \
 SUB_ID=$(echo $SUB_CATEGORY | jq -r '.id')
 echo "✅ Sub-categoría creada: $SUB_ID"
 
-# 3. Crear sub-sub-categoría
+# 3. Crear sub-sub-categoría (con timestamp único)
 echo "3️⃣ Creando sub-sub-categoría..."
 SUBSUB_CATEGORY=$(curl -s -X POST "$BASE_URL/categories" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Gaming Laptops\",
+    \"name\": \"Gaming Laptops $TIMESTAMP\",
+    \"slug\": \"gaming-laptops-$TIMESTAMP\",
     \"parentId\": \"$SUB_ID\"
   }")
 
@@ -1386,9 +1660,9 @@ TREE=$(curl -s -X GET "$BASE_URL/categories/tree")
 TREE_COUNT=$(echo $TREE | jq 'length')
 echo "✅ Árbol obtenido con $TREE_COUNT categorías raíz"
 
-# 5. Buscar por slug
+# 5. Buscar por slug (usar slug con timestamp)
 echo "5️⃣ Buscando por slug..."
-SLUG_RESULT=$(curl -s -X GET "$BASE_URL/categories/slug/test-electronics")
+SLUG_RESULT=$(curl -s -X GET "$BASE_URL/categories/slug/test-electronics-$TIMESTAMP")
 SLUG_NAME=$(echo $SLUG_RESULT | jq -r '.name')
 echo "✅ Categoría encontrada: $SLUG_NAME"
 

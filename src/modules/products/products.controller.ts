@@ -52,7 +52,7 @@ export class ProductsController {
   @Post()
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Create a new product',
     description:
@@ -287,7 +287,7 @@ export class ProductsController {
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Update product',
     description:
@@ -364,7 +364,7 @@ export class ProductsController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Soft delete product',
@@ -397,7 +397,7 @@ export class ProductsController {
 
   @Patch(':id/activate')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Activate product',
     description: 'Activate a deactivated product (admin only)',
@@ -429,7 +429,7 @@ export class ProductsController {
 
   @Patch(':id/deactivate')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Deactivate product',
     description: 'Deactivate a product without deleting it (admin only)',

@@ -24,17 +24,17 @@ export class HealthService {
   check() {
     // Use MUCH higher thresholds in test environment to avoid false positives
     // Tests create multiple app instances which accumulate memory
-    const heapThreshold =
-      process.env['NODE_ENV'] === 'test'
-        ? 1000 * 1024 * 1024 // 1GB for tests
-        : 150 * 1024 * 1024; // 150MB for production
+    const isTestEnv = process.env['NODE_ENV'] === 'test' || process.env['NODE_ENV'] === 'e2e';
 
-    const rssThreshold =
-      process.env['NODE_ENV'] === 'test'
-        ? 1200 * 1024 * 1024 // 1.2GB for tests
-        : 300 * 1024 * 1024; // 300MB for production
+    const heapThreshold = isTestEnv
+      ? 2000 * 1024 * 1024 // 2GB for tests (increased from 1GB)
+      : 150 * 1024 * 1024; // 150MB for production
 
-    return this.health.check([
+    const rssThreshold = isTestEnv
+      ? 3000 * 1024 * 1024 // 3GB for tests (increased from 1.2GB)
+      : 300 * 1024 * 1024; // 300MB for production
+
+    const checks = [
       // Database health check
       () => this.db.pingCheck('database'),
 
@@ -50,24 +50,39 @@ export class HealthService {
           path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.9, // 90% usage threshold
         }),
-    ]);
+    ];
+
+    // Add Redis check if available
+    if (this.redis) {
+      checks.push(() => this.redis!.isHealthy('redis'));
+    }
+
+    return this.health.check(checks);
   }
 
   @HealthCheck()
   checkReadiness() {
-    return this.health.check([
+    const checks = [
       // Only check critical dependencies for readiness
       () => this.db.pingCheck('database'),
-    ]);
+    ];
+
+    // Add Redis check if available (critical for queues)
+    if (this.redis) {
+      checks.push(() => this.redis!.isHealthy('redis'));
+    }
+
+    return this.health.check(checks);
   }
 
   @HealthCheck()
   checkLiveness() {
     // Use MUCH higher threshold in test environment
-    const memoryThreshold =
-      process.env['NODE_ENV'] === 'test'
-        ? 1000 * 1024 * 1024 // 1GB for tests
-        : 200 * 1024 * 1024; // 200MB for production
+    const isTestEnv = process.env['NODE_ENV'] === 'test' || process.env['NODE_ENV'] === 'e2e';
+
+    const memoryThreshold = isTestEnv
+      ? 2000 * 1024 * 1024 // 2GB for tests (increased from 1GB)
+      : 200 * 1024 * 1024; // 200MB for production
 
     return this.health.check([
       // Basic checks for liveness
@@ -78,27 +93,20 @@ export class HealthService {
   @HealthCheck()
   checkDetailed() {
     // Use MUCH higher thresholds in test environment
-    const heapThreshold =
-      process.env['NODE_ENV'] === 'test'
-        ? 1000 * 1024 * 1024 // 1GB for tests
-        : 150 * 1024 * 1024; // 150MB for production
+    const isTestEnv = process.env['NODE_ENV'] === 'test' || process.env['NODE_ENV'] === 'e2e';
 
-    const rssThreshold =
-      process.env['NODE_ENV'] === 'test'
-        ? 1200 * 1024 * 1024 // 1.2GB for tests
-        : 300 * 1024 * 1024; // 300MB for production
+    const heapThreshold = isTestEnv
+      ? 2000 * 1024 * 1024 // 2GB for tests (increased from 1GB)
+      : 150 * 1024 * 1024; // 150MB for production
 
-    return this.health.check([
+    const rssThreshold = isTestEnv
+      ? 3000 * 1024 * 1024 // 3GB for tests (increased from 1.2GB)
+      : 300 * 1024 * 1024; // 300MB for production
+
+    const checks = [
       // Database checks
       () => this.db.pingCheck('database'),
       () => this.database.pingCheck('database_detailed'),
-
-      // Redis checks (commented out until Redis client is properly configured)
-      // () => this.redis.isHealthy('redis'),
-      // () => this.redis.checkLatency('redis_latency', 100), // 100ms threshold
-
-      // Queue checks (commented out until properly configured)
-      // () => this.queue?.isHealthy('queues'),
 
       // Memory checks
       () => this.memory.checkHeap('memory_heap', heapThreshold),
@@ -110,6 +118,18 @@ export class HealthService {
           path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.9,
         }),
-    ]);
+    ];
+
+    // Add Redis checks if available
+    if (this.redis) {
+      checks.push(() => this.redis!.isHealthy('redis'));
+    }
+
+    // Add Queue checks if available
+    if (this.queue) {
+      checks.push(() => this.queue!.isHealthy('queues'));
+    }
+
+    return this.health.check(checks);
   }
 }

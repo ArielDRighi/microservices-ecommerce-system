@@ -40,7 +40,7 @@ import { QueueModule } from './queues/queue.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, databaseConfig, bullConfig, jwtConfig],
-      envFilePath: ['.env.local', '.env.development', '.env'],
+      envFilePath: ['.env.local', '.env.development', '.env', '.env.test'],
       validate,
       validationOptions: {
         allowUnknown: true,

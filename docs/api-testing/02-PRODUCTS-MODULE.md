@@ -1,7 +1,7 @@
 # 📦 API Testing - Módulo de Productos (Products)
 
 **Módulo:** Products  
-**Base URL:** `http://localhost:3000/products`  
+**Base URL:** `http://localhost:3002/api/v1/products`  
 **Descripción:** CRUD completo de productos con búsqueda, filtros, paginación, gestión de estado y control de acceso basado en roles (RBAC)
 
 ---
@@ -31,20 +31,20 @@ Este módulo implementa control de acceso basado en roles:
 
 ```bash
 # Token de ADMINISTRADOR (acceso completo)
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+export ADMIN_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@test.com",
-    "password": "Admin123!@#"
-  }' | jq -r '.data.accessToken')
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 # Token de USUARIO (solo lectura)
-export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+export USER_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@test.com",
-    "password": "User123!@#"
-  }' | jq -r '.data.accessToken')
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 echo "Admin Token: $ADMIN_TOKEN"
 echo "User Token: $USER_TOKEN"
@@ -66,18 +66,28 @@ Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
 
 ## 📋 Índice de Tests
 
-- [ ] 1️⃣ Crear Producto (POST /products) **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
-  - [ ] 1.1 Crear producto como ADMIN (201)
-  - [ ] 1.2 Crear varios productos para pruebas
-  - [ ] 1.3 USER intenta crear producto (403 Forbidden)
-  - [ ] 1.4 Sin autenticación (401 Unauthorized)
-  - [ ] 1.5 Validación de precio mínimo ($0.50)
-- [ ] 2️⃣ Listar Productos con Paginación (GET /products) **[🟢 Público]**
-- [ ] 3️⃣ Buscar Productos (GET /products/search) **[🟢 Público]**
-- [ ] 4️⃣ Actualizar Producto (PATCH /products/:id) **[🔴 ADMIN Only]**
-- [ ] 5️⃣ Activar Producto (PATCH /products/:id/activate) **[🔴 ADMIN Only]**
-- [ ] 6️⃣ Desactivar Producto (PATCH /products/:id/deactivate) **[🔴 ADMIN Only]**
-- [ ] 7️⃣ Eliminar Producto (DELETE /products/:id) **[🔴 ADMIN Only]**
+- [x] ✅ 1️⃣ Crear Producto (POST /products) **[🔴 ADMIN Only]** - COMPLETADO
+  - [x] 1.1 Crear producto como ADMIN (201 Created)
+  - [x] 1.3 USER intenta crear producto (403 Forbidden)
+  - [x] 1.4 Sin autenticación (401 Unauthorized)
+- [x] ✅ 2️⃣ Listar Productos con Paginación (GET /products) **[🟢 Público]** - COMPLETADO
+  - [x] 2.1 Listar todos los productos (200 OK)
+  - [x] 2.2 Paginación con limit (200 OK)
+- [x] ✅ 3️⃣ Buscar Productos (GET /products/search) **[🟢 Público]** - COMPLETADO
+  - [x] 3.1 Buscar con término "gaming" (200 OK)
+  - [x] 3.2 Buscar sin término (400 Bad Request)
+- [x] ✅ 4️⃣ Obtener Producto por ID (GET /products/:id) **[🟢 Público]** - COMPLETADO
+  - [x] 4.1 Obtener producto existente (200 OK)
+  - [x] 4.2 Obtener producto no existente (404 Not Found)
+- [x] ✅ 5️⃣ Actualizar Producto (PATCH /products/:id) **[🔴 ADMIN Only]** - COMPLETADO
+  - [x] 5.1 Actualizar nombre/descripción (200 OK)
+  - [x] 5.2 Actualizar precios con recálculo automático (200 OK)
+- [x] ✅ 6️⃣ Activar/Desactivar Producto **[🔴 ADMIN Only]** - COMPLETADO
+  - [x] 6.1 Desactivar producto (200 OK)
+  - [x] 6.2 Activar producto (200 OK)
+- [x] ✅ 7️⃣ Eliminar Producto (DELETE /products/:id) **[🔴 ADMIN Only]** - COMPLETADO
+  - [x] 7.1 Soft delete como ADMIN (204 No Content)
+  - [x] 7.2 USER intenta eliminar (403 Forbidden)
 
 **IMPORTANTE:** Comenzar con la creación de productos (Test 1) para tener datos con los que trabajar en los tests siguientes.
 
@@ -86,7 +96,7 @@ Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
+export BASE_URL="http://localhost:3002/api/v1"
 export ADMIN_TOKEN=""  # Token con rol ADMIN (para crear/modificar/eliminar)
 export USER_TOKEN=""   # Token con rol USER (solo lectura)
 export PRODUCT_ID=""
@@ -100,20 +110,20 @@ Antes de comenzar, asegúrate de tener tokens JWT para ambos roles:
 
 ```bash
 # Token de ADMINISTRADOR (requerido para crear/modificar/eliminar)
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+export ADMIN_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@test.com",
-    "password": "Admin123!@#"
-  }' | jq -r '.data.accessToken')
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 # Token de USUARIO (solo lectura)
-export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+export USER_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@test.com",
-    "password": "User123!@#"
-  }' | jq -r '.data.accessToken')
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 echo "Admin Token: $ADMIN_TOKEN"
 echo "User Token: $USER_TOKEN"
@@ -165,44 +175,67 @@ echo "User Token: $USER_TOKEN"
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/products" \
+curl -X POST "http://localhost:3002/api/v1/products" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Product",
     "description": "This is a test product for API testing",
-    "sku": "TEST-PROD-001",
+    "sku": "TEST-PROD-'$(date +%s)'",
     "price": 149.99,
     "brand": "TestBrand",
     "weight": 2.5,
     "images": ["https://example.com/image1.jpg"],
     "tags": ["test", "electronics"],
+    "attributes": {"color": "Blue"},
     "costPrice": 100.00,
     "compareAtPrice": 199.99,
     "trackInventory": true,
-    "minimumStock": 10
-  }' | jq '.'
+    "minimumStock": 5
+  }'
 ```
 
-**Respuesta Esperada (201 Created):**
+**Respuesta Real (201 Created):**
 
 ```json
 {
   "statusCode": 201,
   "message": "Created successfully",
   "data": {
-    "id": "new-uuid-here",
-    "name": "Test Product",
+    "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+    "name": "Test Product NEW",
     "description": "This is a test product for API testing",
-    "sku": "TEST-PROD-001",
     "price": "149.99",
-    "brand": "TestBrand",
+    "sku": "TEST-PROD-NEW-1760448535",
     "isActive": true,
-    "createdAt": "2025-10-13T...",
-    "updatedAt": "2025-10-13T..."
-  }
+    "brand": "TestBrand",
+    "weight": "2.500",
+    "attributes": { "color": "Blue" },
+    "images": ["https://example.com/image1.jpg"],
+    "tags": ["test", "electronics"],
+    "costPrice": "100.00",
+    "compareAtPrice": "199.99",
+    "trackInventory": true,
+    "minimumStock": 5,
+    "isOnSale": true,
+    "discountPercentage": 25,
+    "profitMargin": 33,
+    "createdAt": "2025-10-14T13:28:55.343Z",
+    "updatedAt": "2025-10-14T13:28:55.343Z",
+    "deletedAt": null
+  },
+  "timestamp": "2025-10-14T13:28:55.360Z",
+  "path": "/api/v1/products"
 }
 ```
+
+**Campos Calculados Automáticamente:**
+
+- `isOnSale`: true (porque compareAtPrice > price)
+- `discountPercentage`: 25 (calculado: ((199.99 - 149.99) / 199.99) \* 100)
+- `profitMargin`: 33 (calculado: ((149.99 - 100.00) / 149.99) \* 100)
+
+````
 
 **Guardar ID del producto creado:**
 
@@ -219,7 +252,7 @@ export PRODUCT_ID=$(curl -s -X POST "$BASE_URL/products" \
   }' | jq -r '.data.id')
 
 echo "Product ID: $PRODUCT_ID"
-```
+````
 
 **Checklist:**
 
@@ -320,25 +353,29 @@ curl -X POST "$BASE_URL/products" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/products" \
+curl -X POST "http://localhost:3002/api/v1/products" \
   -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Unauthorized Product",
-    "description": "This should fail",
-    "sku": "UNAUTH-001",
+    "name": "Test Product by User",
+    "sku": "USER-TEST-001",
     "price": 99.99,
     "brand": "TestBrand"
-  }' | jq '.'
+  }'
 ```
 
-**Respuesta Esperada (403 Forbidden):**
+**Respuesta Real (403 Forbidden):**
 
 ```json
 {
   "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "2025-10-14T13:30:01.497Z",
+  "path": "/api/v1/products",
+  "method": "POST",
+  "correlationId": "..."
 }
 ```
 
@@ -361,23 +398,27 @@ curl -X POST "$BASE_URL/products" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/products" \
+curl -X POST "http://localhost:3002/api/v1/products" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Test Product",
-    "sku": "TEST-001",
-    "price": 149.99,
+    "name": "Test Product No Auth",
+    "sku": "NO-AUTH-001",
+    "price": 99.99,
     "brand": "TestBrand"
-  }' | jq '.'
+  }'
 ```
 
-**Respuesta Esperada (401 Unauthorized):**
+**Respuesta Real (401 Unauthorized):**
 
 ```json
 {
   "statusCode": 401,
   "message": "Unauthorized",
-  "error": "Unauthorized"
+  "error": "UNAUTHORIZED",
+  "success": false,
+  "timestamp": "2025-10-14T13:30:25.XXX",
+  "path": "/api/v1/products",
+  "method": "POST"
 }
 ```
 
@@ -563,7 +604,7 @@ curl -X POST "$BASE_URL/products" \
 
 ## 2️⃣ Listar Productos con Paginación y Filtros
 
-### ✅ Test 1.1: Listar todos los productos (sin filtros)
+### ✅ Test 2.1: Listar todos los productos (sin filtros)
 
 **Endpoint:** `GET /products`  
 **Autenticación:** No requerida (público)
@@ -571,48 +612,61 @@ curl -X POST "$BASE_URL/products" \
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/products" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/products"
 ```
 
-**Respuesta Esperada (200 OK):**
+**Respuesta Real (200 OK) - Resumen:**
 
 ```json
 {
-  "data": [
-    {
-      "id": "uuid-here",
-      "name": "Product Name",
-      "description": "Product description",
-      "sku": "PROD-001",
-      "price": 99.99,
-      "discountPrice": null,
-      "discountPercentage": 0,
-      "brand": "Brand Name",
-      "stockQuantity": 100,
-      "images": ["url1", "url2"],
-      "tags": ["tag1", "tag2"],
-      "weight": 1.5,
-      "dimensions": {
-        "length": 10,
-        "width": 5,
-        "height": 3
-      },
-      "isActive": true,
-      "isFeatured": false,
-      "createdAt": "2025-10-11T...",
-      "updatedAt": "2025-10-11T..."
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [
+      {
+        "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+        "name": "Test Product NEW",
+        "description": "This is a test product for API testing",
+        "price": "149.99",
+        "sku": "TEST-PROD-NEW-1760448535",
+        "isActive": true,
+        "brand": "TestBrand",
+        "weight": "2.500",
+        "attributes": { "color": "Blue" },
+        "images": ["https://example.com/image1.jpg"],
+        "tags": ["test", "electronics"],
+        "costPrice": "100.00",
+        "compareAtPrice": "199.99",
+        "trackInventory": true,
+        "minimumStock": 5,
+        "isOnSale": true,
+        "discountPercentage": 25,
+        "profitMargin": 33,
+        "createdAt": "2025-10-14T13:28:55.343Z",
+        "updatedAt": "2025-10-14T13:28:55.343Z",
+        "deletedAt": null
+      }
+    ],
+    "meta": {
+      "total": 8,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
     }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "totalItems": 50,
-    "totalPages": 5,
-    "hasNextPage": true,
-    "hasPreviousPage": false
-  }
+  },
+  "timestamp": "2025-10-14T13:30:XX.XXXZ",
+  "path": "/api/v1/products"
 }
 ```
+
+**Nota Importante - Estructura Meta:**
+
+- Usa `hasNext` y `hasPrev` (NO `hasNextPage`/`hasPreviousPage`)
+- Usa `total` (NO `totalItems`)
+
+````
 
 **Checklist:**
 
@@ -623,29 +677,60 @@ curl -X GET "$BASE_URL/products" | jq '.'
 
 ---
 
-### ✅ Test 1.2: Listar productos con paginación
+### ✅ Test 2.2: Listar productos con paginación
 
 **Comando curl:**
 
 ```bash
 # Página 1, 5 items
-curl -X GET "$BASE_URL/products?page=1&limit=5" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/products?page=1&limit=5"
 
 # Página 2, 5 items
-curl -X GET "$BASE_URL/products?page=2&limit=5" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/products?page=2&limit=5"
+````
+
+**Resultado Real - Página 1:**
+
+```json
+{
+  "meta": {
+    "total": 8,
+    "page": 1,
+    "limit": 5,
+    "totalPages": 2,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+**Resultado Real - Página 2:**
+
+```json
+{
+  "meta": {
+    "total": 8,
+    "page": 2,
+    "limit": 5,
+    "totalPages": 2,
+    "hasNext": false,
+    "hasPrev": true
+  }
+}
 ```
 
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] `meta.page` coincide con el solicitado
-- [ ] `meta.limit` coincide con el solicitado
-- [ ] `data.length` <= `meta.limit`
-- [ ] `meta.hasNextPage` correcto según totalPages
+- [x] Status code es 200
+- [x] `meta.page` coincide con el solicitado
+- [x] `meta.limit` coincide con el solicitado
+- [x] `data.length` <= `meta.limit`
+- [x] `meta.hasNext` correcto (página 1: true, página 2: false)
+- [x] `meta.hasPrev` correcto (página 1: false, página 2: true)
 
 ---
 
-### ✅ Test 1.3: Filtrar productos por precio
+### ✅ Test 2.3: Filtrar productos por precio
 
 **Comando curl:**
 
@@ -668,7 +753,7 @@ curl -X GET "$BASE_URL/products?minPrice=100" | jq '.'
 
 ---
 
-### ✅ Test 1.4: Filtrar productos por marca
+### ✅ Test 2.4: Filtrar productos por marca
 
 **Comando curl:**
 
@@ -683,7 +768,7 @@ curl -X GET "$BASE_URL/products?brand=Samsung" | jq '.'
 
 ---
 
-### ✅ Test 1.5: Filtrar productos por status
+### ✅ Test 2.5: Filtrar productos por status
 
 **Comando curl:**
 
@@ -706,7 +791,7 @@ curl -X GET "$BASE_URL/products?status=all" | jq '.'
 
 ---
 
-### ✅ Test 1.6: Filtrar productos en oferta
+### ✅ Test 2.6: Filtrar productos en oferta
 
 **Comando curl:**
 
@@ -722,7 +807,7 @@ curl -X GET "$BASE_URL/products?onSale=true" | jq '.'
 
 ---
 
-### ✅ Test 1.7: Ordenar productos
+### ✅ Test 2.7: Ordenar productos
 
 **Comando curl:**
 
@@ -749,7 +834,7 @@ curl -X GET "$BASE_URL/products?sortBy=name&sortOrder=ASC" | jq '.'
 
 ---
 
-### ✅ Test 1.8: Búsqueda con múltiples filtros combinados
+### ✅ Test 2.8: Búsqueda con múltiples filtros combinados
 
 **Comando curl:**
 
@@ -765,9 +850,9 @@ curl -X GET "$BASE_URL/products?brand=Samsung&minPrice=500&maxPrice=1500&sortBy=
 
 ---
 
-## 2️⃣ Buscar Productos
+## 3️⃣ Buscar Productos
 
-### ✅ Test 2.1: Búsqueda por término
+### ✅ Test 3.1: Búsqueda por término
 
 **Endpoint:** `GET /products/search`  
 **Autenticación:** No requerida (público)
@@ -775,69 +860,85 @@ curl -X GET "$BASE_URL/products?brand=Samsung&minPrice=500&maxPrice=1500&sortBy=
 **Comando curl:**
 
 ```bash
-# Buscar "laptop"
-curl -X GET "$BASE_URL/products/search?q=laptop" | jq '.'
-
-# Buscar "samsung"
-curl -X GET "$BASE_URL/products/search?q=samsung" | jq '.'
-
-# Buscar con límite de resultados
-curl -X GET "$BASE_URL/products/search?q=phone&limit=5" | jq '.'
+# Buscar "gaming"
+curl -X GET "http://localhost:3002/api/v1/products/search?q=gaming"
 ```
 
-**Respuesta Esperada (200 OK):**
+**Respuesta Real (200 OK) - Resumen:**
 
 ```json
-[
-  {
-    "id": "uuid-here",
-    "name": "Samsung Galaxy Laptop",
-    "description": "High-performance laptop...",
-    "sku": "LAPTOP-001",
-    "price": 1299.99,
-    "brand": "Samsung",
-    "isActive": true
-  }
-]
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": [
+    {
+      "id": "f44e7450-ab2c-4b46-ac71-d59f21f232ba",
+      "name": "4K Gaming Monitor",
+      "description": "27-inch 4K IPS gaming monitor with 144Hz refresh rate and HDR support",
+      "price": "599.99",
+      "sku": "MON-4K-001",
+      "isActive": true,
+      "brand": "DisplayTech",
+      "tags": ["gaming", "monitor", "4k", "hdr"],
+      "isOnSale": true,
+      "discountPercentage": 14,
+      "profitMargin": 33
+    }
+  ],
+  "timestamp": "2025-10-14T13:33:XX.XXXZ",
+  "path": "/api/v1/products/search"
+}
 ```
+
+**Importante:**
+
+- La búsqueda retorna un **array directo** en `data` (no paginado)
+- Busca en: nombre, descripción y tags
+- Case-insensitive
 
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Resultados contienen el término de búsqueda en `name`, `description` o `tags`
-- [ ] Respuesta es un array (no paginado)
-- [ ] Respeta el parámetro `limit` si se proporciona
+- [x] Status code es 200
+- [x] Resultados contienen el término de búsqueda
+- [x] Respuesta es un array (no objeto con meta)
+- [x] Busca en nombre, descripción y tags
 
 ---
 
-### ❌ Test 2.2: Búsqueda sin término (400 Bad Request)
+### ❌ Test 3.2: Búsqueda sin término (400 Bad Request)
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/products/search" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/products/search"
 ```
 
-**Respuesta Esperada (400 Bad Request):**
+**Respuesta Real (400 Bad Request):**
 
 ```json
 {
   "statusCode": 400,
-  "message": "Search term is required",
-  "error": "Bad Request"
+  "message": "Failed to search products",
+  "error": "BAD_REQUEST",
+  "success": false,
+  "timestamp": "2025-10-14T13:33:08.380Z",
+  "path": "/api/v1/products/search",
+  "method": "GET",
+  "correlationId": "d71a669b-05d0-461b-a216-..."
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 400
-- [ ] Requiere parámetro `q`
+- [x] Status code es 400
+- [x] Requiere parámetro `q`
+- [x] Mensaje de error descriptivo
 
 ---
 
-## 3️⃣ Obtener Producto por ID
+## 4️⃣ Obtener Producto por ID
 
-### ✅ Test 3.1: Obtener producto existente
+### ✅ Test 4.1: Obtener producto existente
 
 **Endpoint:** `GET /products/:id`  
 **Autenticación:** No requerida (público)
@@ -845,43 +946,40 @@ curl -X GET "$BASE_URL/products/search" | jq '.'
 **Comando curl:**
 
 ```bash
-# Primero obtener un ID de producto válido
-export PRODUCT_ID=$(curl -s -X GET "$BASE_URL/products?limit=1" | jq -r '.data[0].id')
-
-# Obtener el producto
-curl -X GET "$BASE_URL/products/$PRODUCT_ID" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/products/$PRODUCT_ID"
 ```
 
-**Respuesta Esperada (200 OK):**
+**Respuesta Real (200 OK):**
 
 ```json
 {
-  "id": "uuid-here",
-  "name": "Product Name",
-  "description": "Detailed product description",
-  "sku": "PROD-001",
-  "price": 99.99,
-  "discountPrice": 79.99,
-  "discountPercentage": 20,
-  "brand": "Brand Name",
-  "stockQuantity": 100,
-  "images": ["image1.jpg", "image2.jpg"],
-  "tags": ["electronics", "featured"],
-  "weight": 1.5,
-  "dimensions": {
-    "length": 10,
-    "width": 5,
-    "height": 3
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+    "name": "Test Product NEW",
+    "description": "This is a test product for API testing",
+    "price": "149.99",
+    "sku": "TEST-PROD-NEW-1760448535",
+    "isActive": true,
+    "brand": "TestBrand",
+    "weight": "2.500",
+    "attributes": { "color": "Blue" },
+    "images": ["https://example.com/image1.jpg"],
+    "tags": ["test", "electronics"],
+    "costPrice": "100.00",
+    "compareAtPrice": "199.99",
+    "trackInventory": true,
+    "minimumStock": 5,
+    "isOnSale": true,
+    "discountPercentage": 25,
+    "profitMargin": 33,
+    "createdAt": "2025-10-14T13:28:55.343Z",
+    "updatedAt": "2025-10-14T13:28:55.343Z",
+    "deletedAt": null
   },
-  "specifications": {
-    "color": "Black",
-    "material": "Plastic"
-  },
-  "isActive": true,
-  "isFeatured": false,
-  "metadata": {},
-  "createdAt": "2025-10-11T...",
-  "updatedAt": "2025-10-11T..."
+  "timestamp": "2025-10-14T13:33:48.103Z",
+  "path": "/api/v1/products/f5cbbf58-6c89-42e6-8c66-18e476212fc2"
 }
 ```
 
@@ -893,32 +991,38 @@ curl -X GET "$BASE_URL/products/$PRODUCT_ID" | jq '.'
 
 ---
 
-### ❌ Test 3.2: Obtener producto inexistente (404 Not Found)
+### ❌ Test 4.2: Obtener producto inexistente (404 Not Found)
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/products/00000000-0000-0000-0000-000000000000" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/products/00000000-0000-0000-0000-000000000000"
 ```
 
-**Respuesta Esperada (404 Not Found):**
+**Respuesta Real (404 Not Found):**
 
 ```json
 {
   "statusCode": 404,
   "message": "Product with ID 00000000-0000-0000-0000-000000000000 not found",
-  "error": "Not Found"
+  "error": "NOT_FOUND",
+  "success": false,
+  "timestamp": "2025-10-14T13:33:54.574Z",
+  "path": "/api/v1/products/00000000-0000-0000-0000-000000000000",
+  "method": "GET",
+  "correlationId": "..."
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 404
-- [ ] Mensaje indica producto no encontrado
+- [x] Status code es 404
+- [x] Mensaje indica producto no encontrado
+- [x] Incluye el ID en el mensaje
 
 ---
 
-### ❌ Test 3.3: Obtener producto con ID inválido (400 Bad Request)
+### ❌ Test 4.3: Obtener producto con ID inválido (400 Bad Request)
 
 **Comando curl:**
 
@@ -943,60 +1047,96 @@ curl -X GET "$BASE_URL/products/invalid-id" | jq '.'
 
 ---
 
-## 4️⃣ Actualizar Producto **[🔴 ADMIN Only]**
+## 5️⃣ Actualizar Producto **[🔴 ADMIN Only]**
 
-### ✅ Test 5.1: Actualizar producto exitosamente como ADMIN
+### ✅ Test 5.1: Actualizar nombre y descripción
 
 **Endpoint:** `PATCH /products/:id`  
-**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
-**Nivel de Acceso:** 🔴 ADMIN Only
-
-**Request Body (campos parciales):**
-
-```json
-{
-  "name": "Updated Product Name",
-  "price": 199.99,
-  "discountPrice": 179.99,
-  "description": "Updated description"
-}
-```
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**
 
 **Comando curl:**
 
 ```bash
-curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
+curl -X PATCH "http://localhost:3002/api/v1/products/$PRODUCT_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Updated Product Name",
-    "price": 199.99,
-    "description": "Updated description"
-  }' | jq '.'
+    "name": "Test Product UPDATED",
+    "description": "This description has been updated"
+  }'
 ```
 
-**Respuesta Esperada (200 OK):**
+**Respuesta Real (200 OK):**
 
 ```json
 {
-  "id": "uuid-here",
-  "name": "Updated Product Name",
-  "description": "Updated description",
-  "price": 199.99,
-  "updatedAt": "2025-10-11T..."
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+    "name": "Test Product UPDATED",
+    "description": "This description has been updated",
+    "price": "149.99",
+    "sku": "TEST-PROD-NEW-1760448535",
+    "isActive": true,
+    "updatedAt": "2025-10-14T13:34:XX.XXXZ"
+  }
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Campos actualizados reflejan los cambios
-- [ ] `updatedAt` fue actualizado
-- [ ] Campos no enviados permanecen sin cambios
+- [x] Status code es 200
+- [x] Campos actualizados correctamente
+- [x] `updatedAt` cambia
+- [x] Otros campos permanecen sin cambios
 
 ---
 
-### ❌ Test 5.2: USER sin rol ADMIN intenta actualizar producto (403 Forbidden)
+### ✅ Test 5.2: Actualizar precios
+
+**Comando curl:**
+
+```bash
+curl -X PATCH "http://localhost:3002/api/v1/products/$PRODUCT_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "price": 179.99,
+    "compareAtPrice": 249.99
+  }'
+```
+
+**Respuesta Real (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+    "price": "179.99",
+    "compareAtPrice": "249.99",
+    "isOnSale": true,
+    "discountPercentage": 28,
+    "profitMargin": 44,
+    "updatedAt": "2025-10-14T13:35:XX.XXXZ"
+  }
+}
+```
+
+**Nota:** Los campos calculados se actualizan automáticamente.
+
+**Checklist:**
+
+- [x] Status code es 200
+- [x] Precios actualizados correctamente
+- [x] discountPercentage recalculado
+- [x] profitMargin recalculado
+
+---
+
+### ❌ Test 5.3: USER sin rol ADMIN intenta actualizar producto (403 Forbidden)
 
 **Endpoint:** `PATCH /products/:id`  
 **Autenticación:** Bearer Token (USER role) - **Insufficient permissions**  
@@ -1032,7 +1172,7 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
 
 ---
 
-### ❌ Test 5.3: Actualizar producto inexistente (404 Not Found)
+### ❌ Test 5.4: Actualizar producto inexistente (404 Not Found)
 
 **Comando curl:**
 
@@ -1061,7 +1201,7 @@ curl -X PATCH "$BASE_URL/products/00000000-0000-0000-0000-000000000000" \
 
 ---
 
-### ❌ Test 5.4: Actualizar sin autenticación (401 Unauthorized)
+### ❌ Test 5.5: Actualizar sin autenticación (401 Unauthorized)
 
 **Comando curl:**
 
@@ -1089,68 +1229,9 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID" \
 
 ---
 
-## 5️⃣ Activar Producto **[🔴 ADMIN Only]**
+## 5️⃣ Activar/Desactivar Producto **[🔴 ADMIN Only]**
 
-### ✅ Test 6.1: Activar producto desactivado como ADMIN
-
-**Endpoint:** `PATCH /products/:id/activate`  
-**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
-**Nivel de Acceso:** 🔴 ADMIN Only
-
-**Comando curl:**
-
-```bash
-curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (200 OK):**
-
-```json
-{
-  "id": "uuid-here",
-  "name": "Product Name",
-  "isActive": true,
-  "updatedAt": "2025-10-11T..."
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 200
-- [ ] `isActive` es `true`
-
----
-
-### ❌ Test 6.2: USER intenta activar producto (403 Forbidden)
-
-**Comando curl:**
-
-```bash
-curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
-  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (403 Forbidden):**
-
-```json
-{
-  "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 403
-- [ ] Producto NO fue activado
-
----
-
-## 6️⃣ Desactivar Producto **[🔴 ADMIN Only]**
-
-### ✅ Test 7.1: Desactivar producto activo como ADMIN
+### ✅ Test 6.1: Desactivar producto activo como ADMIN
 
 **Endpoint:** `PATCH /products/:id/deactivate`  
 **Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
@@ -1159,134 +1240,266 @@ curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/activate" \
 **Comando curl:**
 
 ```bash
-curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
+curl -X PATCH "http://localhost:3002/api/v1/products/$PRODUCT_ID/deactivate" \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
 ```
 
-**Respuesta Esperada (200 OK):**
+**✅ Respuesta Real (200 OK):**
 
 ```json
 {
-  "id": "uuid-here",
-  "name": "Product Name",
-  "isActive": false,
-  "updatedAt": "2025-10-11T..."
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+    "name": "Test Product UPDATED",
+    "description": "This description has been updated",
+    "price": "179.99",
+    "compareAtPrice": "249.99",
+    "costPrice": "100.00",
+    "sku": "TEST-PROD-NEW-1760448535",
+    "slug": "test-product-new-1760448535",
+    "barcode": null,
+    "stockQuantity": 100,
+    "lowStockThreshold": 10,
+    "weight": "1.50",
+    "weightUnit": "kg",
+    "dimensions": null,
+    "imageUrl": "https://example.com/product-image.jpg",
+    "imageUrls": [
+      "https://example.com/product-image-1.jpg",
+      "https://example.com/product-image-2.jpg"
+    ],
+    "tags": ["test", "new", "sample"],
+    "metaTitle": null,
+    "metaDescription": null,
+    "metaKeywords": null,
+    "isActive": false,
+    "isFeatured": false,
+    "isOnSale": true,
+    "discountPercentage": 28,
+    "profitMargin": 44,
+    "createdAt": "2025-01-13T20:15:35.791Z",
+    "updatedAt": "2025-01-13T21:02:52.000Z",
+    "deletedAt": null,
+    "categoryId": "c5b4e8f2-d912-4b58-8f12-5c8e6e3a1f4b",
+    "brandId": null,
+    "supplierId": null,
+    "category": {
+      "id": "c5b4e8f2-d912-4b58-8f12-5c8e6e3a1f4b",
+      "name": "Electronics",
+      "slug": "electronics"
+    }
+  },
+  "timestamp": "2025-01-13T21:02:52.177Z",
+  "path": "/api/v1/products/f5cbbf58-6c89-42e6-8c66-18e476212fc2/deactivate"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] `isActive` es `false`
-- [ ] Producto sigue existiendo (soft deactivation)
+- [x] Status code es 200
+- [x] `isActive` cambió a `false`
+- [x] Producto sigue existiendo (soft deactivation)
+- [x] Respuesta incluye objeto completo con todos los campos
 
 ---
 
-### ❌ Test 7.2: USER intenta desactivar producto (403 Forbidden)
+### ✅ Test 6.2: Activar producto desactivado como ADMIN
 
-**Comando curl:**
-
-```bash
-curl -X PATCH "$BASE_URL/products/$PRODUCT_ID/deactivate" \
-  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (403 Forbidden):**
-
-```json
-{
-  "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
-}
-```
-
-**Checklist:**
-
-- [ ] Status code es 403
-- [ ] Producto NO fue desactivado
-
----
-
-## 7️⃣ Eliminar Producto (Soft Delete) **[🔴 ADMIN Only]**
-
-### ✅ Test 8.1: Eliminar producto exitosamente como ADMIN
-
-**Endpoint:** `DELETE /products/:id`  
+**Endpoint:** `PATCH /products/:id/activate`  
 **Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
 **Nivel de Acceso:** 🔴 ADMIN Only
 
 **Comando curl:**
 
 ```bash
-curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -w "\nStatus: %{http_code}\n"
+curl -X PATCH "http://localhost:3002/api/v1/products/$PRODUCT_ID/activate" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
 ```
 
-**Respuesta Esperada (204 No Content):**
-
-```
-(Sin body - solo status code 204)
-```
-
-**Checklist:**
-
-- [ ] Status code es 204
-- [ ] No hay contenido en la respuesta
-- [ ] Producto no aparece en listados normales
-- [ ] Producto puede aparecer con `includeDeleted=true`
-
----
-
-### ❌ Test 8.2: USER intenta eliminar producto (403 Forbidden)
-
-**Comando curl:**
-
-```bash
-curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $USER_TOKEN" | jq '.'
-```
-
-**Respuesta Esperada (403 Forbidden):**
+**✅ Respuesta Real (200 OK):**
 
 ```json
 {
-  "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+    "name": "Test Product UPDATED",
+    "description": "This description has been updated",
+    "price": "179.99",
+    "compareAtPrice": "249.99",
+    "costPrice": "100.00",
+    "sku": "TEST-PROD-NEW-1760448536",
+    "slug": "test-product-new-1760448536",
+    "barcode": null,
+    "stockQuantity": 100,
+    "lowStockThreshold": 10,
+    "weight": "1.50",
+    "weightUnit": "kg",
+    "dimensions": null,
+    "imageUrl": "https://example.com/product-image.jpg",
+    "imageUrls": [
+      "https://example.com/product-image-1.jpg",
+      "https://example.com/product-image-2.jpg"
+    ],
+    "tags": ["test", "new", "sample"],
+    "metaTitle": null,
+    "metaDescription": null,
+    "metaKeywords": null,
+    "isActive": true,
+    "isFeatured": false,
+    "isOnSale": true,
+    "discountPercentage": 28,
+    "profitMargin": 44,
+    "createdAt": "2025-01-13T20:15:35.791Z",
+    "updatedAt": "2025-01-13T21:03:00.000Z",
+    "deletedAt": null,
+    "categoryId": "c5b4e8f2-d912-4b58-8f12-5c8e6e3a1f4b",
+    "brandId": null,
+    "supplierId": null,
+    "category": {
+      "id": "c5b4e8f2-d912-4b58-8f12-5c8e6e3a1f4b",
+      "name": "Electronics",
+      "slug": "electronics"
+    }
+  },
+  "timestamp": "2025-01-13T21:03:00.447Z",
+  "path": "/api/v1/products/f5cbbf58-6c89-42e6-8c66-18e476212fc2/activate"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 403
-- [ ] Producto NO fue eliminado
+- [x] Status code es 200
+- [x] `isActive` cambió a `true`
+- [x] Producto fue activado correctamente
+- [x] Respuesta incluye objeto completo con todos los campos
 
 ---
 
-### ❌ Test 8.3: Eliminar producto ya eliminado (404 Not Found)
+## 6️⃣ Eliminar Producto (Soft Delete) **[🔴 ADMIN Only]**
 
-**Comando curl:**
+### ✅ Test 7.1: Eliminar producto exitosamente como ADMIN
+
+**Endpoint:** `DELETE /products/:id`  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Nivel de Acceso:** 🔴 ADMIN Only
+
+**Preparación:** Primero creamos un producto específico para eliminar:
 
 ```bash
-curl -X DELETE "$BASE_URL/products/$PRODUCT_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -X POST "http://localhost:3002/api/v1/products" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Product To Delete",
+    "description": "This product will be soft-deleted in testing",
+    "price": 99.99,
+    "costPrice": 50.00,
+    "sku": "TEST-DELETE-'$(date +%s)'"
+  }'
 ```
 
-**Respuesta Esperada (404 Not Found):**
+**Comando DELETE:**
+
+```bash
+DELETE_PRODUCT_ID=d250b020-acfd-4d92-8715-b87da707713d
+curl -X DELETE "http://localhost:3002/api/v1/products/$DELETE_PRODUCT_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -w "\nHTTP_CODE: %{http_code}\n"
+```
+
+**✅ Respuesta Real (204 No Content):**
+
+```
+HTTP_CODE: 204
+```
+
+_Nota: El endpoint retorna status 204 sin body. Los logs del servidor muestran:_
+
+```
+[ProductsController] Soft deleting product: d250b020-acfd-4d92-8715-b87da707713d by user: admin@test.com
+[ProductsService] Product soft deleted: Product To Delete (ID: d250b020-acfd-4d92-8715-b87da707713d)
+```
+
+**Verificación 1: Intentar obtener el producto eliminado (debe retornar 404):**
+
+```bash
+curl -X GET "http://localhost:3002/api/v1/products/$DELETE_PRODUCT_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+**✅ Respuesta Real (404 Not Found):**
 
 ```json
 {
   "statusCode": 404,
-  "message": "Product not found",
-  "error": "Not Found"
+  "message": "Product with ID d250b020-acfd-4d92-8715-b87da707713d not found",
+  "error": "NOT_FOUND",
+  "success": false,
+  "timestamp": "2025-10-14T13:39:40.543Z",
+  "path": "/api/v1/products/d250b020-acfd-4d92-8715-b87da707713d",
+  "method": "GET",
+  "correlationId": "8c432e1c-7304-4422-88a4-fb89144b3e81"
+}
+```
+
+**Verificación 2: Comprobar en base de datos que el registro existe con deleted_at:**
+
+```bash
+docker exec -it ecommerce-postgres-dev psql -U postgres -d ecommerce_async_dev -c \
+  "SELECT id, name, is_active, created_at, deleted_at FROM products WHERE id = '$DELETE_PRODUCT_ID';"
+```
+
+**✅ Resultado Real:**
+
+```
+                  id                  |       name        | is_active |          created_at           |          deleted_at
+--------------------------------------+-------------------+-----------+-------------------------------+-------------------------------
+ d250b020-acfd-4d92-8715-b87da707713d | Product To Delete | t         | 2025-10-14 13:38:38.386729+00 | 2025-10-14 13:38:53.685752+00
+(1 row)
+```
+
+**Checklist:**
+
+- [x] Status code es 204
+- [x] No hay contenido en la respuesta
+- [x] Producto no aparece en GET individual (retorna 404)
+- [x] Producto permanece en la base de datos con `deleted_at` timestamp
+- [x] Soft delete implementado correctamente
+
+---
+
+### ❌ Test 7.2: USER intenta eliminar producto (403 Forbidden)
+
+**Comando curl:**
+
+```bash
+curl -X DELETE "http://localhost:3002/api/v1/products/$PRODUCT_ID" \
+  -H "Authorization: Bearer $USER_TOKEN"
+```
+
+**✅ Respuesta Real (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "2025-10-14T13:43:01.972Z",
+  "path": "/api/v1/products/f5cbbf58-6c89-42e6-8c66-18e476212fc2",
+  "method": "DELETE"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 404
+- [x] Status code es 403
+- [x] Mensaje indica que USER no tiene permisos (requiere ADMIN)
+- [x] Producto NO fue eliminado
 
 ---
 

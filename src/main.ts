@@ -111,11 +111,7 @@ async function bootstrap() {
       .setTitle('E-Commerce Async Resilient System')
       .setDescription('API for async and resilient e-commerce order processing system')
       .setVersion('1.0.0')
-      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Development Server')
-      .addServer(
-        `${configService.get<string>('app.productionUrl')}/${apiPrefix}`,
-        'Production Server',
-      )
+      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Local Development Server')
       .addBearerAuth(
         {
           type: 'http',
@@ -131,7 +127,19 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config, {
       operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+      ignoreGlobalPrefix: false,
+      deepScanRoutes: true,
     });
+
+    // Remove Bull Board routes from Swagger documentation
+    // Bull Board is mounted directly on Express and has its own UI
+    if (document.paths) {
+      Object.keys(document.paths).forEach((path) => {
+        if (path.includes('/admin/queues')) {
+          delete document.paths[path];
+        }
+      });
+    }
 
     const swaggerPath = configService.get<string>('app.swagger.path', 'api/docs');
     SwaggerModule.setup(swaggerPath, app, document, {
@@ -141,6 +149,7 @@ async function bootstrap() {
     });
 
     logger.log(`📚 Swagger documentation available at: http://localhost:${port}/${swaggerPath}`);
+    logger.log(`ℹ️  Note: Bull Board routes excluded from Swagger (use web UI directly)`);
   }
 
   // Global prefix - Applied AFTER Swagger setup

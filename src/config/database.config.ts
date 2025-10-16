@@ -9,7 +9,7 @@ export const databaseConfig = registerAs(
     port: parseInt(process.env['DATABASE_PORT'] || '5433', 10),
     username: process.env['DATABASE_USERNAME'] || process.env['DATABASE_USER'] || 'postgres',
     password: process.env['DATABASE_PASSWORD'] || 'password',
-    database: process.env['DATABASE_NAME'] || 'ecommerce_async_dev',
+    database: process.env['DATABASE_NAME'] || 'ecommerce_async',
 
     // Entity and Migration Paths
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
@@ -71,7 +71,7 @@ export const databaseConfig = registerAs(
     // Additional TypeORM Options
     autoLoadEntities: true,
     keepConnectionAlive: true,
-    dropSchema: process.env['NODE_ENV'] === 'test',
+    dropSchema: false, // Never drop schema automatically - migrations handle schema changes
   }),
 );
 
@@ -80,7 +80,7 @@ export const databaseTestConfig = registerAs(
   (): TypeOrmModuleOptions => ({
     type: 'postgres',
     host: process.env['TEST_DATABASE_HOST'] || process.env['DATABASE_HOST'] || 'localhost',
-    port: parseInt(process.env['TEST_DATABASE_PORT'] || process.env['DATABASE_PORT'] || '5432', 10),
+    port: parseInt(process.env['TEST_DATABASE_PORT'] || process.env['DATABASE_PORT'] || '5433', 10),
     username:
       process.env['TEST_DATABASE_USERNAME'] ||
       process.env['DATABASE_USERNAME'] ||
@@ -94,8 +94,9 @@ export const databaseTestConfig = registerAs(
     entities: [__dirname + '/../modules/**/*.entity{.ts,.js}'],
     synchronize: true, // Always synchronize in test environment
     logging: false,
-    dropSchema: true, // Reset database for each test run
+    dropSchema: false, // Don't drop schema - cleanDatabase() handles cleanup
     keepConnectionAlive: false,
+    autoLoadEntities: true,
 
     // Minimal pool for testing
     extra: {

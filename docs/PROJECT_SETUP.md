@@ -94,9 +94,9 @@ npm run seed:run
 # 7. Iniciar aplicación
 npm run start:dev
 
-# ✅ API disponible en http://localhost:3000
-# ✅ Swagger docs en http://localhost:3000/api
-# ✅ Bull Board en http://localhost:3000/admin/queues
+# ✅ API disponible en http://localhost:3002
+# ✅ Swagger docs en http://localhost:3002/api/docs
+# ✅ Bull Board en http://localhost:3002/api/v1/admin/queues
 ```
 
 ### Opción 2: Sin Docker (Manual)
@@ -131,7 +131,7 @@ npm run seed:run
 # 8. Iniciar aplicación
 npm run start:dev
 
-# ✅ API disponible en http://localhost:3000
+# ✅ API disponible en http://localhost:3002
 ```
 
 ### Opción 3: Docker Compose Completo 🚀
@@ -465,7 +465,7 @@ SELECT * FROM orders LIMIT 10;  # Query de ejemplo
 
 ```bash
 # API debe estar corriendo
-curl http://localhost:3000/api/v1/health
+curl http://localhost:3002/api/v1/health
 
 # Respuesta esperada:
 {
@@ -484,7 +484,7 @@ curl http://localhost:3000/api/v1/health
 
 ```bash
 # Abrir en navegador
-open http://localhost:3000/api
+open http://localhost:3002/api/docs
 
 # Deberías ver:
 # - Documentación completa de API
@@ -496,7 +496,7 @@ open http://localhost:3000/api
 
 ```bash
 # Abrir dashboard de colas
-open http://localhost:3000/admin/queues
+open http://localhost:3002/api/v1/admin/queues
 
 # Deberías ver:
 # - 4 colas: order-processing, payment-processing, inventory-management, notification-sending
@@ -508,7 +508,7 @@ open http://localhost:3000/admin/queues
 
 ```bash
 # Crear usuario de prueba
-curl -X POST http://localhost:3000/api/v1/auth/register \
+curl -X POST http://localhost:3002/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -518,7 +518,7 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
   }'
 
 # Login
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -X POST http://localhost:3002/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -529,7 +529,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 export TOKEN="eyJhbGciOiJIUzI1..."
 
 # Test endpoint protegido
-curl http://localhost:3000/api/v1/users/profile \
+curl http://localhost:3002/api/v1/users/profile \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -777,8 +777,8 @@ Después del setup, explora:
 
 ### Tutoriales Recomendados
 
-- **Crear una orden**: Ver [Swagger UI](http://localhost:3000/api) → POST /orders
-- **Monitorear procesamiento**: Ver [Bull Board](http://localhost:3000/admin/queues)
+- **Crear una orden**: Ver [Swagger UI](http://localhost:3002/api/docs) → POST /orders
+- **Monitorear procesamiento**: Ver [Bull Board](http://localhost:3002/api/v1/admin/queues)
 - **Testing con Postman**: Importar colección (si existe en `/docs`)
 
 ---

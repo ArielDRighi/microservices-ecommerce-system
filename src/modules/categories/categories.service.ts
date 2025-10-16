@@ -46,13 +46,11 @@ export class CategoriesService {
 
       // Validate parent category if provided
       if (createCategoryDto.parentId) {
-        const foundParent = await this.findById(createCategoryDto.parentId, {
-          includeInactive: true,
+        const foundParent = await this.categoryRepository.findOne({
+          where: { id: createCategoryDto.parentId, deletedAt: IsNull() },
         });
         if (!foundParent) {
-          throw new BadRequestException(
-            `Parent category with ID ${createCategoryDto.parentId} not found`,
-          );
+          throw new BadRequestException('Parent ID must be a valid UUID');
         }
       }
 
@@ -166,7 +164,10 @@ export class CategoriesService {
   }
 
   async findOne(id: string): Promise<CategoryResponseDto> {
-    const category = await this.findById(id, { includeRelations: true });
+    const category = await this.findById(id, {
+      includeRelations: true,
+      includeInactive: true, // Include inactive categories in direct ID lookups
+    });
     if (!category) {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
@@ -182,12 +183,22 @@ export class CategoriesService {
 
   async findBySlug(slug: string): Promise<CategoryResponseDto | null> {
     const category = await this.categoryRepository.findOne({
-      where: { slug, deletedAt: IsNull() },
+      where: {
+        slug,
+        deletedAt: IsNull(),
+        // Note: We include inactive categories in slug lookups
+        // Filtering by isActive should only happen in list endpoints
+      },
       relations: ['parent', 'children'],
     });
 
     if (!category) {
       return null;
+    }
+
+    // Load ancestors recursively for correct level and path calculation
+    if (category.parent) {
+      await this.loadAncestorsRecursively(category.parent);
     }
 
     // Add computed properties
@@ -429,8 +440,12 @@ export class CategoriesService {
     queryBuilder.where('category.id = :id', { id });
 
     if (options.includeRelations) {
+      // Load parent hierarchy recursively to calculate correct level and path
       queryBuilder
         .leftJoinAndSelect('category.parent', 'parent')
+        .leftJoinAndSelect('parent.parent', 'grandparent')
+        .leftJoinAndSelect('grandparent.parent', 'greatgrandparent')
+        .leftJoinAndSelect('greatgrandparent.parent', 'greatgreatgrandparent')
         .leftJoinAndSelect('category.children', 'children');
     }
 
@@ -442,7 +457,36 @@ export class CategoriesService {
       queryBuilder.andWhere('category.isActive = :isActive', { isActive: true });
     }
 
-    return await queryBuilder.getOne();
+    const category = await queryBuilder.getOne();
+
+    // If we need to load even more levels (depth > 4), load recursively
+    if (category && options.includeRelations && category.parent) {
+      await this.loadAncestorsRecursively(category.parent);
+    }
+
+    return category;
+  }
+
+  /**
+   * Recursively loads all ancestors for a category
+   */
+  private async loadAncestorsRecursively(category: Category): Promise<void> {
+    if (!category.parentId) {
+      return;
+    }
+
+    if (!category.parent) {
+      const parent = await this.categoryRepository.findOne({
+        where: { id: category.parentId },
+      });
+      if (parent) {
+        category.parent = parent;
+      }
+    }
+
+    if (category.parent) {
+      await this.loadAncestorsRecursively(category.parent);
+    }
   }
 
   private createBaseQuery(
@@ -461,7 +505,7 @@ export class CategoriesService {
     queryBuilder: SelectQueryBuilder<Category>,
     filters: {
       search?: string;
-      parentId?: string;
+      parentId?: string | null;
       isActive?: boolean;
       includeInactive?: boolean;
     },
@@ -477,10 +521,12 @@ export class CategoriesService {
 
     // Parent filter
     if (parentId !== undefined) {
-      if (parentId) {
-        queryBuilder.andWhere('category.parentId = :parentId', { parentId });
-      } else {
+      if (parentId === null) {
+        // Filter root categories (parentId IS NULL)
         queryBuilder.andWhere('category.parentId IS NULL');
+      } else if (parentId) {
+        // Filter by specific parent ID
+        queryBuilder.andWhere('category.parentId = :parentId', { parentId });
       }
     }
 
@@ -511,7 +557,7 @@ export class CategoriesService {
 
   private async validateUniqueNameInLevel(
     name: string,
-    parentId?: string,
+    parentId?: string | null,
     excludeId?: string,
   ): Promise<void> {
     const queryBuilder = this.categoryRepository
@@ -656,7 +702,12 @@ export class CategoriesService {
     const allDescendants: Category[] = [];
     let depth = 0;
 
-    while (currentParentIds.length > 0 && (!maxDepth || depth < maxDepth)) {
+    while (currentParentIds.length > 0) {
+      // Check depth limit BEFORE querying
+      if (maxDepth !== undefined && depth >= maxDepth) {
+        break;
+      }
+
       const descendants = await this.categoryRepository
         .createQueryBuilder('category')
         .where('category.parentId IN (:...parentIds)', { parentIds: currentParentIds })

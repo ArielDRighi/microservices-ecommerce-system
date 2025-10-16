@@ -322,4 +322,4 @@ MIT License - Ver archivo LICENSE en la raíz del proyecto.
 
 **Desarrollado con NestJS + TypeScript + Bull + TypeORM**
 
-Para preguntas: [Tu Email/LinkedIn]
+Para preguntas: arieldavidrighi@gmail.com

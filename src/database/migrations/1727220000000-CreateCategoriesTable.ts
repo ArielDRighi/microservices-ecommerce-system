@@ -74,16 +74,6 @@ export class CreateCategoriesTable1727220000000 implements MigrationInterface {
       FOR EACH ROW 
       EXECUTE FUNCTION update_categories_updated_at()
     `);
-
-    // Add some initial seed data for common categories
-    await queryRunner.query(`
-      INSERT INTO "categories" ("name", "slug", "description", "sortOrder", "isActive") VALUES
-      ('Electronics', 'electronics', 'Electronic products and gadgets', 10, true),
-      ('Clothing', 'clothing', 'Fashion and apparel', 20, true),
-      ('Home & Garden', 'home-garden', 'Home improvement and garden supplies', 30, true),
-      ('Books', 'books', 'Books and educational materials', 40, true),
-      ('Sports', 'sports', 'Sports and outdoor activities', 50, true);
-    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

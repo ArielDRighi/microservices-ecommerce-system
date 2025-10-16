@@ -1,31 +1,64 @@
 # 🏥 API Testing - Módulo de Health & Monitoring
 
 **Módulo:** Health & Monitoring  
-**Base URL:** `http://localhost:3000`  
+**Base URL:** `http://localhost:3002/api/v1/health`  
 **Descripción:** Endpoints de salud, métricas Prometheus y monitoreo de queues
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Health Check General (GET /health) [Public]
-- [ ] ✅ 2. Readiness Check (GET /health/ready) [Public]
-- [ ] ✅ 3. Liveness Check (GET /health/live) [Public]
-- [ ] ✅ 4. Detailed Health (GET /health/detailed) [Public]
-- [ ] ✅ 5. Prometheus Metrics (GET /metrics) [Public]
-- [ ] ✅ 6. Bull Board Dashboard (GET /admin/queues) [Web UI]
+- [ ] ✅ 1. Health Check General (GET /api/v1/health) [Public]
+- [ ] ✅ 2. Readiness Check (GET /api/v1/health/ready) [Public]
+- [ ] ✅ 3. Liveness Check (GET /api/v1/health/live) [Public]
+- [ ] ✅ 4. Detailed Health (GET /api/v1/health/detailed) [Public]
+- [ ] ✅ 5. Prometheus Metrics (GET /api/v1/metrics) [Public]
+- [ ] ✅ 6. Bull Board Dashboard (GET /api/v1/admin/queues) [Web UI]
 
 ---
 
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
+export BASE_URL="http://localhost:3002/api/v1"
 ```
 
 ---
 
-## ⚠️ Importante: Health Checks para Kubernetes/Docker
+## ⚠️ Importante: Estado Actual de Health Checks
+
+### 📌 Componentes Monitoreados Actualmente
+
+Los health checks actuales verifican:
+
+- ✅ **Database (PostgreSQL)** - Conexión y ping
+- ✅ **Memory (Heap & RSS)** - Uso de memoria
+- ✅ **Storage (Disk)** - Espacio disponible
+
+### 🚧 Componentes Implementados pero NO Habilitados
+
+Los siguientes health indicators están **completamente implementados** en el código pero **NO están registrados** en el `HealthModule`:
+
+- ⚠️ **RedisHealthIndicator** - Implementado en `src/health/indicators/redis.health-indicator.ts`
+  - Razón: Requiere provider global `REDIS_CLIENT` que no existe
+  - Redis funciona internamente para Bull queues pero no hay cliente global
+- ⚠️ **QueueHealthIndicator** - Implementado en `src/health/indicators/queue.health-indicator.ts`
+  - Razón: No está registrado en los providers de `HealthModule`
+  - Las queues funcionan correctamente (verificable en Bull Board)
+
+**💡 Nota:** El código en `health.service.ts` usa `@Optional()` para degradar gracefully si estos indicators no están disponibles. Por eso los endpoints funcionan sin errores aunque Redis/Queues no aparezcan en las respuestas.
+
+### 🎯 Para Habilitar Redis/Queues Health Checks
+
+Si necesitas monitorear Redis y Queues en los health checks:
+
+1. **Redis:** Crear `RedisModule` con provider global `REDIS_CLIENT`
+2. **Queues:** Descomentar `QueueHealthIndicator` en `health.module.ts` providers
+3. Los checks condicionales ya están implementados en `health.service.ts`
+
+---
+
+## ⚠️ Health Checks para Kubernetes/Docker
 
 Estos endpoints están diseñados para:
 
@@ -45,50 +78,57 @@ Estos endpoints están diseñados para:
 
 ### ✅ Test 1.1: Verificar salud general de la aplicación
 
-**Endpoint:** `GET /health`  
+**Endpoint:** `GET /api/v1/health`  
 **Autenticación:** No requerida (Public)  
 **Status Code:** `200 OK` (healthy) o `503 Service Unavailable` (unhealthy)
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/health" | jq '.'
+curl -X GET "$BASE_URL/api/v1/health" | jq '.'
 ```
 
 **Respuesta Esperada (200 OK - Healthy):**
 
 ```json
 {
-  "status": "ok",
-  "info": {
-    "database": {
-      "status": "up"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "status": "ok",
+    "info": {
+      "database": {
+        "status": "up"
+      },
+      "memory_heap": {
+        "status": "up"
+      },
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
+        "status": "up"
+      }
     },
-    "redis": {
-      "status": "up"
-    },
-    "memory_heap": {
-      "status": "up"
-    },
-    "memory_rss": {
-      "status": "up"
+    "error": {},
+    "details": {
+      "database": {
+        "status": "up"
+      },
+      "memory_heap": {
+        "status": "up"
+      },
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
+        "status": "up"
+      }
     }
   },
-  "error": {},
-  "details": {
-    "database": {
-      "status": "up"
-    },
-    "redis": {
-      "status": "up"
-    },
-    "memory_heap": {
-      "status": "up"
-    },
-    "memory_rss": {
-      "status": "up"
-    }
-  }
+  "timestamp": "2025-10-15T00:36:23.754Z",
+  "path": "/api/v1/health",
+  "success": true
 }
 ```
 
@@ -96,27 +136,46 @@ curl -X GET "$BASE_URL/health" | jq '.'
 
 ```json
 {
-  "status": "error",
-  "info": {
-    "redis": {
-      "status": "up"
-    }
-  },
-  "error": {
-    "database": {
-      "status": "down",
-      "message": "Connection refused"
-    }
-  },
-  "details": {
-    "database": {
-      "status": "down",
-      "message": "Connection refused"
+  "statusCode": 503,
+  "message": "Service Unavailable",
+  "data": {
+    "status": "error",
+    "info": {
+      "memory_heap": {
+        "status": "up"
+      },
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
+        "status": "up"
+      }
     },
-    "redis": {
-      "status": "up"
+    "error": {
+      "database": {
+        "status": "down",
+        "message": "Connection refused"
+      }
+    },
+    "details": {
+      "database": {
+        "status": "down",
+        "message": "Connection refused"
+      },
+      "memory_heap": {
+        "status": "up"
+      },
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
+        "status": "up"
+      }
     }
-  }
+  },
+  "timestamp": "2025-10-15T00:36:23.754Z",
+  "path": "/api/v1/health",
+  "success": false
 }
 ```
 
@@ -124,10 +183,15 @@ curl -X GET "$BASE_URL/health" | jq '.'
 
 - [ ] Status code 200 cuando todo está saludable
 - [ ] Status code 503 cuando algún componente falla
-- [ ] Verifica: Database (PostgreSQL), Redis, Memory
-- [ ] `status: "ok"` indica aplicación saludable
-- [ ] `status: "error"` indica problemas
+- [ ] Verifica: Database (PostgreSQL), Memory (heap y RSS), Storage
+- [ ] `data.status: "ok"` indica aplicación saludable
+- [ ] `data.status: "error"` indica problemas
+- [ ] Respuesta envuelta en wrapper estándar con `statusCode`, `message`, `data`, `timestamp`, `path`, `success`
 - [ ] Endpoint público (no requiere auth)
+- [ ] ⚠️ Redis NO aparece (indicator implementado pero no registrado)
+- [ ] ⚠️ Queues NO aparecen (indicator implementado pero no registrado)
+
+**💡 Nota:** Redis y Queues están disponibles a través de Bull Board pero no expuestos en health checks básicos.
 
 ---
 
@@ -135,38 +199,39 @@ curl -X GET "$BASE_URL/health" | jq '.'
 
 ### ✅ Test 2.1: Verificar si la aplicación está lista para recibir tráfico
 
-**Endpoint:** `GET /health/ready`  
+**Endpoint:** `GET /api/v1/health/ready`  
 **Autenticación:** No requerida (Public)  
 **Uso:** Kubernetes Readiness Probe
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/health/ready" | jq '.'
+curl -X GET "$BASE_URL/api/v1/health/ready" | jq '.'
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "status": "ok",
-  "info": {
-    "database": {
-      "status": "up"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "status": "ok",
+    "info": {
+      "database": {
+        "status": "up"
+      }
     },
-    "redis": {
-      "status": "up"
+    "error": {},
+    "details": {
+      "database": {
+        "status": "up"
+      }
     }
   },
-  "error": {},
-  "details": {
-    "database": {
-      "status": "up"
-    },
-    "redis": {
-      "status": "up"
-    }
-  }
+  "timestamp": "2025-10-15T00:36:33.795Z",
+  "path": "/api/v1/health/ready",
+  "success": true
 }
 ```
 
@@ -174,16 +239,19 @@ curl -X GET "$BASE_URL/health/ready" | jq '.'
 
 - [ ] Status code 200 cuando está listo
 - [ ] Status code 503 cuando NO está listo
-- [ ] Verifica dependencias críticas (DB, Redis)
+- [ ] Verifica dependencias críticas (Database únicamente)
 - [ ] Kubernetes usa esto para routing de tráfico
+- [ ] ⚠️ Redis NO aparece (indicator implementado pero no registrado como crítico)
+
+**💡 Nota:** Actualmente solo verifica Database. Redis funciona internamente para Bull queues pero no está expuesto como dependencia crítica en readiness.
 
 **Uso en Kubernetes:**
 
 ```yaml
 readinessProbe:
   httpGet:
-    path: /health/ready
-    port: 3000
+    path: /api/v1/health/ready
+    port: 3002
   initialDelaySeconds: 10
   periodSeconds: 5
 ```
@@ -194,32 +262,39 @@ readinessProbe:
 
 ### ✅ Test 3.1: Verificar si la aplicación está viva
 
-**Endpoint:** `GET /health/live`  
+**Endpoint:** `GET /api/v1/health/live`  
 **Autenticación:** No requerida (Public)  
 **Uso:** Kubernetes Liveness Probe
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/health/live" | jq '.'
+curl -X GET "$BASE_URL/api/v1/health/live" | jq '.'
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "status": "ok",
-  "info": {
-    "api": {
-      "status": "up"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "status": "ok",
+    "info": {
+      "memory_heap": {
+        "status": "up"
+      }
+    },
+    "error": {},
+    "details": {
+      "memory_heap": {
+        "status": "up"
+      }
     }
   },
-  "error": {},
-  "details": {
-    "api": {
-      "status": "up"
-    }
-  }
+  "timestamp": "2025-10-15T00:36:40.500Z",
+  "path": "/api/v1/health/live",
+  "success": true
 }
 ```
 
@@ -235,8 +310,8 @@ curl -X GET "$BASE_URL/health/live" | jq '.'
 ```yaml
 livenessProbe:
   httpGet:
-    path: /health/live
-    port: 3000
+    path: /api/v1/health/live
+    port: 3002
   initialDelaySeconds: 30
   periodSeconds: 10
 ```
@@ -247,113 +322,99 @@ livenessProbe:
 
 ### ✅ Test 4.1: Obtener información detallada de salud
 
-**Endpoint:** `GET /health/detailed`  
+**Endpoint:** `GET /api/v1/health/detailed`  
 **Autenticación:** No requerida (Public)  
 **Descripción:** Health check completo con detalles de todos los componentes
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/health/detailed" | jq '.'
+curl -X GET "$BASE_URL/api/v1/health/detailed" | jq '.'
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "status": "ok",
-  "info": {
-    "database": {
-      "status": "up",
-      "responseTime": 5,
-      "database": "ecommerce_db",
-      "connection": "active"
-    },
-    "redis": {
-      "status": "up",
-      "responseTime": 2,
-      "version": "7.0.0",
-      "clients": 5
-    },
-    "queues": {
-      "status": "up",
-      "order-processing": {
-        "waiting": 0,
-        "active": 2,
-        "completed": 1234,
-        "failed": 5
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "status": "ok",
+    "info": {
+      "database": {
+        "status": "up"
       },
-      "payment-processing": {
-        "waiting": 1,
-        "active": 0,
-        "completed": 987,
-        "failed": 2
+      "database_detailed": {
+        "status": "up",
+        "responseTime": 23
       },
-      "inventory-management": {
-        "waiting": 0,
-        "active": 1,
-        "completed": 2456,
-        "failed": 8
+      "memory_heap": {
+        "status": "up"
       },
-      "notification-sending": {
-        "waiting": 3,
-        "active": 2,
-        "completed": 5432,
-        "failed": 12
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
+        "status": "up"
       }
     },
-    "memory_heap": {
-      "status": "up",
-      "used": 234567890,
-      "total": 536870912,
-      "percentage": 43.7
-    },
-    "memory_rss": {
-      "status": "up",
-      "used": 345678901,
-      "total": 1073741824,
-      "percentage": 32.2
-    },
-    "disk": {
-      "status": "up",
-      "used": 12345678901,
-      "available": 98765432109,
-      "percentage": 11.1
+    "error": {},
+    "details": {
+      "database": {
+        "status": "up"
+      },
+      "database_detailed": {
+        "status": "up",
+        "responseTime": 23
+      },
+      "memory_heap": {
+        "status": "up"
+      },
+      "memory_rss": {
+        "status": "up"
+      },
+      "storage": {
+        "status": "up"
+      }
     }
   },
-  "error": {},
-  "details": {
-    "database": {
-      "status": "up"
-    },
-    "redis": {
-      "status": "up"
-    },
-    "queues": {
-      "status": "up"
-    },
-    "memory_heap": {
-      "status": "up"
-    },
-    "memory_rss": {
-      "status": "up"
-    },
-    "disk": {
-      "status": "up"
-    }
-  }
+  "timestamp": "2025-10-15T00:36:48.159Z",
+  "path": "/api/v1/health/detailed",
+  "success": true
 }
 ```
 
 **Checklist:**
 
 - [ ] Status code 200 cuando todo está saludable
-- [ ] Incluye detalles de Database (PostgreSQL)
-- [ ] Incluye detalles de Redis (version, clients)
-- [ ] Incluye estado de todas las queues (Bull)
-- [ ] Incluye uso de memoria (heap y RSS)
-- [ ] Incluye uso de disco
-- [ ] Métricas de performance (responseTime)
+- [ ] Respuesta envuelta en wrapper estándar (`statusCode`, `message`, `data`, etc.)
+- [ ] Incluye check básico de Database (`database`)
+- [ ] Incluye check detallado de Database (`database_detailed`) con `responseTime`
+- [ ] Incluye checks de memoria (heap y RSS)
+- [ ] Incluye check de storage (correctamente nombrado, no "disk")
+- [ ] Métricas de performance incluidas donde aplica
+- [ ] ⚠️ Redis NO aparece (RedisHealthIndicator implementado pero no registrado)
+- [ ] ⚠️ Queues NO aparecen (QueueHealthIndicator implementado pero no registrado)
+
+**💡 Nota Importante sobre Redis y Queues:**
+
+**Estado Actual:**
+
+- ✅ Redis está funcionando correctamente (usado internamente por Bull)
+- ✅ Las 4 queues de Bull están operacionales (order-processing, payment-processing, inventory-management, notification-sending)
+- ✅ Bull Board accesible en `/api/v1/admin/queues` para monitoreo de queues
+
+**Por qué NO aparecen en health checks:**
+
+- `RedisHealthIndicator` está implementado en `src/health/indicators/redis.health-indicator.ts` pero requiere provider global `REDIS_CLIENT` que no existe
+- `QueueHealthIndicator` está implementado en `src/health/indicators/queue.health-indicator.ts` pero no está registrado en `HealthModule` providers
+- El `health.service.ts` usa `@Optional()` para degradar gracefully sin estos indicators
+
+**Para habilitar en el futuro:**
+
+1. Crear `RedisModule` con provider `REDIS_CLIENT`
+2. Registrar `QueueHealthIndicator` en `health.module.ts`
+3. Los checks condicionales ya están listos en el código
 
 ---
 
@@ -361,7 +422,7 @@ curl -X GET "$BASE_URL/health/detailed" | jq '.'
 
 ### ✅ Test 5.1: Obtener métricas en formato Prometheus
 
-**Endpoint:** `GET /metrics`  
+**Endpoint:** `GET /api/v1/metrics`  
 **Autenticación:** No requerida (Public)  
 **Content-Type:** `text/plain; version=0.0.4`  
 **Descripción:** Endpoint para scraping de Prometheus
@@ -369,7 +430,7 @@ curl -X GET "$BASE_URL/health/detailed" | jq '.'
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/metrics"
+curl -X GET "$BASE_URL/api/v1/metrics"
 ```
 
 **Respuesta Esperada (200 OK - Plain Text):**
@@ -466,24 +527,24 @@ scrape_configs:
   - job_name: 'ecommerce-api'
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:3000']
-    metrics_path: '/metrics'
+      - targets: ['localhost:3002']
+    metrics_path: '/api/v1/metrics'
 ```
 
 **Verificar métricas específicas:**
 
 ```bash
 # Ver solo métricas de órdenes
-curl -s "$BASE_URL/metrics" | grep "orders_"
+curl -s "$BASE_URL/api/v1/metrics" | grep "orders_"
 
 # Ver métricas de pagos
-curl -s "$BASE_URL/metrics" | grep "payments_"
+curl -s "$BASE_URL/api/v1/metrics" | grep "payments_"
 
 # Ver métricas HTTP
-curl -s "$BASE_URL/metrics" | grep "http_"
+curl -s "$BASE_URL/api/v1/metrics" | grep "http_"
 
 # Ver métricas de memoria
-curl -s "$BASE_URL/metrics" | grep "nodejs_heap"
+curl -s "$BASE_URL/api/v1/metrics" | grep "nodejs_heap"
 ```
 
 ---
@@ -513,7 +574,7 @@ BULL_BOARD_PASSWORD=your-secure-password-here
 
 ### ✅ Test 6.1: Acceder al dashboard CON autenticación
 
-**Endpoint:** `GET /admin/queues`  
+**Endpoint:** `GET /api/v1/admin/queues`  
 **Autenticación:** Basic Auth (Username + Password)  
 **Tipo:** Web UI (HTML)  
 **Status Code:** `200 OK` (con auth) o `401 Unauthorized` (sin auth)
@@ -522,21 +583,21 @@ BULL_BOARD_PASSWORD=your-secure-password-here
 
 ```bash
 # Usando credenciales de .env
-curl -X GET "$BASE_URL/admin/queues" \
+curl -X GET "$BASE_URL/api/v1/admin/queues" \
   --user "admin:your-secure-password-here"
 
 # Usando variables
 export BULL_BOARD_USERNAME="admin"
 export BULL_BOARD_PASSWORD="your-secure-password-here"
 
-curl -X GET "$BASE_URL/admin/queues" \
+curl -X GET "$BASE_URL/api/v1/admin/queues" \
   --user "$BULL_BOARD_USERNAME:$BULL_BOARD_PASSWORD"
 ```
 
 **Acceso desde navegador:**
 
 ```
-http://localhost:3000/admin/queues
+http://localhost:3002/api/v1/admin/queues
 ```
 
 El navegador solicitará credenciales automáticamente (popup de Basic Auth):
@@ -586,7 +647,7 @@ El navegador solicitará credenciales automáticamente (popup de Basic Auth):
 **Comando curl sin credenciales:**
 
 ```bash
-curl -X GET "$BASE_URL/admin/queues" -i
+curl -X GET "$BASE_URL/api/v1/admin/queues" -i
 ```
 
 **Respuesta Esperada (401 Unauthorized):**
@@ -639,27 +700,27 @@ echo "Username configurado: ${BULL_BOARD_USERNAME:-'NOT SET'}"
 #!/bin/bash
 # Testing completo de Health & Monitoring Module
 
-BASE_URL="http://localhost:3000"
+BASE_URL="http://localhost:3002"
 
 echo "=== 🏥 Testing Health & Monitoring Module ==="
 echo ""
 
 # 1. Health Check General
 echo "1️⃣ Health Check General..."
-HEALTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/health")
+HEALTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/api/v1/health")
 
 if [ "$HEALTH" == "200" ]; then
   echo "✅ Application healthy (HTTP 200)"
-  curl -s -X GET "$BASE_URL/health" | jq '.status'
+  curl -s -X GET "$BASE_URL/api/v1/health" | jq '.data.status'
 else
   echo "❌ Application unhealthy (HTTP $HEALTH)"
-  curl -s -X GET "$BASE_URL/health" | jq '.'
+  curl -s -X GET "$BASE_URL/api/v1/health" | jq '.'
 fi
 
 # 2. Readiness Check
 echo ""
 echo "2️⃣ Readiness Check..."
-READY=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/health/ready")
+READY=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/api/v1/health/ready")
 
 if [ "$READY" == "200" ]; then
   echo "✅ Application ready (HTTP 200)"
@@ -670,7 +731,7 @@ fi
 # 3. Liveness Check
 echo ""
 echo "3️⃣ Liveness Check..."
-LIVE=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/health/live")
+LIVE=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/api/v1/health/live")
 
 if [ "$LIVE" == "200" ]; then
   echo "✅ Application alive (HTTP 200)"
@@ -681,30 +742,25 @@ fi
 # 4. Detailed Health
 echo ""
 echo "4️⃣ Detailed Health Check..."
-DETAILED=$(curl -s -X GET "$BASE_URL/health/detailed")
+DETAILED=$(curl -s -X GET "$BASE_URL/api/v1/health/detailed")
 
-DATABASE_STATUS=$(echo $DETAILED | jq -r '.info.database.status')
-REDIS_STATUS=$(echo $DETAILED | jq -r '.info.redis.status')
-QUEUES_STATUS=$(echo $DETAILED | jq -r '.info.queues.status')
+DATABASE_STATUS=$(echo $DETAILED | jq -r '.data.info.database.status')
+DATABASE_DETAILED_STATUS=$(echo $DETAILED | jq -r '.data.info.database_detailed.status')
+DATABASE_RESPONSE_TIME=$(echo $DETAILED | jq -r '.data.info.database_detailed.responseTime')
+MEMORY_HEAP_STATUS=$(echo $DETAILED | jq -r '.data.info.memory_heap.status')
+MEMORY_RSS_STATUS=$(echo $DETAILED | jq -r '.data.info.memory_rss.status')
+STORAGE_STATUS=$(echo $DETAILED | jq -r '.data.info.storage.status')
 
 echo "   Database: $DATABASE_STATUS"
-echo "   Redis: $REDIS_STATUS"
-echo "   Queues: $QUEUES_STATUS"
-
-# Queue details
-if [ "$QUEUES_STATUS" == "up" ]; then
-  ORDER_QUEUE=$(echo $DETAILED | jq '.info.queues["order-processing"]')
-  echo "   Order Queue:"
-  echo "     Waiting: $(echo $ORDER_QUEUE | jq -r '.waiting')"
-  echo "     Active: $(echo $ORDER_QUEUE | jq -r '.active')"
-  echo "     Completed: $(echo $ORDER_QUEUE | jq -r '.completed')"
-  echo "     Failed: $(echo $ORDER_QUEUE | jq -r '.failed')"
-fi
+echo "   Database Detailed: $DATABASE_DETAILED_STATUS (${DATABASE_RESPONSE_TIME}ms)"
+echo "   Memory Heap: $MEMORY_HEAP_STATUS"
+echo "   Memory RSS: $MEMORY_RSS_STATUS"
+echo "   Storage: $STORAGE_STATUS"
 
 # 5. Prometheus Metrics
 echo ""
 echo "5️⃣ Prometheus Metrics..."
-METRICS=$(curl -s -X GET "$BASE_URL/metrics")
+METRICS=$(curl -s -X GET "$BASE_URL/api/v1/metrics")
 
 if [ ! -z "$METRICS" ]; then
   echo "✅ Metrics endpoint responding"
@@ -733,7 +789,7 @@ echo ""
 echo "6️⃣ Bull Board Dashboard..."
 
 # Test sin autenticación (debe retornar 401)
-BULL_UNAUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/admin/queues")
+BULL_UNAUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/api/v1/admin/queues")
 
 if [ "$BULL_UNAUTH" == "401" ]; then
   echo "✅ Basic Auth protecting Bull Board (401 without credentials)"
@@ -743,7 +799,7 @@ fi
 
 # Test con autenticación (requiere env vars)
 if [ ! -z "$BULL_BOARD_USERNAME" ] && [ ! -z "$BULL_BOARD_PASSWORD" ]; then
-  BULL_AUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/admin/queues" \
+  BULL_AUTH=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/api/v1/admin/queues" \
     --user "$BULL_BOARD_USERNAME:$BULL_BOARD_PASSWORD")
 
   if [ "$BULL_AUTH" == "200" ]; then
@@ -755,7 +811,7 @@ else
   echo "⚠️  BULL_BOARD credentials not set - skipping auth test"
 fi
 
-echo "   Access via browser: $BASE_URL/admin/queues"
+echo "   Access via browser: $BASE_URL/api/v1/admin/queues"
 
 echo ""
 echo "=== ✅ Testing completado ==="
@@ -765,8 +821,9 @@ echo "   Health: $HEALTH"
 echo "   Readiness: $READY"
 echo "   Liveness: $LIVE"
 echo "   Database: $DATABASE_STATUS"
-echo "   Redis: $REDIS_STATUS"
-echo "   Queues: $QUEUES_STATUS"
+echo "   Storage: $STORAGE_STATUS"
+echo ""
+echo "💡 Note: Redis and Queues monitored via Bull Board at /api/v1/admin/queues"
 ```
 
 ---
@@ -787,19 +844,19 @@ spec:
     - name: api
       image: ecommerce-api:latest
       ports:
-        - containerPort: 3000
+        - containerPort: 3002
       livenessProbe:
         httpGet:
-          path: /health/live
-          port: 3000
+          path: /api/v1/health/live
+          port: 3002
         initialDelaySeconds: 30
         periodSeconds: 10
         timeoutSeconds: 5
         failureThreshold: 3
       readinessProbe:
         httpGet:
-          path: /health/ready
-          port: 3000
+          path: /api/v1/health/ready
+          port: 3002
         initialDelaySeconds: 10
         periodSeconds: 5
         timeoutSeconds: 3
@@ -810,7 +867,7 @@ spec:
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/health/live || exit 1
+  CMD curl -f http://localhost:3002/api/v1/health/live || exit 1
 ```
 
 ### Métricas Prometheus Disponibles

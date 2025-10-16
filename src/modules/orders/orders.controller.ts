@@ -30,7 +30,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @ApiTags('Orders')
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class OrdersController {
   private readonly logger = new Logger(OrdersController.name);
 
@@ -52,7 +52,8 @@ export class OrdersController {
   })
   @ApiBody({
     type: CreateOrderDto,
-    description: 'Order data with items and optional idempotency key',
+    description:
+      'Order data with items and optional idempotency key. Prices are calculated automatically from product database - do not include price field.',
     examples: {
       singleItem: {
         summary: 'Single item order',
@@ -61,7 +62,6 @@ export class OrdersController {
             {
               productId: '550e8400-e29b-41d4-a716-446655440000',
               quantity: 2,
-              price: 99.99,
             },
           ],
           idempotencyKey: 'order-2025-10-11-unique-12345',
@@ -74,20 +74,28 @@ export class OrdersController {
             {
               productId: '550e8400-e29b-41d4-a716-446655440000',
               quantity: 2,
-              price: 99.99,
             },
             {
               productId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
               quantity: 1,
-              price: 149.99,
             },
             {
               productId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
               quantity: 5,
-              price: 29.99,
             },
           ],
           idempotencyKey: 'order-2025-10-11-user-john-doe-9876543',
+        },
+      },
+      withoutIdempotencyKey: {
+        summary: 'Order without idempotency key (auto-generated)',
+        value: {
+          items: [
+            {
+              productId: '550e8400-e29b-41d4-a716-446655440000',
+              quantity: 1,
+            },
+          ],
         },
       },
     },

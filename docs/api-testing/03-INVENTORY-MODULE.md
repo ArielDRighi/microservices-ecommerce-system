@@ -1,7 +1,7 @@
 # 📦 API Testing - Módulo de Inventario (Inventory)
 
 **Módulo:** Inventory  
-**Base URL:** `http://localhost:3000/inventory`  
+**Base URL:** `http://localhost:3002/api/v1/inventory`  
 **Descripción:** Gestión de stock, reservas con TTL, movimientos, estadísticas en tiempo real y control de acceso basado en roles (RBAC)
 
 ---
@@ -35,20 +35,20 @@ Este módulo implementa control de acceso basado en roles:
 
 ```bash
 # Token de ADMINISTRADOR (crear/agregar/remover stock)
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+export ADMIN_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@test.com",
-    "password": "Admin123!@#"
-  }' | jq -r '.data.accessToken')
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 # Token de USUARIO (reservas)
-export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
+export USER_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@test.com",
-    "password": "User123!@#"
-  }' | jq -r '.data.accessToken')
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
 
 echo "Admin Token: $ADMIN_TOKEN"
 echo "User Token: $USER_TOKEN"
@@ -85,17 +85,46 @@ Cuando un usuario sin rol ADMIN intenta realizar operaciones administrativas:
 
 **IMPORTANTE:** Debes crear inventario inicial para los productos antes de poder crear órdenes.
 
+**NOTA:** Marca cada checkbox `[x]` conforme completes cada test exitosamente.
+
+---
+
+## 🚀 Pre-requisitos y Estado Inicial
+
+### Antes de empezar, asegúrate de tener:
+
+1. **✅ Servidor corriendo:** `npm run start:dev` en puerto 3002
+2. **✅ Base de datos iniciada:** PostgreSQL corriendo con las migraciones aplicadas
+3. **✅ Productos creados:** Al menos un producto en la DB (usar `02-PRODUCTS-MODULE.md` si es necesario)
+4. **✅ Usuarios seed:** Los usuarios de prueba deben existir:
+   - `admin@test.com` / `Admin123!` (rol: ADMIN)
+   - `user@test.com` / `Admin123!` (rol: USER)
+
+### Estado esperado de la DB:
+
+- **Productos:** Debe haber al menos 1 producto activo
+- **Inventarios:** Pueden estar vacíos (los crearemos en este módulo)
+- **Reservas:** Ninguna (se crearán durante los tests)
+
+### ⚠️ Importante:
+
+Este documento usa **placeholders genéricos** (`<PRODUCT_UUID>`, `<INVENTORY_UUID>`, etc.) en las respuestas de ejemplo. Los valores reales en tu sistema serán diferentes pero deben seguir la misma estructura.
+
 ---
 
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
-export ADMIN_TOKEN=""  # Token con rol ADMIN (crear/agregar/remover stock)
-export USER_TOKEN=""   # Token con rol USER (reservas)
-export PRODUCT_ID=""
-export RESERVATION_ID=""
+export BASE_URL="http://localhost:3002/api/v1"
+export ADMIN_TOKEN=""  # Se obtendrá en la sección de autenticación
+export USER_TOKEN=""   # Se obtendrá en la sección de autenticación
+export PRODUCT_ID=""   # Se obtendrá dinámicamente en Test 1
+export PRODUCT_SKU=""  # Se obtendrá dinámicamente en Test 1
+export INVENTORY_ID="" # Se guardará después de crear inventario (Test 1)
+export RESERVATION_ID="" # Se generará al crear una reserva (Test 6)
 ```
+
+**NOTA:** Estas variables se llenarán automáticamente conforme ejecutes los tests en orden.
 
 ---
 
@@ -174,77 +203,47 @@ El sistema de inventario implementa **reservas con TTL (Time To Live)**:
 - `reorderQuantity` (integer >= 1): Cantidad a reordenar
 - `notes` (string): Notas adicionales
 
-**Preparar datos de productos existentes:**
+**⚠️ PRE-REQUISITO:** Necesitas tener al menos un producto creado. Si no tienes productos, créalos primero usando el módulo de Products (`02-PRODUCTS-MODULE.md`).
+
+**Paso 1: Obtener un producto existente dinámicamente**
 
 ```bash
-# Ya tenemos productos creados en el módulo anterior
-# Samsung Galaxy S24
-export PRODUCT_ID_1="a5585341-86ff-4849-8558-678a8af7c444"
-export SKU_1="SAMSUNG-S24-001"
+# Obtener el primer producto disponible de la base de datos
+export PRODUCT_ID=$(curl -s "http://localhost:3002/api/v1/products" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+export PRODUCT_SKU=$(curl -s "http://localhost:3002/api/v1/products/$PRODUCT_ID" | grep -o '"sku":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-# MacBook Pro
-export PRODUCT_ID_2="82fe0c9a-72c0-4720-8da5-f81e96532348"
-export SKU_2="APPLE-MBP14-M3-001"
-
-# Dell XPS 15
-export PRODUCT_ID_3="ffb6aad4-8615-42b8-b51d-fb87a1992278"
-export SKU_3="DELL-XPS15-001"
-
-# Sony WH-1000XM5
-export PRODUCT_ID_4="1fd92456-65aa-42a7-9f14-9394e6516b3f"
-export SKU_4="SONY-WH1000XM5-001"
+echo "PRODUCT_ID: $PRODUCT_ID"
+echo "PRODUCT_SKU: $PRODUCT_SKU"
 ```
 
-**Comandos curl para crear inventario de los 4 productos (como ADMIN):**
+**Paso 2: Crear inventario inicial (100 unidades)**
 
 ```bash
-# 1. Samsung Galaxy S24 - 100 unidades
-curl -X POST "$BASE_URL/inventory" \
+curl -s -X POST "http://localhost:3002/api/v1/inventory" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "productId": "a5585341-86ff-4849-8558-678a8af7c444",
-    "sku": "SAMSUNG-S24-001",
+    "productId": "'$PRODUCT_ID'",
+    "sku": "'$PRODUCT_SKU'",
     "initialStock": 100,
     "minimumStock": 10,
     "reorderPoint": 20
   }'
+```
 
-# 2. MacBook Pro - 50 unidades
-curl -X POST "$BASE_URL/inventory" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "productId": "82fe0c9a-72c0-4720-8da5-f81e96532348",
-    "sku": "APPLE-MBP14-M3-001",
-    "initialStock": 50,
-    "minimumStock": 5,
-    "reorderPoint": 10
-  }'
+**⚠️ NOTA - Error 409 (Inventario ya existe):**
 
-# 3. Dell XPS 15 - 75 unidades
-curl -X POST "$BASE_URL/inventory" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "productId": "ffb6aad4-8615-42b8-b51d-fb87a1992278",
-    "sku": "DELL-XPS15-001",
-    "initialStock": 75,
-    "minimumStock": 8,
-    "reorderPoint": 15
-  }'
+Si recibes un error **409 Conflict** indicando que el inventario ya existe para este producto, significa que ya se ejecutaron tests previamente o el producto ya tiene inventario asignado. En ese caso:
 
-# 4. Sony WH-1000XM5 - 200 unidades
-curl -X POST "$BASE_URL/inventory" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "productId": "1fd92456-65aa-42a7-9f14-9394e6516b3f",
-    "sku": "SONY-WH1000XM5-001",
-    "initialStock": 200,
-    "minimumStock": 20,
-    "reorderPoint": 40
-  }'
+```bash
+# Obtener el inventario existente
+curl -s -X GET "http://localhost:3002/api/v1/inventory/product/$PRODUCT_ID"
+
+# Extraer y guardar el INVENTORY_ID
+export INVENTORY_ID=$(curl -s -X GET "http://localhost:3002/api/v1/inventory/product/$PRODUCT_ID" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+echo "✅ INVENTORY_ID obtenido del inventario existente: $INVENTORY_ID"
+
+# Continuar con el Test 2
 ```
 
 **Respuesta Esperada (201 Created):**
@@ -254,29 +253,59 @@ curl -X POST "$BASE_URL/inventory" \
   "statusCode": 201,
   "message": "Created successfully",
   "data": {
-    "id": "inventory-uuid",
-    "productId": "a5585341-86ff-4849-8558-678a8af7c444",
-    "sku": "SAMSUNG-S24-001",
-    "location": "MAIN_WAREHOUSE",
-    "quantityAvailable": 100,
-    "quantityReserved": 0,
-    "quantityPhysical": 100,
+    "id": "<INVENTORY_UUID>",
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 100,
+    "reservedStock": 0,
+    "availableStock": 100,
     "minimumStock": 10,
+    "maximumStock": 1000,
     "reorderPoint": 20,
-    "createdAt": "2025-10-13T...",
-    "updatedAt": "2025-10-13T..."
-  }
+    "location": "MAIN_WAREHOUSE",
+    "status": "NORMAL",
+    "product": {
+      "id": "<PRODUCT_UUID>",
+      "name": "<Product Name>",
+      "sku": "<Product SKU>"
+    },
+    "movementsCount": 1,
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory"
 }
+```
+
+**Campos en la respuesta:**
+
+- `id`: UUID del inventario creado (**Guardar como INVENTORY_ID**)
+- `physicalStock`: Stock físico total (100)
+- `reservedStock`: Stock reservado en pedidos pendientes (0)
+- `availableStock`: Stock disponible = physical - reserved (100)
+- `status`: Estado del inventario (NORMAL, LOW_STOCK, OUT_OF_STOCK)
+- `movementsCount`: Contador de movimientos (1 = creación inicial)
+- `product`: Información del producto relacionado
+
+**Paso 3: Guardar INVENTORY_ID para tests siguientes**
+
+```bash
+# Extraer el ID del inventario de la respuesta anterior
+export INVENTORY_ID=$(curl -s -X GET "http://localhost:3002/api/v1/inventory/product/$PRODUCT_ID" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+echo "INVENTORY_ID guardado: $INVENTORY_ID"
 ```
 
 **Checklist:**
 
-- [ ] Status code es 201
+- [ ] Status code es 201 Created
 - [ ] Respuesta contiene el inventario creado con ID
-- [ ] `quantityAvailable` = `initialStock`
-- [ ] `quantityReserved` = 0
-- [ ] `quantityPhysical` = `initialStock`
-- [ ] Inventario creado para los 4 productos
+- [ ] `availableStock` = `initialStock` (100)
+- [ ] `reservedStock` = 0
+- [ ] `physicalStock` = `initialStock` (100)
+- [ ] `status` = "NORMAL"
+- [ ] `movementsCount` = 1 (creación inicial)
+- [ ] Incluye información del producto relacionado
+- [ ] Variable `INVENTORY_ID` guardada correctamente
 
 ---
 
@@ -323,22 +352,17 @@ curl -X POST "$BASE_URL/inventory" \
 **Comando curl:**
 
 ```bash
-# Primero obtener el inventory ID del Samsung
-export INVENTORY_ID=$(curl -s -X GET "$BASE_URL/inventory/product/a5585341-86ff-4849-8558-678a8af7c444" | grep -oP '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-
-echo "Inventory ID: $INVENTORY_ID"
-
-# Agregar 50 unidades más (requiere ADMIN_TOKEN)
-curl -X POST "$BASE_URL/inventory/add-stock" \
+# Usar el INVENTORY_ID guardado del Test 1
+curl -s -X POST "http://localhost:3002/api/v1/inventory/add-stock" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"inventoryId\": \"$INVENTORY_ID\",
-    \"movementType\": \"RESTOCK\",
-    \"quantity\": 50,
-    \"reason\": \"Stock replenishment\",
-    \"referenceId\": \"PO-$(date +%s)\"
-  }"
+  -d '{
+    "inventoryId": "'$INVENTORY_ID'",
+    "movementType": "RESTOCK",
+    "quantity": 50,
+    "reason": "Stock replenishment",
+    "referenceId": "PO-'$(date +%s)'"
+  }'
 ```
 
 **Respuesta Esperada (200 OK):**
@@ -348,23 +372,36 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
   "statusCode": 200,
   "message": "Success",
   "data": {
-    "id": "inventory-uuid",
-    "productId": "product-uuid",
-    "quantityAvailable": 150,
-    "quantityReserved": 0,
-    "quantityPhysical": 150,
-    "previousQuantity": 100,
-    "newQuantity": 150
-  }
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 150,
+    "reservedStock": 0,
+    "availableStock": 150,
+    "minimumStock": 10,
+    "maximumStock": 1000,
+    "reorderPoint": 20,
+    "location": "MAIN_WAREHOUSE",
+    "lastUpdated": "<timestamp>",
+    "status": "NORMAL"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/add-stock"
 }
 ```
 
+**Validaciones:**
+
+- `physicalStock`: Incrementado de 100 a 150 (+50)
+- `availableStock`: También 150 (sin reservas)
+- `status`: Se mantiene "NORMAL"
+- `lastUpdated`: Timestamp actualizado
+
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Stock incrementado correctamente
-- [ ] `quantityPhysical` aumentó en la cantidad especificada
-- [ ] Movimiento registrado en audit trail
+- [ ] Status code es 200 OK
+- [ ] Stock incrementado correctamente (+50 unidades)
+- [ ] `physicalStock` aumentó en la cantidad especificada
+- [ ] `availableStock` también aumentó
+- [ ] No hay cambios en `reservedStock` (debe seguir en 0)
 
 ---
 
@@ -377,14 +414,14 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/inventory/add-stock" \
+curl -s -X POST "http://localhost:3002/api/v1/inventory/add-stock" \
   -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"inventoryId\": \"$INVENTORY_ID\",
-    \"movementType\": \"RESTOCK\",
-    \"quantity\": 50
-  }" | jq '.'
+  -d '{
+    "inventoryId": "'$INVENTORY_ID'",
+    "movementType": "RESTOCK",
+    "quantity": 50
+  }'
 ```
 
 **Respuesta Esperada (403 Forbidden):**
@@ -392,14 +429,19 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
 ```json
 {
   "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/add-stock",
+  "method": "POST"
 }
 ```
 
 **Checklist:**
 
 - [ ] Status code es 403 (no 401)
+- [ ] Mensaje descriptivo indica rol requerido (ADMIN)
 - [ ] Stock NO fue incrementado
 - [ ] Usuario autenticado pero sin permisos ADMIN
 
@@ -407,106 +449,202 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
 
 ## 3️⃣ Obtener Inventario por Producto **[🟢 Público]**
 
-### ✅ Test 3.1: Verificar stock disponible
+### ✅ Test 3.1: Obtener inventario por productId
 
 **Endpoint:** `GET /inventory/product/:productId`  
 **Autenticación:** No requerida (Public)  
 **Status Code:** `200 OK`
 
-**Request Body:**
-
-```json
-{
-  "productId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "quantity": 5,
-  "location": "MAIN_WAREHOUSE"
-}
-```
-
 **Comando curl:**
 
 ```bash
-# Primero obtener un producto existente
-export PRODUCT_ID=$(curl -s -X GET "$BASE_URL/products?limit=1" | jq -r '.data[0].id')
-
-curl -X POST "$BASE_URL/inventory/check-availability" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 5,
-    \"location\": \"MAIN_WAREHOUSE\"
-  }" | jq '.'
+# Usar el PRODUCT_ID del inventario creado
+curl -s -X GET "http://localhost:3002/api/v1/inventory/product/$PRODUCT_ID"
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "productId": "product-uuid",
-  "requestedQuantity": 5,
-  "available": true,
-  "availableQuantity": 150,
-  "location": "MAIN_WAREHOUSE",
-  "message": "Stock available"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<INVENTORY_UUID>",
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 150,
+    "reservedStock": 0,
+    "availableStock": 150,
+    "minimumStock": 10,
+    "maximumStock": 1000,
+    "reorderPoint": 20,
+    "location": "MAIN_WAREHOUSE",
+    "status": "NORMAL",
+    "product": {
+      "id": "<PRODUCT_UUID>",
+      "name": "<Product_Name>",
+      "sku": "<Product_SKU>"
+    },
+    "movementsCount": 2,
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/product/<PRODUCT_UUID>"
 }
 ```
 
-**Respuesta cuando NO hay stock suficiente:**
+**Campos importantes:**
 
-```json
-{
-  "productId": "product-uuid",
-  "requestedQuantity": 5,
-  "available": false,
-  "availableQuantity": 2,
-  "location": "MAIN_WAREHOUSE",
-  "message": "Insufficient stock. Only 2 units available"
-}
-```
+- `physicalStock`: Stock físico total (150 después de agregar 50)
+- `reservedStock`: Stock reservado (0 actualmente)
+- `availableStock`: Stock disponible para venta (150)
+- `status`: NORMAL (puede ser LOW_STOCK o OUT_OF_STOCK)
+- `movementsCount`: 2 (creación inicial + un movimiento de restock)
+- `product`: Información del producto asociado
 
 **Checklist:**
 
-- [ ] Status code es 200 (siempre, aunque no haya stock)
-- [ ] `available: true` si hay stock suficiente
-- [ ] `available: false` si stock insuficiente
-- [ ] `availableQuantity` indica stock real disponible
-- [ ] Endpoint público (no requiere auth)
+- [ ] Status code es 200 OK
+- [ ] Retorna información completa del inventario
+- [ ] Incluye stocks (physical, reserved, available)
+- [ ] Muestra status del inventario (NORMAL)
+- [ ] Incluye información del producto relacionado
+- [ ] Endpoint público (no requiere autenticación)
 
 ---
 
-### ✅ Test 1.2: Verificar con cantidad 0 (400 Bad Request)
+## 4️⃣ Listar Todo el Inventario **[🟢 Público]**
+
+### ✅ Test 4.1: Listar todos los inventarios con paginación
+
+**Endpoint:** `GET /inventory`  
+**Autenticación:** No requerida (Public)  
+**Status Code:** `200 OK`
 
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/inventory/check-availability" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 0
-  }" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/inventory"
 ```
 
-**Respuesta Esperada (400 Bad Request):**
+** (200 OK) - Resumen:**
 
 ```json
 {
-  "statusCode": 400,
-  "message": ["Quantity must be at least 1"],
-  "error": "Bad Request"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "items": [
+      {
+        "id": "<INVENTORY_UUID>",
+        "productId": "<PRODUCT_UUID>",
+        "physicalStock": 150,
+        "reservedStock": 0,
+        "availableStock": 150,
+        "minimumStock": 10,
+        "maximumStock": 1000,
+        "reorderPoint": 20,
+        "location": "MAIN_WAREHOUSE",
+        "status": "NORMAL",
+        "product": {
+          "id": "<PRODUCT_UUID>",
+          "name": "<Product_Name>",
+          "sku": "<Product_SKU>"
+        },
+        "createdAt": "<timestamp>",
+        "updatedAt": "<timestamp>"
+      }
+      // ... más items
+    ],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "total": 6,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
+  },
+  "timestamp": "2025-10-14T14:11:XX.XXXZ",
+  "path": "/api/v1/inventory"
 }
 ```
 
+**Estructura de respuesta:**
+
+- `items`: Array de registros de inventario
+- `meta`: Información de paginación
+  - Usa `hasNextPage` y `hasPreviousPage` (diferente a Products que usa hasNext/hasPrev)
+  - `total`: Total de registros
+  - `page`, `limit`, `totalPages`
+
 **Checklist:**
 
-- [ ] Status code es 400
-- [ ] Cantidad mínima es 1
+- [ ] Status code es 200 OK
+- [ ] Retorna array de inventarios en `items`
+- [ ] Cada item incluye información del producto asociado
+- [ ] Incluye metadata de paginación
+- [ ] Endpoint público (no requiere autenticación)
 
 ---
 
-## 2️⃣ Reservar Stock
+## 5️⃣ Verificar Disponibilidad **[🟢 Público]**
 
-### ✅ Test 2.1: Reservar stock exitosamente
+### ✅ Test 5.1: Verificar disponibilidad de stock suficiente
+
+**Endpoint:** `POST /inventory/check-availability`  
+**Autenticación:** No requerida (Public)  
+**Status Code:** `200 OK`
+
+**Comando curl:**
+
+```bash
+curl -X POST "http://localhost:3002/api/v1/inventory/check-availability" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "'$PRODUCT_ID'",
+    "quantity": 5,
+    "location": "MAIN_WAREHOUSE"
+  }'
+```
+
+** (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 150,
+    "reservedStock": 0,
+    "availableStock": 150,
+    "minimumStock": 10,
+    "maximumStock": 1000,
+    "reorderPoint": 20,
+    "location": "MAIN_WAREHOUSE",
+    "lastUpdated": "<timestamp>",
+    "status": "NORMAL"
+  },
+  "timestamp": "2025-10-14T14:30:41.XXX",
+  "path": "/api/v1/inventory/check-availability"
+}
+```
+
+**Nota:** Este endpoint retorna la información completa del inventario, no solo un booleano `available`. El cliente debe verificar si `availableStock >= cantidad solicitada`.
+
+**Checklist:**
+
+- [ ] Status code es 200 OK
+- [ ] Retorna información completa del inventario
+- [ ] `availableStock` (150) es mayor que cantidad solicitada (5)
+- [ ] Endpoint público (no requiere autenticación)
+
+---
+
+## 6️⃣ Reservar Stock **[🟡 Auth Required]**
+
+### ✅ Test 6.1: Reservar stock exitosamente
 
 **Endpoint:** `POST /inventory/reserve`  
 **Autenticación:** Bearer Token (JWT) - Required  
@@ -516,7 +654,7 @@ curl -X POST "$BASE_URL/inventory/check-availability" \
 
 ```json
 {
-  "productId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "productId": "uuid",
   "quantity": 3,
   "reservationId": "res_1234567890",
   "location": "MAIN_WAREHOUSE",
@@ -536,44 +674,61 @@ echo "Reservation ID: $RESERVATION_ID"
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/inventory/reserve" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X POST "http://localhost:3002/api/v1/inventory/reserve" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 3,
-    \"reservationId\": \"$RESERVATION_ID\",
-    \"location\": \"MAIN_WAREHOUSE\",
-    \"reason\": \"Order processing\",
-    \"referenceId\": \"order_test_123\",
-    \"ttlMinutes\": 30
-  }" | jq '.'
+  -d '{
+    "productId": "'$PRODUCT_ID'",
+    "quantity": 3,
+    "reservationId": "'$RESERVATION_ID'",
+    "location": "MAIN_WAREHOUSE",
+    "reason": "Order processing",
+    "referenceId": "order_test_123",
+    "ttlMinutes": 30
+  }'
 ```
 
-**Respuesta Esperada (201 Created):**
+** (201 Created):**
 
 ```json
 {
-  "id": "reservation-uuid",
-  "productId": "product-uuid",
-  "reservationId": "res_1234567890",
-  "quantity": 3,
-  "location": "MAIN_WAREHOUSE",
-  "reason": "Order processing",
-  "referenceId": "order_xyz123",
-  "status": "ACTIVE",
-  "expiresAt": "2025-10-11T11:00:00.000Z",
-  "createdAt": "2025-10-11T10:30:00.000Z"
+  "statusCode": 201,
+  "message": "Created successfully",
+  "data": {
+    "reservationId": "<RESERVATION_ID>",
+    "productId": "<PRODUCT_UUID>",
+    "quantity": 3,
+    "expiresAt": "<timestamp>",
+    "location": "MAIN_WAREHOUSE",
+    "reference": "order_test_123",
+    "createdAt": "<timestamp>",
+    "status": "ACTIVE"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/reserve"
 }
+```
+
+**Nota importante:**
+
+- El `reservationId` debe guardarse para liberar o confirmar la reserva
+- `expiresAt` es 30 minutos después de la creación (según TTL)
+- El stock `reservedStock` aumenta en 3, `availableStock` disminuye en 3
+
+**Guardar para tests siguientes:**
+
+```bash
+# El RESERVATION_ID ya está en la variable de entorno
+echo "RESERVATION_ID: $RESERVATION_ID"
 ```
 
 **Checklist:**
 
-- [ ] Status code es 201
+- [ ] Status code es 201 Created
 - [ ] `status` es `ACTIVE`
-- [ ] `expiresAt` es 30 minutos después (o TTL especificado)
-- [ ] Stock disponible disminuye temporalmente
-- [ ] `reservationId` debe ser único
+- [ ] `expiresAt` es 30 minutos después (TTL especificado)
+- [ ] Stock reservado aumentará temporalmente
+- [ ] `reservationId` es único y almacenado
 
 ---
 
@@ -671,33 +826,52 @@ curl -X POST "$BASE_URL/inventory/reserve" \
 **Comando curl:**
 
 ```bash
-curl -X PUT "$BASE_URL/inventory/release-reservation" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -s -X PUT "http://localhost:3002/api/v1/inventory/release-reservation" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"reservationId\": \"$RESERVATION_ID\"
-  }" | jq '.'
+  -d '{
+    "productId": "'"$PRODUCT_ID"'",
+    "quantity": 5,
+    "reservationId": "'"$RESERVATION_ID_2"'"
+  }'
 ```
 
-**Respuesta Esperada (200 OK):**
+** (200 OK):**
 
 ```json
 {
-  "id": "reservation-uuid",
-  "reservationId": "res_1234567890",
-  "productId": "product-uuid",
-  "quantity": 3,
-  "status": "RELEASED",
-  "releasedAt": "2025-10-11T10:35:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 150,
+    "reservedStock": 3,
+    "availableStock": 147,
+    "minimumStock": 10,
+    "maximumStock": 1000,
+    "reorderPoint": 20,
+    "location": "MAIN_WAREHOUSE",
+    "lastUpdated": "<timestamp>",
+    "status": "NORMAL"
+  },
+  "timestamp": "<timestamp>"
 }
 ```
+
+**📝 Notas:**
+
+- ⚠️ **El endpoint requiere productId, quantity y reservationId** (no solo reservationId como se esperaba)
+- ✅ Al liberar la reserva, `reservedStock` disminuye y `availableStock` aumenta
+- ✅ El stock vuelve a estar disponible para nuevas reservas
+- ✅ RESERVATION_ID_2: <RESERVATION_ID_2> (5 unidades) fue liberado exitosamente
+- ✅ Stock final: reservedStock=3 (solo queda la primera reserva), availableStock=147
 
 **Checklist:**
 
 - [ ] Status code es 200
-- [ ] `status` cambia a `RELEASED`
 - [ ] Stock vuelve a estar disponible
-- [ ] `releasedAt` tiene timestamp
+- [ ] `reservedStock` disminuye correctamente
+- [ ] `lastUpdated` tiene timestamp actualizado
 
 ---
 
@@ -750,47 +924,56 @@ curl -X PUT "$BASE_URL/inventory/release-reservation" \
 **Comando curl:**
 
 ```bash
-# Crear nueva reserva para fulfill
-FULFILL_RESERVATION="res_fulfill_$(date +%s)"
-
-curl -s -X POST "$BASE_URL/inventory/reserve" \
-  -H "Authorization: Bearer $TOKEN" \
+# Confirmar reserva existente (RESERVATION_ID)
+curl -s -X PUT "http://localhost:3002/api/v1/inventory/fulfill-reservation" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 2,
-    \"reservationId\": \"$FULFILL_RESERVATION\"
-  }" > /dev/null
-
-# Confirmar reserva
-curl -X PUT "$BASE_URL/inventory/fulfill-reservation" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"reservationId\": \"$FULFILL_RESERVATION\"
-  }" | jq '.'
+  -d '{
+    "productId": "'"$PRODUCT_ID"'",
+    "quantity": 3,
+    "reservationId": "'"$RESERVATION_ID"'",
+    "orderId": "order_test_123"
+  }'
 ```
 
-**Respuesta Esperada (200 OK):**
+** (200 OK):**
 
 ```json
 {
-  "id": "reservation-uuid",
-  "reservationId": "res_1234567890",
-  "productId": "product-uuid",
-  "quantity": 2,
-  "status": "FULFILLED",
-  "fulfilledAt": "2025-10-11T10:40:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 147,
+    "reservedStock": 0,
+    "availableStock": 147,
+    "minimumStock": 10,
+    "maximumStock": 1000,
+    "reorderPoint": 20,
+    "location": "MAIN_WAREHOUSE",
+    "lastUpdated": "<timestamp>",
+    "status": "NORMAL"
+  },
+  "timestamp": "<timestamp>"
 }
 ```
+
+**📝 Notas:**
+
+- ⚠️ **El endpoint requiere productId, quantity, reservationId y orderId** (orderId es obligatorio)
+- ✅ Al confirmar la reserva, el stock se decrementa **permanentemente**
+- ✅ `physicalStock` disminuyó de 150 a 147 (3 unidades vendidas)
+- ✅ `reservedStock` volvió a 0 (la reserva fue consumida)
+- ✅ `availableStock` = 147 (físico - reservado)
+- ✅ Este es el comportamiento esperado para una venta confirmada
 
 **Checklist:**
 
 - [ ] Status code es 200
-- [ ] `status` cambia a `FULFILLED`
-- [ ] Stock físico decrementado permanentemente
-- [ ] Reserva ya no aparece como activa
-- [ ] `fulfilledAt` tiene timestamp
+- [ ] Stock físico decrementado permanentemente (150 → 147)
+- [ ] Reserva consumida (reservedStock: 3 → 0)
+- [ ] `availableStock` refleja el nuevo stock disponible
+- [ ] `lastUpdated` tiene timestamp actualizado
 
 ---
 
@@ -880,40 +1063,53 @@ curl -X POST "$BASE_URL/inventory/add-stock" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/inventory/remove-stock" \
+curl -s -X POST "http://localhost:3002/api/v1/inventory/remove-stock" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 10,
-    \"location\": \"MAIN_WAREHOUSE\",
-    \"reason\": \"Damaged goods\",
-    \"referenceId\": \"ADJ-001\"
-  }" | jq '.'
+  -d '{
+    "inventoryId": "'"$INVENTORY_ID"'",
+    "quantity": 10,
+    "movementType": "ADJUSTMENT",
+    "reason": "Damaged goods",
+    "referenceId": "ADJ-001"
+  }'
 ```
 
-**Respuesta Esperada (201 Created):**
+** (200 OK):**
 
 ```json
 {
-  "id": "movement-uuid",
-  "productId": "product-uuid",
-  "type": "OUTBOUND",
-  "quantity": 10,
-  "previousQuantity": 150,
-  "newQuantity": 140,
-  "location": "MAIN_WAREHOUSE",
-  "reason": "Damaged goods",
-  "referenceId": "ADJ-001",
-  "createdAt": "2025-10-11T10:50:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "productId": "<PRODUCT_UUID>",
+    "physicalStock": 137,
+    "reservedStock": 0,
+    "availableStock": 137,
+    "minimumStock": 10,
+    "maximumStock": 1000,
+    "reorderPoint": 20,
+    "location": "MAIN_WAREHOUSE",
+    "lastUpdated": "<timestamp>",
+    "status": "NORMAL"
+  },
+  "timestamp": "<timestamp>"
 }
 ```
 
+**📝 Notas:**
+
+- ⚠️ **El endpoint requiere inventoryId, quantity, movementType** (no productId ni location)
+- ✅ `movementType` válido: "ADJUSTMENT" (no "OUTBOUND")
+- ✅ Stock decrementado correctamente: 147 → 137 (10 unidades removidas)
+- ✅ Response code es 200 OK (no 201 Created)
+- ✅ `availableStock` y `physicalStock` ambos decrementan
+
 **Checklist:**
 
-- [ ] Status code es 201
-- [ ] `type` es `OUTBOUND`
-- [ ] `newQuantity` = `previousQuantity` - `quantity`
+- [ ] Status code es 200
+- [ ] `movementType` es "ADJUSTMENT"
+- [ ] Stock decrementado correctamente (147 → 137)
 - [ ] Solo ADMIN puede remover stock
 
 ---
@@ -927,23 +1123,27 @@ curl -X POST "$BASE_URL/inventory/remove-stock" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/inventory/remove-stock" \
+curl -s -X POST "http://localhost:3002/api/v1/inventory/remove-stock" \
   -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 10,
-    \"reason\": \"Unauthorized removal\"
-  }" | jq '.'
+  -d '{
+    "inventoryId": "'"$INVENTORY_ID"'",
+    "quantity": 5,
+    "movementType": "ADJUSTMENT",
+    "reason": "Unauthorized removal"
+  }'
 ```
 
-**Respuesta Esperada (403 Forbidden):**
+** (403 Forbidden):**
 
 ```json
 {
   "statusCode": 403,
-  "message": "Forbidden resource",
-  "error": "Forbidden"
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/remove-stock"
 }
 ```
 
@@ -1105,35 +1305,42 @@ curl -X GET "$BASE_URL/inventory?page=1&limit=10" | jq '.'
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/inventory/low-stock?threshold=20" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/inventory/low-stock"
 ```
 
-**Respuesta Esperada (200 OK):**
+** (200 OK):**
 
 ```json
 {
-  "data": [
-    {
-      "productId": "product-uuid",
-      "productName": "Low Stock Product",
-      "productSku": "PROD-LOW",
-      "totalQuantity": 15,
-      "availableQuantity": 12,
-      "lowStockThreshold": 20,
-      "deficit": 5
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "items": [],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "total": 0,
+      "totalPages": 0,
+      "hasNextPage": false,
+      "hasPreviousPage": false
     }
-  ],
-  "meta": {
-    "total": 8,
-    "threshold": 20
-  }
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/low-stock"
 }
 ```
+
+**📝 Notas:**
+
+- ⚠️ **El endpoint NO acepta query param `threshold`** (debe estar predefinido en backend)
+- ✅ En este caso, no hay productos con stock bajo actualmente
+- ✅ Retorna estructura con items vacío y meta de paginación
+- ✅ `hasNextPage`/`hasPreviousPage` para navegación
 
 **Checklist:**
 
 - [ ] Status code es 200
-- [ ] Solo productos con `quantity <= threshold`
+- [ ] Retorna productos con stock por debajo del threshold configurado
 - [ ] Útil para alertas de reabastecimiento
 
 ---
@@ -1147,34 +1354,41 @@ curl -X GET "$BASE_URL/inventory/low-stock?threshold=20" | jq '.'
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/inventory/out-of-stock" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/inventory/out-of-stock"
 ```
 
-**Respuesta Esperada (200 OK):**
+** (200 OK):**
 
 ```json
 {
-  "data": [
-    {
-      "productId": "product-uuid",
-      "productName": "Out of Stock Product",
-      "productSku": "PROD-OOS",
-      "totalQuantity": 0,
-      "availableQuantity": 0,
-      "lastRestockDate": "2025-10-01T10:00:00.000Z",
-      "daysOutOfStock": 10
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "items": [],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "total": 0,
+      "totalPages": 0,
+      "hasNextPage": false,
+      "hasPreviousPage": false
     }
-  ],
-  "meta": {
-    "total": 3
-  }
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/inventory/out-of-stock"
 }
 ```
+
+**📝 Notas:**
+
+- ✅ No hay productos sin stock actualmente (items vacío)
+- ✅ Retorna estructura estándar con paginación
+- ✅ Útil para identificar productos agotados que requieren reabastecimiento urgente
 
 **Checklist:**
 
 - [ ] Status code es 200
-- [ ] Solo productos con `availableQuantity = 0`
+- [ ] Solo productos con `availableStock = 0` (cuando existen)
 
 ---
 
@@ -1188,55 +1402,46 @@ curl -X GET "$BASE_URL/inventory/out-of-stock" | jq '.'
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/inventory/stats" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/inventory/stats" \
+  -H "Authorization: Bearer $USER_TOKEN"
 ```
 
-**Respuesta Esperada (200 OK):**
+** (200 OK):**
 
 ```json
 {
-  "totalProducts": 150,
-  "totalStockValue": 250000.0,
-  "totalQuantity": 5420,
-  "availableQuantity": 5180,
-  "reservedQuantity": 240,
-  "lowStockProducts": 12,
-  "outOfStockProducts": 5,
-  "activeReservations": 45,
-  "locations": [
-    {
-      "location": "MAIN_WAREHOUSE",
-      "totalQuantity": 4200,
-      "productsCount": 120
-    },
-    {
-      "location": "BACKUP_WAREHOUSE",
-      "totalQuantity": 1220,
-      "productsCount": 80
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "totalItems": 6,
+    "totalValue": 195245.27,
+    "lowStockCount": 0,
+    "outOfStockCount": 0,
+    "statusBreakdown": {
+      "IN_STOCK": 6,
+      "LOW_STOCK": 0,
+      "OUT_OF_STOCK": 0
     }
-  ],
-  "recentMovements": {
-    "last24h": {
-      "inbound": 150,
-      "outbound": 95,
-      "netChange": 55
-    },
-    "last7d": {
-      "inbound": 850,
-      "outbound": 620,
-      "netChange": 230
-    }
-  }
+  },
+  "timestamp": "<timestamp>"
 }
 ```
+
+**📝 Notas:**
+
+- ✅ **Requiere autenticación** (cualquier rol USER o ADMIN)
+- ✅ Retorna estadísticas globales del inventario
+- ✅ `totalItems`: 6 inventarios en el sistema
+- ✅ `totalValue`: Valor total del inventario ($195,245.27)
+- ✅ `statusBreakdown`: Distribución por status (IN_STOCK, LOW_STOCK, OUT_OF_STOCK)
+- ✅ Útil para dashboards y reportes gerenciales
 
 **Checklist:**
 
 - [ ] Status code es 200
 - [ ] Dashboard completo de inventario
-- [ ] Estadísticas por ubicación
-- [ ] Movimientos recientes
+- [ ] Estadísticas por status
+- [ ] Valor total del inventario
 
 ---
 

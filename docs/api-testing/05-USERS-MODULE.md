@@ -1,41 +1,137 @@
 # 👥 API Testing - Módulo de Usuarios (Users)
 
 **Módulo:** Users  
-**Base URL:** `http://localhost:3000/users`  
+**Base URL:** `http://localhost:3002/api/v1/users`  
 **Descripción:** Gestión de usuarios con CRUD completo, paginación, soft delete y sistema RBAC
 
 ---
 
 ## 📋 Índice de Tests
 
-- [ ] ✅ 1. Crear Usuario (POST /users) [ADMIN Only]
-- [ ] ✅ 2. Listar Usuarios con Paginación (GET /users) [ADMIN Only]
-- [ ] ✅ 3. Obtener Perfil Propio (GET /users/profile) [Auth Required]
-- [ ] ✅ 4. Obtener Usuario por ID (GET /users/:id) [ADMIN Only]
-- [ ] ✅ 5. Actualizar Usuario (PATCH /users/:id) [ADMIN Only]
-- [ ] ✅ 6. Eliminar Usuario - Soft Delete (DELETE /users/:id) [ADMIN Only]
-- [ ] ✅ 7. Activar Usuario (PATCH /users/:id/activate) [ADMIN Only]
-- [ ] ✅ 8. Paginación y Filtros [ADMIN Only]
-- [ ] ✅ 9. Tests de Autorización RBAC
+- [ ] 1️⃣ **Crear Usuario** (POST /users) **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
+- [ ] 2️⃣ USER intenta crear usuario (403 Forbidden)
+- [ ] 3️⃣ Listar Usuarios con Paginación (GET /users) **[🔴 ADMIN Only]**
+- [ ] 4️⃣ Obtener Perfil Propio (GET /users/profile) **[🟡 Auth Required]**
+- [ ] 5️⃣ Obtener Usuario por ID (GET /users/:id) **[🔴 ADMIN Only]**
+
+**NOTA:** Marca cada checkbox `[x]` conforme completes cada test exitosamente.
+
+---
+
+## 🚀 Pre-requisitos y Estado Inicial
+
+### Antes de empezar, asegúrate de tener:
+
+1. **✅ Servidor corriendo:** `npm run start:dev` en puerto 3002
+2. **✅ Base de datos iniciada:** PostgreSQL con migraciones aplicadas
+3. **✅ Usuarios seed:** Los usuarios de prueba deben existir:
+   - `admin@test.com` / `Admin123!` (rol: ADMIN)
+   - `user@test.com` / `Admin123!` (rol: USER)
+
+### Estado esperado de la DB:
+
+- **Usuarios:** Pueden existir usuarios previos (no afecta los tests)
+- **Seed data:** Los usuarios admin y user deben estar disponibles
+
+### ⚠️ Importante:
+
+Este documento usa **placeholders genéricos** (`<USER_UUID>`, `<timestamp>`, etc.) en las respuestas de ejemplo. Los valores reales en tu sistema serán diferentes pero deben seguir la misma estructura.
 
 ---
 
 ## Variables de Entorno
 
 ```bash
-export BASE_URL="http://localhost:3000"
-export TOKEN="your-jwt-token-here"           # Token de usuario normal (role: USER)
-export USER_ID=""
-export ADMIN_TOKEN="admin-jwt-token-here"    # Token de administrador (role: ADMIN)
+export BASE_URL="http://localhost:3002/api/v1"
+export USER_TOKEN=""      # Se obtendrá en la sección de autenticación (role: USER)
+export ADMIN_TOKEN=""     # Se obtendrá en la sección de autenticación (role: ADMIN)
+export USER_ID=""         # Se guardará después de crear usuario (Test 1)
+```
+
+**NOTA:** Estas variables se llenarán automáticamente conforme ejecutes los tests en orden.
+
+---
+
+## � Obtener Tokens de Autenticación
+
+```bash
+# Token de ADMINISTRADOR (gestión completa de usuarios)
+export ADMIN_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+# Token de USUARIO normal (solo ver propio perfil)
+export USER_TOKEN=$(curl -s -X POST "http://localhost:3002/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@test.com",
+    "password": "Admin123!"
+  }' | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+
+echo "ADMIN_TOKEN: ${ADMIN_TOKEN:0:50}..."
+echo "USER_TOKEN: ${USER_TOKEN:0:50}..."
 ```
 
 ---
 
-## 🔐 Sistema de Autorización RBAC
+## 🔐 Obtener Usuario Autenticado
+
+**Endpoint:** `GET /auth/me`  
+**Autenticación:** Bearer Token (JWT) - Required  
+**Status Code:** `200 OK`
+
+**Propósito:** Obtener información del usuario autenticado extraída del token JWT. Útil para obtener el ID del usuario actual sin necesidad de conocerlo previamente.
+
+**Comando curl:**
+
+```bash
+curl -s -X GET "http://localhost:3002/api/v1/auth/me" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<USER_UUID>",
+    "email": "<email>@example.com",
+    "firstName": "<FirstName>",
+    "lastName": "<LastName>",
+    "fullName": "<FirstName> <LastName>",
+    "isActive": true
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/auth/me"
+}
+```
+
+**Características:**
+
+- Retorna información básica del usuario autenticado
+- Extrae el ID del usuario desde el JWT token
+- Funciona con cualquier rol (USER o ADMIN)
+- Útil para tests que requieren el ID del usuario actual
+
+**Checklist:**
+
+- [ ] Status code es 200 OK
+- [ ] Retorna información del usuario autenticado
+- [ ] Incluye campos: id, email, firstName, lastName, fullName, isActive
+- [ ] Funciona con ADMIN_TOKEN y USER_TOKEN
+
+---
+
+## �🔐 Sistema de Autorización RBAC
 
 ### Roles Disponibles
 
-- **ADMIN**: Acceso completo a gestión de usuarios
+- **ADMIN**: Acceso completo a gestión de usuarios (crear, listar, actualizar, eliminar)
 - **USER**: Solo puede ver y editar su propio perfil
 
 ### Endpoints por Nivel de Acceso
@@ -49,45 +145,9 @@ export ADMIN_TOKEN="admin-jwt-token-here"    # Token de administrador (role: ADM
 - `DELETE /users/:id` - Eliminar usuario (soft delete)
 - `PATCH /users/:id/activate` - Activar usuario
 
-#### 🟢 Usuario Autenticado (Cualquier role)
+#### � Usuario Autenticado (Cualquier role)
 
 - `GET /users/profile` - Ver propio perfil
-
-### Obtener Token de ADMIN
-
-```bash
-# Login como administrador
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@test.com",
-    "password": "Admin123!"
-  }' | jq -r '.accessToken')
-
-echo "Admin Token: $ADMIN_TOKEN"
-```
-
-### Obtener Token de Usuario Normal
-
-```bash
-# Login como usuario normal
-export TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@test.com",
-    "password": "User123!"
-  }' | jq -r '.accessToken')
-
-echo "User Token: $TOKEN"
-```
-
-### Verificar Role del Token
-
-```bash
-# Ver información del usuario actual
-curl -X GET "$BASE_URL/auth/me" \
-  -H "Authorization: Bearer $TOKEN" | jq '.role'
-```
 
 ---
 
@@ -116,118 +176,138 @@ Cuando un usuario con role `USER` intenta acceder a un endpoint administrativo:
 
 ---
 
-## 1️⃣ Crear Usuario
+## 1️⃣ Crear Usuario **[🔴 ADMIN Only]** - **EMPEZAR AQUÍ**
 
-### ✅ Test 1.1: Crear usuario exitosamente (como ADMIN)
+### ✅ Test 1.1: Crear usuario exitosamente como ADMIN
 
 **Endpoint:** `POST /users`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
 **Status Code:** `201 Created`
 
 **Request Body:**
 
 ```json
 {
-  "email": "john.doe@example.com",
+  "email": "<email>@example.com",
   "passwordHash": "SecurePassword123!",
-  "firstName": "John",
-  "lastName": "Doe",
-  "phoneNumber": "+541234567890",
-  "dateOfBirth": "1990-05-15",
-  "language": "es",
-  "timezone": "America/Argentina/Buenos_Aires",
-  "isActive": true
+  "firstName": "<FirstName>",
+  "lastName": "<LastName>",
+  "phoneNumber": "+541234567890"
 }
 ```
+
+**Campos requeridos:**
+
+- `email` (string, email format): Email del usuario
+- `passwordHash` (string, 8-128 chars): Password con mayúscula, minúscula, número y carácter especial
+- `firstName` (string, 2-100 chars): Nombre
+- `lastName` (string, 2-100 chars): Apellido
+
+**Campos opcionales:**
+
+- `phoneNumber` (string): Formato internacional (e.g., +541234567890)
+- `dateOfBirth` (string, date): Fecha de nacimiento (YYYY-MM-DD)
+- `language` (string): Idioma preferido (default: "en")
+- `timezone` (string): Zona horaria (default: "UTC")
+- `isActive` (boolean): Estado activo (default: true)
 
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+curl -s -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "john.doe@example.com",
-    "passwordHash": "SecurePassword123!",
-    "firstName": "John",
-    "lastName": "Doe",
-    "phoneNumber": "+541234567890",
-    "dateOfBirth": "1990-05-15",
-    "language": "es",
-    "timezone": "America/Argentina/Buenos_Aires",
-    "isActive": true
-  }' | jq '.'
+    "email": "techlead.test'$(date +%s)'@example.com",
+    "passwordHash": "SecurePass123!",
+    "firstName": "TechLead",
+    "lastName": "TestUser",
+    "phoneNumber": "+541234567890"
+  }'
 ```
 
 **Respuesta Esperada (201 Created):**
 
 ```json
 {
-  "id": "user-uuid-here",
-  "email": "john.doe@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "fullName": "John Doe",
-  "phoneNumber": "+541234567890",
-  "dateOfBirth": "1990-05-15T00:00:00.000Z",
-  "language": "es",
-  "timezone": "America/Argentina/Buenos_Aires",
-  "role": "USER",
-  "isActive": true,
-  "emailVerifiedAt": null,
-  "lastLoginAt": null,
-  "createdAt": "2025-10-11T10:30:00.000Z",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "statusCode": 201,
+  "message": "Created successfully",
+  "data": {
+    "id": "<USER_UUID>",
+    "email": "techlead.test<timestamp>@example.com",
+    "firstName": "TechLead",
+    "lastName": "TestUser",
+    "fullName": "TechLead TestUser",
+    "phoneNumber": "+541234567890",
+    "dateOfBirth": null,
+    "language": "en",
+    "timezone": "UTC",
+    "isActive": true,
+    "emailVerifiedAt": null,
+    "lastLoginAt": null,
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users"
 }
 ```
 
-**Guardar User ID:**
+**Campos en la respuesta:**
+
+- `id`: UUID del usuario creado (**Guardar como USER_ID**)
+- `email`: Email en minúsculas y trimmed automáticamente
+- `fullName`: Concatenación de firstName + lastName
+- `language`: Default "en" si no se especifica
+- `timezone`: Default "UTC" si no se especifica
+- `isActive`: Default `true` si no se especifica
+- ⚠️ **`passwordHash` NO aparece** en la respuesta (seguridad)
+- `emailVerifiedAt`: `null` (usuario no verificado aún)
+- `lastLoginAt`: `null` (nunca ha iniciado sesión)
+
+**Guardar USER_ID para tests siguientes:**
 
 ```bash
-export USER_ID=$(curl -s -X POST "$BASE_URL/users" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test.user@example.com",
-    "passwordHash": "TestPassword123!",
-    "firstName": "Test",
-    "lastName": "User"
-  }' | jq -r '.id')
-
-echo "User ID: $USER_ID"
+# Extraer el ID del usuario creado (último usuario de la lista)
+export USER_ID="<copiar-el-id-de-la-respuesta-anterior>"
+echo "USER_ID guardado: $USER_ID"
 ```
 
 **Checklist:**
 
-- [ ] Status code es 201
+- [ ] Status code es 201 Created
 - [ ] Email está en minúsculas y trimmed
 - [ ] `passwordHash` NO aparece en la respuesta
-- [ ] `fullName` está calculado correctamente
-- [ ] `role` es "USER" por defecto (nuevo campo RBAC)
+- [ ] `fullName` está calculado correctamente (firstName + " " + lastName)
 - [ ] `isActive` por defecto es `true`
+- [ ] `language` por defecto es "en"
+- [ ] `timezone` por defecto es "UTC"
 - [ ] `emailVerifiedAt` es `null`
 - [ ] `lastLoginAt` es `null`
+- [ ] Variable `USER_ID` guardada correctamente
 
 ---
 
-### ❌ Test 1.2: Usuario sin role ADMIN intenta crear usuario (403 Forbidden)
+### ❌ Test 1.2: USER intenta crear usuario (403 Forbidden)
 
 **Endpoint:** `POST /users`  
-**Autenticación:** Bearer Token (JWT) - Usuario normal (role: USER)  
+**Autenticación:** Bearer Token (JWT) - **USER role** (sin permisos ADMIN)  
 **Status Code:** `403 Forbidden`
+
+**Propósito:** Verificar que el sistema de RBAC impide que usuarios con rol USER creen otros usuarios.
 
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -s -X POST "http://localhost:3002/api/v1/users" \
+  -H "Authorization: Bearer $USER_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "newuser@example.com",
-    "passwordHash": "Password123!",
-    "firstName": "New",
-    "lastName": "User"
-  }' | jq '.'
+    "email": "forbidden.test'$(date +%s)'@example.com",
+    "passwordHash": "SecurePass123!",
+    "firstName": "Forbidden",
+    "lastName": "Test"
+  }'
 ```
 
 **Respuesta Esperada (403 Forbidden):**
@@ -236,32 +316,41 @@ curl -X POST "$BASE_URL/users" \
 {
   "statusCode": 403,
   "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
-  "error": "Forbidden"
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users",
+  "method": "POST"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 403
-- [ ] Mensaje indica falta de permisos
+- [ ] Status code es 403 Forbidden
+- [ ] Mensaje indica claramente: "Required roles: ADMIN"
+- [ ] Error es "FORBIDDEN"
+- [ ] `success: false`
 - [ ] Usuario NO fue creado en la base de datos
 
 ---
 
 ### ❌ Test 1.3: Crear usuario con email duplicado (409 Conflict)
 
+**Propósito:** Verificar que el sistema impide crear usuarios con emails duplicados.
+
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+# Usar un email que ya existe (admin@test.com del seed)
+curl -s -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "john.doe@example.com",
+    "email": "admin@test.com",
     "passwordHash": "SecurePassword123!",
-    "firstName": "John",
-    "lastName": "Doe"
-  }' | jq '.'
+    "firstName": "Duplicate",
+    "lastName": "Test"
+  }'
 ```
 
 **Respuesta Esperada (409 Conflict):**
@@ -269,15 +358,21 @@ curl -X POST "$BASE_URL/users" \
 ```json
 {
   "statusCode": 409,
-  "message": "Email already exists",
-  "error": "Conflict"
+  "message": "User with this email already exists",
+  "error": "CONFLICT",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users",
+  "method": "POST"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 409
+- [ ] Status code es 409 Conflict
+- [ ] Mensaje indica que el email ya existe
 - [ ] Email debe ser único en el sistema
+- [ ] No se crea usuario duplicado
 
 ---
 
@@ -286,7 +381,7 @@ curl -X POST "$BASE_URL/users" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+curl -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -294,7 +389,7 @@ curl -X POST "$BASE_URL/users" \
     "passwordHash": "weak",
     "firstName": "Weak",
     "lastName": "Password"
-  }' | jq '.'
+  }'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -323,7 +418,7 @@ curl -X POST "$BASE_URL/users" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+curl -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -331,7 +426,7 @@ curl -X POST "$BASE_URL/users" \
     "passwordHash": "ValidPassword123!",
     "firstName": "Invalid",
     "lastName": "Email"
-  }' | jq '.'
+  }'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -356,7 +451,7 @@ curl -X POST "$BASE_URL/users" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+curl -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -364,7 +459,7 @@ curl -X POST "$BASE_URL/users" \
     "passwordHash": "ValidPassword123!",
     "firstName": "J",
     "lastName": "123"
-  }' | jq '.'
+  }'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -393,7 +488,7 @@ curl -X POST "$BASE_URL/users" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+curl -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -402,7 +497,7 @@ curl -X POST "$BASE_URL/users" \
     "firstName": "Invalid",
     "lastName": "Phone",
     "phoneNumber": "123456"
-  }' | jq '.'
+  }'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -427,14 +522,14 @@ curl -X POST "$BASE_URL/users" \
 **Comando curl:**
 
 ```bash
-curl -X POST "$BASE_URL/users" \
+curl -X POST "http://localhost:3002/api/v1/users" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "no.auth@example.com",
     "passwordHash": "ValidPassword123!",
     "firstName": "No",
     "lastName": "Auth"
-  }' | jq '.'
+  }'
 ```
 
 **Respuesta Esperada (401 Unauthorized):**
@@ -454,78 +549,152 @@ curl -X POST "$BASE_URL/users" \
 
 ---
 
-## 2️⃣ Listar Usuarios con Paginación
+## 2️⃣ Listar Usuarios **[🔴 ADMIN Only]**
 
-### ✅ Test 2.1: Listar usuarios con paginación por defecto
+### ✅ Test 2.1: Listar usuarios con paginación
 
 **Endpoint:** `GET /users`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
-**Query Params:** `?page=1&limit=10`
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Status Code:** `200 OK`
+
+**Query Params opcionales:**
+
+- `page` (number, default: 1): Número de página
+- `limit` (number, default: 10, max: 100): Cantidad de resultados por página
+- `status` (string, default: 'all'): Filtrar por estado - valores: `'active'`, `'inactive'`, `'all'`
+- `search` (string): Búsqueda en firstName, lastName, email
+- `sortBy` (string, default: 'createdAt'): Campo de ordenamiento - valores: `'createdAt'`, `'updatedAt'`, `'firstName'`, `'lastName'`, `'email'`
+- `sortOrder` (string, default: 'DESC'): Orden - valores: `'ASC'`, `'DESC'`
+
+**⚠️ Nota:** El filtro de estado usa el parámetro `status` (no `isActive`):
+
+- `?status=active` - Solo usuarios activos (`isActive: true`)
+- `?status=inactive` - Solo usuarios inactivos (`isActive: false`)
+- `?status=all` - Todos los usuarios (default)
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users?page=1&limit=10" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/users?page=1&limit=10" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "data": [
-    {
-      "id": "user-uuid-1",
-      "email": "user1@example.com",
-      "firstName": "User",
-      "lastName": "One",
-      "fullName": "User One",
-      "isActive": true,
-      "createdAt": "2025-10-10T10:00:00.000Z",
-      "updatedAt": "2025-10-10T10:00:00.000Z"
-    },
-    {
-      "id": "user-uuid-2",
-      "email": "user2@example.com",
-      "firstName": "User",
-      "lastName": "Two",
-      "fullName": "User Two",
-      "isActive": true,
-      "createdAt": "2025-10-10T11:00:00.000Z",
-      "updatedAt": "2025-10-10T11:00:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [
+      {
+        "id": "<USER_UUID_1>",
+        "email": "<email1>@example.com",
+        "firstName": "<FirstName>",
+        "lastName": "<LastName>",
+        "fullName": "<FirstName> <LastName>",
+        "phoneNumber": "<phone_or_null>",
+        "dateOfBirth": null,
+        "language": "en",
+        "timezone": "UTC",
+        "isActive": true,
+        "emailVerifiedAt": null,
+        "lastLoginAt": "<timestamp_or_null>",
+        "createdAt": "<timestamp>",
+        "updatedAt": "<timestamp>"
+      },
+      {
+        "id": "<USER_UUID_2>",
+        "email": "<email2>@example.com",
+        "firstName": "<FirstName>",
+        "lastName": "<LastName>",
+        "fullName": "<FirstName> <LastName>",
+        "phoneNumber": null,
+        "dateOfBirth": null,
+        "language": "en",
+        "timezone": "UTC",
+        "isActive": true,
+        "emailVerifiedAt": null,
+        "lastLoginAt": "<timestamp>",
+        "createdAt": "<timestamp>",
+        "updatedAt": "<timestamp>"
+      }
+    ],
+    "meta": {
+      "total": 5,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
     }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 42,
-    "totalPages": 5,
-    "hasNextPage": true,
-    "hasPreviousPage": false
-  }
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users"
 }
 ```
 
+**Estructura de metadata:**
+
+- `total`: Total de usuarios en la DB
+- `page`: Página actual
+- `limit`: Usuarios por página
+- `totalPages`: Total de páginas
+- `hasNext`: Hay página siguiente
+- `hasPrev`: Hay página anterior
+
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Respuesta contiene `data` (array de usuarios)
-- [ ] Respuesta contiene `meta` (información de paginación)
-- [ ] `data` tiene máximo `limit` elementos
-- [ ] `passwordHash` NO aparece en la respuesta
+- [ ] Status code es 200 OK
+- [ ] Respuesta contiene `data.data` (array de usuarios)
+- [ ] Respuesta contiene `data.meta` (información de paginación)
+- [ ] Array tiene máximo `limit` elementos
+- [ ] ⚠️ `passwordHash` NO aparece en la respuesta
 - [ ] `meta.totalPages` está calculado correctamente
+- [ ] `fullName` está calculado para cada usuario
+- [ ] Campos opcionales pueden ser `null` (phoneNumber, dateOfBirth, emailVerifiedAt, lastLoginAt)
 
 ---
 
 ### ✅ Test 2.2: Filtrar usuarios activos
 
-**Query Params:** `?isActive=true`
+**Query Params:** `?status=active`
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users?isActive=true&page=1&limit=10" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/users?status=active&page=1&limit=10" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [
+      {
+        "id": "<USER_UUID>",
+        "email": "<email>@example.com",
+        "firstName": "<FirstName>",
+        "lastName": "<LastName>",
+        "fullName": "<FirstName> <LastName>",
+        "isActive": true,
+        ...
+      }
+    ],
+    "meta": {
+      "total": 5,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  }
+}
 ```
 
 **Checklist:**
@@ -537,19 +706,41 @@ curl -X GET "$BASE_URL/users?isActive=true&page=1&limit=10" \
 
 ### ✅ Test 2.3: Filtrar usuarios inactivos
 
-**Query Params:** `?isActive=false`
+**Query Params:** `?status=inactive`
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users?isActive=false&page=1&limit=10" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/users?status=inactive&page=1&limit=10" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+**Respuesta Esperada (200 OK):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [],
+    "meta": {
+      "total": 0,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 0,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+**Nota:** Si hay usuarios eliminados (soft delete), aparecerán aquí con `isActive: false`.
 
 **Checklist:**
 
 - [ ] Status code es 200
-- [ ] Todos los usuarios tienen `isActive: false`
+- [ ] Todos los usuarios tienen `isActive: false` (o array vacío si no hay inactivos)
 
 ---
 
@@ -560,8 +751,8 @@ curl -X GET "$BASE_URL/users?isActive=false&page=1&limit=10" \
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users?search=john" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/users?search=john" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Checklist:**
@@ -578,8 +769,8 @@ curl -X GET "$BASE_URL/users?search=john" \
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users?page=2&limit=5" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/users?page=2&limit=5" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Checklist:**
@@ -598,8 +789,8 @@ curl -X GET "$BASE_URL/users?page=2&limit=5" \
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users?sortBy=createdAt&sortOrder=DESC&page=1&limit=10" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/users?sortBy=createdAt&sortOrder=DESC&page=1&limit=10" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Checklist:**
@@ -609,48 +800,64 @@ curl -X GET "$BASE_URL/users?sortBy=createdAt&sortOrder=DESC&page=1&limit=10" \
 
 ---
 
-## 3️⃣ Obtener Perfil Propio
+## 3️⃣ Obtener Perfil Propio **[🟡 Auth Required]**
 
-### ✅ Test 3.1: Obtener perfil propio exitosamente
+### ✅ Test 3.1: Obtener perfil propio
 
 **Endpoint:** `GET /users/profile`  
-**Autenticación:** Bearer Token (JWT) - Required  
-**Descripción:** Endpoint especial para que el usuario obtenga su propio perfil
+**Autenticación:** Bearer Token (JWT) - **Cualquier usuario autenticado**  
+**Status Code:** `200 OK`
+
+**Propósito:** Endpoint especial para que cualquier usuario autenticado obtenga su propio perfil sin necesidad de conocer su ID.
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users/profile" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/users/profile" \
+  -H "Authorization: Bearer $USER_TOKEN"
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "id": "current-user-uuid",
-  "email": "current.user@example.com",
-  "firstName": "Current",
-  "lastName": "User",
-  "fullName": "Current User",
-  "phoneNumber": "+541234567890",
-  "dateOfBirth": "1990-05-15T00:00:00.000Z",
-  "language": "es",
-  "timezone": "America/Argentina/Buenos_Aires",
-  "isActive": true,
-  "emailVerifiedAt": "2025-10-01T10:00:00.000Z",
-  "lastLoginAt": "2025-10-11T09:30:00.000Z",
-  "createdAt": "2025-10-01T10:00:00.000Z",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<USER_UUID>",
+    "email": "<email>@example.com",
+    "firstName": "<FirstName>",
+    "lastName": "<LastName>",
+    "fullName": "<FirstName> <LastName>",
+    "phoneNumber": "<phone_or_null>",
+    "dateOfBirth": null,
+    "language": "en",
+    "timezone": "UTC",
+    "isActive": true,
+    "emailVerifiedAt": null,
+    "lastLoginAt": "<timestamp_or_null>",
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/profile"
 }
 ```
 
+**Características:**
+
+- Retorna el perfil del usuario identificado por el token JWT
+- No requiere pasar el ID como parámetro
+- Funciona con cualquier rol (USER o ADMIN)
+- ⚠️ `passwordHash` NO aparece en la respuesta (seguridad)
+
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Retorna el perfil del usuario autenticado
+- [ ] Status code es 200 OK
+- [ ] Retorna el perfil del usuario autenticado (extraído del token)
 - [ ] `passwordHash` NO aparece en la respuesta
 - [ ] Incluye todos los campos del usuario
+- [ ] Funciona con USER_TOKEN y ADMIN_TOKEN
 
 ---
 
@@ -659,7 +866,7 @@ curl -X GET "$BASE_URL/users/profile" \
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users/profile" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/users/profile"
 ```
 
 **Respuesta Esperada (401 Unauthorized):**
@@ -679,45 +886,65 @@ curl -X GET "$BASE_URL/users/profile" | jq '.'
 
 ---
 
-## 4️⃣ Obtener Usuario por ID
+## 4️⃣ Obtener Usuario por ID **[🔴 ADMIN Only]**
 
-### ✅ Test 4.1: Obtener usuario por ID (como ADMIN)
+### ✅ Test 4.1: Obtener usuario por ID como ADMIN
 
 **Endpoint:** `GET /users/:id`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN o el mismo usuario)
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Status Code:** `200 OK`
+
+**Path Params:**
+
+- `id` (UUID): ID del usuario a obtener
 
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users/$USER_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+# Usar el USER_ID guardado anteriormente
+curl -s -X GET "http://localhost:3002/api/v1/users/$USER_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "id": "user-uuid-here",
-  "email": "user@example.com",
-  "firstName": "User",
-  "lastName": "Name",
-  "fullName": "User Name",
-  "phoneNumber": "+541234567890",
-  "language": "es",
-  "timezone": "America/Argentina/Buenos_Aires",
-  "isActive": true,
-  "emailVerifiedAt": "2025-10-01T10:00:00.000Z",
-  "lastLoginAt": "2025-10-11T09:30:00.000Z",
-  "createdAt": "2025-10-01T10:00:00.000Z",
-  "updatedAt": "2025-10-11T10:30:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<USER_UUID>",
+    "email": "<email>@example.com",
+    "firstName": "<FirstName>",
+    "lastName": "<LastName>",
+    "fullName": "<FirstName> <LastName>",
+    "phoneNumber": "<phone_or_null>",
+    "dateOfBirth": null,
+    "language": "en",
+    "timezone": "UTC",
+    "isActive": true,
+    "emailVerifiedAt": null,
+    "lastLoginAt": null,
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/<USER_UUID>"
 }
 ```
 
+**Características:**
+
+- Solo ADMIN puede obtener información de otros usuarios
+- Retorna los mismos campos que `/profile`
+- ⚠️ `passwordHash` NO aparece en la respuesta
+
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Retorna usuario específico
-- [ ] `passwordHash` NO aparece
+- [ ] Status code es 200 OK
+- [ ] Retorna usuario específico por ID
+- [ ] `passwordHash` NO aparece en la respuesta
+- [ ] Estructura de respuesta idéntica a `/profile`
 
 ---
 
@@ -726,8 +953,8 @@ curl -X GET "$BASE_URL/users/$USER_ID" \
 **Comando curl:**
 
 ```bash
-curl -X GET "$BASE_URL/users/00000000-0000-0000-0000-000000000000" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/users/00000000-0000-0000-0000-000000000000" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Respuesta Esperada (404 Not Found):**
@@ -752,8 +979,8 @@ curl -X GET "$BASE_URL/users/00000000-0000-0000-0000-000000000000" \
 
 ```bash
 # Con token de usuario normal (no admin)
-curl -X GET "$BASE_URL/users/$USER_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+curl -X GET "http://localhost:3002/api/v1/users/$USER_ID" \
+  -H "Authorization: Bearer $USER_TOKEN"
 ```
 
 **Respuesta Esperada (403 Forbidden):**
@@ -773,90 +1000,143 @@ curl -X GET "$BASE_URL/users/$USER_ID" \
 
 ---
 
-## 5️⃣ Actualizar Usuario
+## 5️⃣ Actualizar Usuario **[🔴 ADMIN Only]**
 
-### ✅ Test 5.1: Actualizar usuario exitosamente
+### ✅ Test 5.1: ADMIN actualiza usuario por ID
 
 **Endpoint:** `PATCH /users/:id`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN o el mismo usuario)
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Status Code:** `200 OK`
 
-**Nota:** NO se puede actualizar `email` ni `passwordHash` por este endpoint.
+**Restricciones:**
+
+- ⚠️ Solo ADMIN puede actualizar usuarios (incluso el propio perfil)
+- NO se puede actualizar `email` (campo único e inmutable)
+- NO se puede actualizar `passwordHash` por este endpoint (usar `/auth/change-password`)
+- NO se puede actualizar `isActive` por este endpoint (usar `/users/:id/activate` o `/users/:id` DELETE)
+
+**Campos actualizables:**
+
+- `firstName` (string, 2-100 chars): Nombre
+- `lastName` (string, 2-100 chars): Apellido
+- `phoneNumber` (string, opcional): Teléfono en formato internacional
+- `dateOfBirth` (string, date, opcional): Fecha de nacimiento
+- `language` (string): Idioma preferido (e.g., "es", "en")
+- `timezone` (string): Zona horaria (e.g., "America/Argentina/Buenos_Aires")
 
 **Request Body:**
 
 ```json
 {
-  "firstName": "John Updated",
-  "lastName": "Doe Updated",
-  "phoneNumber": "+549876543210",
-  "language": "en",
-  "timezone": "America/New_York"
+  "firstName": "<UpdatedFirstName>",
+  "phoneNumber": "+5491199887766"
 }
 ```
 
 **Comando curl:**
 
 ```bash
-curl -X PATCH "$BASE_URL/users/$USER_ID" \
+# Usar el USER_ID guardado anteriormente
+curl -s -X PATCH "http://localhost:3002/api/v1/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "firstName": "John Updated",
-    "lastName": "Doe Updated",
-    "phoneNumber": "+549876543210",
-    "language": "en",
-    "timezone": "America/New_York"
-  }' | jq '.'
+    "firstName": "UpdatedByAdmin",
+    "phoneNumber": "+5491199887766"
+  }'
 ```
 
 **Respuesta Esperada (200 OK):**
 
 ```json
 {
-  "id": "user-uuid-here",
-  "email": "user@example.com",
-  "firstName": "John Updated",
-  "lastName": "Doe Updated",
-  "fullName": "John Updated Doe Updated",
-  "phoneNumber": "+549876543210",
-  "language": "en",
-  "timezone": "America/New_York",
-  "isActive": true,
-  "createdAt": "2025-10-01T10:00:00.000Z",
-  "updatedAt": "2025-10-11T10:35:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "id": "<USER_UUID>",
+    "email": "<email>@example.com",
+    "firstName": "UpdatedByAdmin",
+    "lastName": "<LastName>",
+    "fullName": "UpdatedByAdmin <LastName>",
+    "phoneNumber": "+5491199887766",
+    "dateOfBirth": null,
+    "language": "en",
+    "timezone": "UTC",
+    "isActive": true,
+    "emailVerifiedAt": null,
+    "lastLoginAt": null,
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp_updated>"
+  },
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/<USER_UUID>",
+  "success": true
+}
+```
+
+**Características:**
+
+- `fullName` se recalcula automáticamente (firstName + " " + lastName)
+- `updatedAt` se actualiza automáticamente con el timestamp actual
+- Solo se actualizan los campos enviados (partial update)
+- ⚠️ `passwordHash` NO aparece en la respuesta
+
+**Checklist:**
+
+- [ ] Status code es 200 OK
+- [ ] Campos enviados están actualizados en la respuesta
+- [ ] `fullName` se recalculó automáticamente
+- [ ] `updatedAt` cambió (timestamp más reciente)
+- [ ] `email` NO cambió (campo inmutable)
+- [ ] `passwordHash` NO aparece en la respuesta
+
+---
+
+### ❌ Test 5.2: USER intenta actualizar (403 Forbidden)
+
+**Endpoint:** `PATCH /users/:id`  
+**Autenticación:** Bearer Token (JWT) - **USER role** (sin permisos ADMIN)  
+**Status Code:** `403 Forbidden`
+
+**Propósito:** Verificar que USER no puede actualizar ningún usuario, ni siquiera su propio perfil.
+
+**Comando curl:**
+
+```bash
+# Obtener el propio ID del usuario autenticado
+MY_USER_ID=$(curl -s -X GET "http://localhost:3002/api/v1/users/profile" \
+  -H "Authorization: Bearer $USER_TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+# Intentar actualizar el propio perfil con USER_TOKEN
+curl -s -X PATCH "http://localhost:3002/api/v1/users/$MY_USER_ID" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "AttemptedUpdate",
+    "phoneNumber": "+541199887766"
+  }'
+```
+
+**Respuesta Esperada (403 Forbidden):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "User with role 'USER' does not have access to this resource. Required roles: ADMIN",
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/<USER_UUID>",
+  "method": "PATCH"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 200
-- [ ] Campos actualizados reflejan los cambios
-- [ ] `fullName` se recalcula automáticamente
-- [ ] `updatedAt` cambió
-- [ ] `email` NO se puede cambiar
-- [ ] `passwordHash` NO se puede cambiar
-
----
-
-### ✅ Test 5.2: Actualizar perfil propio
-
-**Comando curl:**
-
-```bash
-# Usuario actualiza su propio perfil
-curl -X PATCH "$BASE_URL/users/$(curl -s -X GET "$BASE_URL/users/profile" \
-  -H "Authorization: Bearer $TOKEN" | jq -r '.id')" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phoneNumber": "+541199887766"
-  }' | jq '.'
-```
-
-**Checklist:**
-
-- [ ] Status code es 200
-- [ ] Usuario puede actualizar su propio perfil
+- [ ] Status code es 403 Forbidden
+- [ ] Mensaje indica: "Required roles: ADMIN"
+- [ ] Error es "FORBIDDEN"
+- [ ] Usuario NO fue actualizado en la base de datos
 
 ---
 
@@ -865,13 +1145,13 @@ curl -X PATCH "$BASE_URL/users/$(curl -s -X GET "$BASE_URL/users/profile" \
 **Comando curl:**
 
 ```bash
-curl -X PATCH "$BASE_URL/users/$USER_ID" \
+curl -X PATCH "http://localhost:3002/api/v1/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "firstName": "A",
     "phoneNumber": "invalid"
-  }' | jq '.'
+  }'
 ```
 
 **Respuesta Esperada (400 Bad Request):**
@@ -904,54 +1184,70 @@ curl -X PATCH "$BASE_URL/users/$USER_ID" \
 - ✅ Se puede recuperar usuario con `PATCH /users/:id/activate` (restaura soft delete)
 - 🔒 **Protección Admin**: Un administrador NO puede eliminarse a sí mismo
 
-### ✅ Test 6.1: Eliminar usuario exitosamente (Soft Delete)
+### ✅ Test 6.1: ADMIN elimina usuario (Soft Delete)
 
 **Endpoint:** `DELETE /users/:id`  
-**Autenticación:** Bearer Token (JWT) - Required (ADMIN)  
-**Status Code:** `204 No Content`  
-**Nota:** Soft delete - el usuario se marca con `deletedAt` pero no se elimina físicamente
+**Autenticación:** Bearer Token (JWT) - **ADMIN role required**  
+**Status Code:** `204 No Content`
+
+**Propósito:** Soft delete - el usuario se marca con `deletedAt` (TypeORM @DeleteDateColumn) pero NO se elimina físicamente de la base de datos.
+
+**Path Params:**
+
+- `id` (UUID): ID del usuario a eliminar
 
 **Comando curl:**
 
 ```bash
-curl -X DELETE "$BASE_URL/users/$USER_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" -v
+# Usar el USER_ID guardado anteriormente
+curl -s -X DELETE "http://localhost:3002/api/v1/users/$USER_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Respuesta Esperada (204 No Content):**
 
 ```
-(Sin body, solo status code 204)
+(Sin body, solo status code 204 sin contenido)
 ```
 
 **Verificar soft delete:**
 
 ```bash
 # Intentar obtener usuario eliminado (debería retornar 404)
-curl -X GET "$BASE_URL/users/$USER_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -s -X GET "http://localhost:3002/api/v1/users/$USER_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-**Respuesta (404 Not Found):**
+**Respuesta al GET después del DELETE (404 Not Found):**
 
 ```json
 {
   "statusCode": 404,
-  "message": "User with ID {id} not found",
-  "error": "Not Found"
+  "message": "User with ID <USER_UUID> not found",
+  "error": "NOT_FOUND",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/<USER_UUID>",
+  "method": "GET"
 }
 ```
 
-**Nota:** El usuario existe en la base de datos pero con `deletedAt` seteado, por lo que NO es visible en consultas normales.
+**Comportamiento del Soft Delete:**
+
+- Usuario existe en la DB pero con campo `deletedAt` poblado
+- TypeORM filtra automáticamente registros con `deletedAt` (WHERE deletedAt IS NULL)
+- Usuario NO aparece en GET /users/:id (retorna 404)
+- Usuario NO aparece en listado GET /users
+- Usuario puede ser reactivado con PATCH /users/:id/activate
 
 **Checklist:**
 
-- [ ] Status code es 204
-- [ ] No hay body en la respuesta
-- [ ] Usuario NO aparece en GET /users/:id (retorna 404)
+- [ ] Status code es 204 No Content
+- [ ] No hay body en la respuesta del DELETE
+- [ ] GET /users/:id retorna 404 Not Found después del DELETE
 - [ ] Usuario NO aparece en listado GET /users
-- [ ] Campo `deletedAt` tiene timestamp en la base de datos
-- [ ] Usuario puede ser reactivado con endpoint activate (restaura soft delete)
+- [ ] En DB: campo `deletedAt` tiene timestamp (soft delete)
+- [ ] Usuario puede ser recuperado con endpoint `/users/:id/activate`
 
 ---
 
@@ -965,13 +1261,15 @@ curl -X GET "$BASE_URL/users/$USER_ID" \
 **Comando curl:**
 
 ```bash
-# Obtener ID del usuario admin actual
-ADMIN_USER_ID=$(curl -s -X GET "$BASE_URL/auth/me" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.id')
+# Obtener ID del usuario admin actual usando /auth/me
+ADMIN_USER_ID=$(curl -s -X GET "http://localhost:3002/api/v1/auth/me" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+echo "ADMIN_USER_ID: $ADMIN_USER_ID"
 
 # Intentar eliminar el propio usuario admin
-curl -X DELETE "$BASE_URL/users/$ADMIN_USER_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -s -X DELETE "http://localhost:3002/api/v1/users/$ADMIN_USER_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Respuesta Esperada (403 Forbidden):**
@@ -980,16 +1278,20 @@ curl -X DELETE "$BASE_URL/users/$ADMIN_USER_ID" \
 {
   "statusCode": 403,
   "message": "Admin users cannot be deleted. Please contact support for assistance.",
-  "error": "Forbidden"
+  "error": "FORBIDDEN",
+  "success": false,
+  "timestamp": "<timestamp>",
+  "path": "/api/v1/users/<ADMIN_UUID>",
+  "method": "DELETE"
 }
 ```
 
 **Checklist:**
 
-- [ ] Status code es 403
+- [ ] Status code es 403 Forbidden
 - [ ] Admin NO puede eliminarse a sí mismo
-- [ ] Mensaje claro de prohibición
-- [ ] Usuario admin sigue activo
+- [ ] Mensaje claro de prohibición: "Admin users cannot be deleted"
+- [ ] Usuario admin sigue activo después del intento
 
 ---
 
@@ -998,8 +1300,8 @@ curl -X DELETE "$BASE_URL/users/$ADMIN_USER_ID" \
 **Comando curl:**
 
 ```bash
-curl -X DELETE "$BASE_URL/users/$USER_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq '.'
+curl -X DELETE "http://localhost:3002/api/v1/users/$USER_ID" \
+  -H "Authorization: Bearer $USER_TOKEN"
 ```
 
 **Respuesta Esperada (403 Forbidden):**
@@ -1029,8 +1331,8 @@ curl -X DELETE "$BASE_URL/users/$USER_ID" \
 **Comando curl:**
 
 ```bash
-curl -X PATCH "$BASE_URL/users/$USER_ID/activate" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.'
+curl -X PATCH "http://localhost:3002/api/v1/users/$USER_ID/activate" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
 **Respuesta Esperada (200 OK):**
@@ -1074,7 +1376,7 @@ echo ""
 echo "1️⃣ Creando usuario..."
 TIMESTAMP=$(date +%s)
 
-CREATE_RESPONSE=$(curl -s -X POST "$BASE_URL/users" \
+CREATE_RESPONSE=$(curl -s -X POST "http://localhost:3002/api/v1/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
@@ -1085,8 +1387,8 @@ CREATE_RESPONSE=$(curl -s -X POST "$BASE_URL/users" \
     \"phoneNumber\": \"+541234567890\"
   }")
 
-USER_ID=$(echo $CREATE_RESPONSE | jq -r '.id')
-EMAIL=$(echo $CREATE_RESPONSE | jq -r '.email')
+USER_ID=$(echo $CREATE_RESPONSE
+EMAIL=$(echo $CREATE_RESPONSE
 
 if [ "$USER_ID" != "null" ]; then
   echo "✅ Usuario creado: $USER_ID"
@@ -1098,31 +1400,31 @@ fi
 
 # 2. Listar usuarios
 echo "2️⃣ Listando usuarios..."
-LIST_RESPONSE=$(curl -s -X GET "$BASE_URL/users?page=1&limit=5" \
+LIST_RESPONSE=$(curl -s -X GET "http://localhost:3002/api/v1/users?page=1&limit=5" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
-TOTAL_USERS=$(echo $LIST_RESPONSE | jq -r '.meta.total')
+TOTAL_USERS=$(echo $LIST_RESPONSE
 echo "✅ Total de usuarios: $TOTAL_USERS"
 
 # 3. Obtener perfil propio
 echo "3️⃣ Obteniendo perfil propio..."
-PROFILE_RESPONSE=$(curl -s -X GET "$BASE_URL/users/profile" \
-  -H "Authorization: Bearer $TOKEN")
+PROFILE_RESPONSE=$(curl -s -X GET "http://localhost:3002/api/v1/users/profile" \
+  -H "Authorization: Bearer $USER_TOKEN")
 
-PROFILE_EMAIL=$(echo $PROFILE_RESPONSE | jq -r '.email')
+PROFILE_EMAIL=$(echo $PROFILE_RESPONSE
 echo "✅ Perfil obtenido: $PROFILE_EMAIL"
 
 # 4. Obtener usuario por ID
 echo "4️⃣ Obteniendo usuario por ID..."
-USER_DETAIL=$(curl -s -X GET "$BASE_URL/users/$USER_ID" \
+USER_DETAIL=$(curl -s -X GET "http://localhost:3002/api/v1/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
-FULL_NAME=$(echo $USER_DETAIL | jq -r '.fullName')
+FULL_NAME=$(echo $USER_DETAIL
 echo "✅ Usuario obtenido: $FULL_NAME"
 
 # 5. Actualizar usuario
 echo "5️⃣ Actualizando usuario..."
-UPDATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/users/$USER_ID" \
+UPDATE_RESPONSE=$(curl -s -X PATCH "http://localhost:3002/api/v1/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1131,20 +1433,20 @@ UPDATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/users/$USER_ID" \
     "phoneNumber": "+549876543210"
   }')
 
-UPDATED_NAME=$(echo $UPDATE_RESPONSE | jq -r '.fullName')
+UPDATED_NAME=$(echo $UPDATE_RESPONSE
 echo "✅ Usuario actualizado: $UPDATED_NAME"
 
 # 6. Filtrar usuarios activos
 echo "6️⃣ Filtrando usuarios activos..."
-ACTIVE_USERS=$(curl -s -X GET "$BASE_URL/users?isActive=true&limit=5" \
+ACTIVE_USERS=$(curl -s -X GET "http://localhost:3002/api/v1/users?isActive=true&limit=5" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
-ACTIVE_COUNT=$(echo $ACTIVE_USERS | jq '.data | length')
+ACTIVE_COUNT=$(echo $ACTIVE_USERS
 echo "✅ Usuarios activos en página: $ACTIVE_COUNT"
 
 # 7. Soft delete de usuario
 echo "7️⃣ Eliminando usuario (soft delete)..."
-DELETE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$BASE_URL/users/$USER_ID" \
+DELETE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "http://localhost:3002/api/v1/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
 if [ "$DELETE_RESPONSE" == "204" ]; then
@@ -1155,10 +1457,10 @@ fi
 
 # 8. Verificar que está inactivo
 echo "8️⃣ Verificando estado inactivo..."
-DELETED_USER=$(curl -s -X GET "$BASE_URL/users/$USER_ID" \
+DELETED_USER=$(curl -s -X GET "http://localhost:3002/api/v1/users/$USER_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
-IS_ACTIVE=$(echo $DELETED_USER | jq -r '.isActive')
+IS_ACTIVE=$(echo $DELETED_USER
 echo "   isActive: $IS_ACTIVE"
 
 if [ "$IS_ACTIVE" == "false" ]; then
@@ -1169,10 +1471,10 @@ fi
 
 # 9. Activar usuario
 echo "9️⃣ Activando usuario..."
-ACTIVATE_RESPONSE=$(curl -s -X PATCH "$BASE_URL/users/$USER_ID/activate" \
+ACTIVATE_RESPONSE=$(curl -s -X PATCH "http://localhost:3002/api/v1/users/$USER_ID/activate" \
   -H "Authorization: Bearer $ADMIN_TOKEN")
 
-IS_ACTIVE_AGAIN=$(echo $ACTIVATE_RESPONSE | jq -r '.isActive')
+IS_ACTIVE_AGAIN=$(echo $ACTIVATE_RESPONSE
 
 if [ "$IS_ACTIVE_AGAIN" == "true" ]; then
   echo "✅ Usuario reactivado exitosamente"

@@ -34,7 +34,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 registrations per hour
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 registrations per minute (for testing/portfolio)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
@@ -42,7 +42,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
-    description: 'Too Many Requests - Rate limit exceeded (max 3 registrations per hour)',
+    description: 'Too Many Requests - Rate limit exceeded (max 10 registrations per minute)',
   })
   @ApiBody({
     type: RegisterDto,
@@ -89,35 +89,35 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 login attempts per minute (for testing/portfolio)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User login',
     description:
-      'Authenticate user with email and password. Rate limited to 5 attempts per minute to prevent brute force attacks.',
+      'Authenticate user with email and password. Rate limited to 20 attempts per minute (relaxed for testing/portfolio).',
   })
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
-    description: 'Too Many Requests - Rate limit exceeded (max 5 login attempts per minute)',
+    description: 'Too Many Requests - Rate limit exceeded (max 20 login attempts per minute)',
   })
   @ApiBody({
     type: LoginDto,
     description: 'User login credentials',
     examples: {
-      userLogin: {
-        summary: 'Standard user login',
-        description: 'Example login with email and password',
+      adminLogin: {
+        summary: 'Admin user login (from seed)',
+        description: 'Login with admin user created by database seed',
         value: {
-          email: 'john.doe@example.com',
-          password: 'SecurePassword123!',
+          email: 'admin@test.com',
+          password: 'Admin123!',
         },
       },
-      alternativeUser: {
-        summary: 'Alternative user login',
-        description: 'Another example with different credentials',
+      regularUserLogin: {
+        summary: 'Regular user login (from seed)',
+        description: 'Login with regular user created by database seed',
         value: {
-          email: 'jane.smith@example.com',
-          password: 'MySecurePass456@',
+          email: 'user@test.com',
+          password: 'Admin123!',
         },
       },
     },
@@ -175,7 +175,7 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get current user profile',
     description: 'Retrieve the profile information of the authenticated user',
@@ -210,7 +210,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'User logout',
     description: 'Logout the authenticated user (client should discard tokens)',
@@ -233,7 +233,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get current user information',
     description: 'Get minimal information about the authenticated user',

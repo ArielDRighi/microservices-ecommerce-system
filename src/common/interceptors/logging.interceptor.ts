@@ -93,18 +93,18 @@ export class LoggingInterceptor implements NestInterceptor {
 
     const sensitiveFields = [
       'password',
-      'passwordHash',
+      'passwordhash',
       'token',
-      'accessToken',
-      'refreshToken',
-      'apiKey',
+      'accesstoken',
+      'refreshtoken',
+      'apikey',
       'secret',
       'authorization',
       'cookie',
       'x-api-key',
-      'creditCard',
+      'creditcard',
       'ssn',
-      'socialSecurityNumber',
+      'socialsecuritynumber',
     ];
 
     const sanitize = (obj: Record<string, unknown>): Record<string, unknown> => {

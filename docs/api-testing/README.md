@@ -1,632 +1,575 @@
-# 📚 Guía Completa de Testing de API - E-commerce Async Resilient System
+# 🧪 API Testing Documentation
 
-**Proyecto:** E-commerce Async Resilient System  
-**Arquitectura:** Microservicios asíncronos con NestJS, PostgreSQL, Redis, Bull Queues  
-**Autor:** Ariel D. Righi  
-**Última Actualización:** 2025-10-14
+**Proyecto:** E-commerce Async & Resilient System  
+**Propósito:** Guías manuales de testing para todos los módulos de la API  
+**Audiencia:** QA Engineers, Tech Leads, Developers
 
 ---
 
-## 🔐 Control de Acceso (RBAC)
+## � Quick Start
 
-Este sistema implementa **Role-Based Access Control (RBAC)** con dos roles principales:
+**¿Primera vez aquí? Comienza con la demo de 5 minutos:**
 
-### Roles del Sistema
+➡️ **[Quick Start Demo (5 min)](/docs/api-testing/00-QUICK-START-DEMO.md)**
 
-| Rol         | Descripción               | Acceso                                               |
-| ----------- | ------------------------- | ---------------------------------------------------- |
-| **ADMIN**   | Administrador del sistema | Acceso completo: crear, modificar, eliminar recursos |
-| **USER**    | Usuario estándar          | Lectura + operaciones propias (órdenes, reservas)    |
-| **Público** | Sin autenticación         | Solo lectura en endpoints públicos                   |
+Esta guía express te permite probar el core del sistema (procesamiento asíncrono de órdenes con Saga Pattern) directamente desde Swagger en 5 minutos.
 
-### Operaciones por Rol
+---
 
-**🔴 ADMIN Only:**
+## �📋 Descripción General
 
-- Crear/modificar/eliminar productos
-- Crear/modificar/eliminar categorías
-- Crear/agregar/remover inventario
-- Gestionar usuarios (CRUD)
+Este directorio contiene **documentación detallada de testing manual** para cada módulo de la API REST del sistema de e-commerce. Cada documento está diseñado para ser seguido paso a paso, permitiendo a cualquier miembro del equipo técnico validar la funcionalidad completa de cada módulo.
 
-**🟡 Auth Required (USER/ADMIN):**
+### 🎯 Objetivos
 
-- Crear órdenes
-- Ver perfil propio
-- Reservar/liberar stock
-- Ver estadísticas de inventario
+- **Testing Manual Estructurado:** Cada documento proporciona comandos `curl` completos y ejemplos de respuestas esperadas
+- **Validación Funcional:** Pruebas de casos exitosos y casos de error para cada endpoint
+- **Verificación de Seguridad:** Validación de autenticación, autorización y protección de datos sensibles
+- **Documentación de Referencia:** Ejemplos reales de cómo consumir la API correctamente
 
-**🟢 Público (sin auth):**
+### 🔑 Características Clave
 
-- Listar productos y categorías
-- Ver detalles de productos
-- Buscar en catálogo
-- Verificar disponibilidad de stock
+- ✅ Comandos `curl` listos para ejecutar
+- ✅ Respuestas esperadas con estructura JSON completa
+- ✅ Checklists de validación para cada test
+- ✅ Explicación de roles y permisos (RBAC)
+- ✅ Manejo de errores y casos edge
+- ✅ Variables de entorno y setup inicial
+- ✅ Ejemplos de paginación, filtros y búsqueda
 
-### Obtener Tokens por Rol
+---
+
+## 📚 Módulos Disponibles
+
+### 1️⃣ [Autenticación (Auth)](./01-AUTH-MODULE.md)
+
+**Endpoint Base:** `POST /api/v1/auth`  
+**Descripción:** Sistema de autenticación con JWT, registro de usuarios, login, refresh tokens y gestión de perfil.
+
+**Funcionalidades:**
+
+- Registro de nuevos usuarios
+- Login con email/password
+- Refresh de access tokens
+- Obtención de perfil autenticado
+- Logout (invalidación de tokens)
+
+**Tests Incluidos:** 15+  
+**Autenticación Requerida:** Parcial (algunos endpoints públicos)
+
+---
+
+### 2️⃣ [Productos (Products)](./02-PRODUCTS-MODULE.md)
+
+**Endpoint Base:** `GET/POST/PATCH/DELETE /api/v1/products`  
+**Descripción:** Gestión completa del catálogo de productos con búsqueda, paginación, filtros y activación/desactivación.
+
+**Funcionalidades:**
+
+- CRUD completo de productos
+- Búsqueda avanzada con filtros
+- Paginación y ordenamiento
+- Activación/desactivación de productos
+- Validación de stock y precios
+
+**Tests Incluidos:** 20+  
+**Autenticación Requerida:** Sí (ADMIN para crear/modificar/eliminar)
+
+---
+
+### 3️⃣ [Inventario (Inventory)](./03-INVENTORY-MODULE.md)
+
+**Endpoint Base:** `GET/POST/PUT /api/v1/inventory`  
+**Descripción:** Sistema de gestión de inventario con reservas, disponibilidad, control de stock y estadísticas.
+
+**Funcionalidades:**
+
+- Verificación de disponibilidad
+- Reserva de stock (con TTL)
+- Liberación y fulfillment de reservas
+- Agregar/remover stock
+- Consultas de bajo stock y sin stock
+- Estadísticas de inventario
+
+**Tests Incluidos:** 18+  
+**Autenticación Requerida:** Sí (ADMIN para operaciones de stock)
+
+---
+
+### 4️⃣ [Órdenes (Orders)](./04-ORDERS-MODULE.md)
+
+**Endpoint Base:** `GET/POST /api/v1/orders`  
+**Descripción:** Procesamiento de órdenes con saga pattern, pagos, reservas de inventario y notificaciones asíncronas.
+
+**Funcionalidades:**
+
+- Creación de órdenes (multi-item)
+- Listado de órdenes con filtros
+- Obtención de órdenes por ID
+- Consulta de estado de orden
+- Procesamiento asíncrono (queues)
+
+**Tests Incluidos:** 12+  
+**Autenticación Requerida:** Sí (usuarios solo ven sus propias órdenes)
+
+---
+
+### 5️⃣ [Usuarios (Users)](./05-USERS-MODULE.md)
+
+**Endpoint Base:** `GET/POST/PATCH/DELETE /api/v1/users`  
+**Descripción:** Gestión de usuarios con RBAC, soft delete, paginación y control de acceso basado en roles.
+
+**Funcionalidades:**
+
+- CRUD de usuarios (ADMIN only)
+- Listado con paginación y búsqueda
+- Perfil propio (cualquier usuario autenticado)
+- Filtros por estado (activo/inactivo)
+- Activación de usuarios eliminados
+- Soft delete con @DeleteDateColumn
+
+**Tests Incluidos:** 18+  
+**Autenticación Requerida:** Sí (ADMIN para gestión, USER para ver propio perfil)
+
+---
+
+### 6️⃣ [Categorías (Categories)](./06-CATEGORIES-MODULE.md)
+
+**Endpoint Base:** `GET/POST/PUT/PATCH/DELETE /api/v1/categories`  
+**Descripción:** Gestión jerárquica de categorías con árbol ilimitado, slugs SEO-friendly, breadcrumbs y relaciones parent-child.
+
+**Funcionalidades:**
+
+- Categorías con estructura de árbol recursiva
+- Slugs únicos y auto-generados
+- Árbol completo con hijos anidados
+- Búsqueda por slug (SEO-friendly)
+- Path completo (breadcrumb)
+- Descendientes con control de profundidad
+- Activación/desactivación
+- Soft delete
+
+**Tests Incluidos:** 25+  
+**Autenticación Requerida:** ADMIN para crear/modificar/eliminar, público para consultas
+
+---
+
+### 7️⃣ [Health & Monitoring](./07-HEALTH-MONITORING-MODULE.md)
+
+**Endpoint Base:** `GET /api/v1/health`, `GET /api/v1/metrics`, `GET /api/v1/admin/queues`  
+**Descripción:** Endpoints de salud, métricas Prometheus y dashboard de monitoreo de queues (Bull Board).
+
+**Funcionalidades:**
+
+- Health check general
+- Readiness probe (Kubernetes)
+- Liveness probe (Kubernetes)
+- Detailed health check
+- Métricas Prometheus
+- Bull Board dashboard (Basic Auth)
+
+**Tests Incluidos:** 7  
+**Autenticación Requerida:** No para health/metrics, Basic Auth para Bull Board
+
+**⚠️ Nota Importante:** Redis y Queues health checks están implementados pero NO registrados/habilitados en el HealthModule actual, por lo que no aparecen en las respuestas de health. El dashboard Bull Board sí está funcional y accesible.
+
+---
+
+## 🚀 Cómo Usar Esta Documentación
+
+### Pre-requisitos
+
+Antes de iniciar cualquier testing, asegúrate de tener:
+
+1. **Servidor corriendo:** `npm run start:dev` (puerto 3002)
+2. **Base de datos iniciada:** PostgreSQL con migraciones aplicadas (`npm run migration:run`)
+3. **Redis corriendo:** Para queues de Bull
+4. **Seed data ejecutado:** Ejecutar seeds según necesidad:
+   - `npm run seed:run` - Seed inicial (usuarios admin y user)
+   - `npm run seed:users` - Solo usuarios
+   - `npm run seed:categories` - Categorías de productos
+   - `npm run seed:products` - Productos (requiere categorías)
+   - `npm run seed:inventory` - Inventario (requiere productos)
+   - `npm run seed:all` - Todos los seeds en orden (recomendado para testing completo)
+
+### Variables de Entorno Comunes
+
+Cada documento define sus propias variables, pero estas son las más comunes:
 
 ```bash
-# Token de ADMINISTRADOR
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@test.com",
-    "password": "Admin123!@#"
-  }' | jq -r '.data.accessToken')
+# Base URL de la API
+export BASE_URL="http://localhost:3002/api/v1"
 
-# Token de USUARIO
-export USER_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@test.com",
-    "password": "User123!@#"
-  }' | jq -r '.data.accessToken')
+# Tokens de autenticación (obtener desde Auth module)
+export ADMIN_TOKEN=""  # Token con rol ADMIN
+export USER_TOKEN=""   # Token con rol USER
 
-echo "Admin Token: $ADMIN_TOKEN"
-echo "User Token: $USER_TOKEN"
-```
-
-### Códigos de Error de Autorización
-
-| Código               | Significado       | Cuándo ocurre                                                                    |
-| -------------------- | ----------------- | -------------------------------------------------------------------------------- |
-| **401 Unauthorized** | Sin autenticación | No se envió token JWT o es inválido                                              |
-| **403 Forbidden**    | Sin permisos      | Usuario autenticado pero sin rol requerido (ej: USER intentando operación ADMIN) |
-
-### Seguridad Adicional
-
-**Rate Limiting:**
-
-- Login: 5 requests/minuto
-- Register: 3 requests/hora
-- General: 10 requests/minuto
-
-**Bull Board Dashboard:**
-
-- Protegido con Basic Authentication
-- Credenciales: `BULL_BOARD_USERNAME` y `BULL_BOARD_PASSWORD` (env vars)
-- Sin credenciales válidas = 401 Unauthorized
-
----
-
-## 📋 Índice de Módulos
-
-### 🔐 Autenticación & Usuarios
-
-- **[01 - Auth Module](./01-AUTH-MODULE.md)** - 6 endpoints
-  - Registro, Login, Refresh Token, Profile, Logout
-  - JWT Authentication con refresh tokens
-  - **Rate Limiting:** Login (5/min), Register (3/hr)
-  - **Tests:** 25+ | **Status:** ✅ Completado
-
-- **[05 - Users Module](./05-USERS-MODULE.md)** - 6 endpoints **[🔴 ADMIN Only]**
-  - CRUD de usuarios, paginación, soft delete con @DeleteDateColumn
-  - Protección contra auto-eliminación de admin
-  - **RBAC:** Solo ADMIN puede gestionar usuarios
-  - **Tests:** 35+ | **Status:** ✅ Completado
-
-### 🛍️ Catálogo & Productos
-
-- **[02 - Products Module](./02-PRODUCTS-MODULE.md)** - 8 endpoints
-  - CRUD completo **[🔴 ADMIN Only]**, búsqueda, filtros avanzados **[🟢 Público]**
-  - **Precio mínimo:** $0.50 (constante: PRODUCT_PRICE.MIN)
-  - **RBAC:** Admin crea/modifica/elimina, público consulta
-  - **Tests:** 35+ | **Status:** ✅ Completado
-
-- **[06 - Categories Module](./06-CATEGORIES-MODULE.md)** - 11 endpoints
-  - CRUD **[🔴 ADMIN Only]**, consultas **[🟢 Público]**
-  - Jerarquía de árbol ilimitada, slugs SEO
-  - Soft delete con @DeleteDateColumn (deletedAt)
-  - **Tests:** 40+ | **Status:** ✅ Completado
-
-### 🛒 Órdenes & Ventas
-
-- **[03 - Orders Module](./03-ORDERS-MODULE.md)** - 4 endpoints
-  - Procesamiento asíncrono con saga pattern
-  - Idempotencia, estados progresivos
-  - **Tests:** 15+ | **Status:** ✅ Completado
-
-### 📦 Inventario
-
-- **[03 - Inventory Module](./03-INVENTORY-MODULE.md)** - 16 endpoints
-  - Crear/agregar/remover stock **[🔴 ADMIN Only]**
-  - Reservas con TTL **[🟡 Auth Required]**, consultas **[🟢 Público]**
-  - **RBAC:** Operaciones de stock solo para ADMIN
-  - **Tests:** 45+ | **Status:** ✅ Completado
-
-### 🏥 Monitoreo & Salud
-
-- **[07 - Health & Monitoring Module](./07-HEALTH-MONITORING-MODULE.md)** - 6 endpoints
-  - Health checks (Kubernetes ready) **[🟢 Público]**
-  - Prometheus metrics **[🟢 Público]**
-  - **Bull Board dashboard [🔐 Basic Auth]** (BULL_BOARD_USERNAME/PASSWORD)
-  - **Tests:** 5+ | **Status:** ✅ Completado
-
----
-
-## 📊 Resumen Ejecutivo
-
-| Módulo     | Endpoints | Tests    | RBAC   | Seguridad         | Prioridad | Complejidad |
-| ---------- | --------- | -------- | ------ | ----------------- | --------- | ----------- |
-| Auth       | 6         | 25+      | ✅     | Rate Limiting     | 🔴 Alta   | Media       |
-| Products   | 8         | 35+      | ✅     | ADMIN Only (CUD)  | 🔴 Alta   | Media       |
-| Orders     | 4         | 15+      | ✅     | Auth Required     | 🔴 Alta   | Alta        |
-| Users      | 6         | 35+      | ✅     | ADMIN Only        | 🟡 Media  | Media       |
-| Categories | 11        | 40+      | ✅     | ADMIN Only (CUD)  | 🟡 Media  | Alta        |
-| Inventory  | 16        | 45+      | ✅     | ADMIN (stock ops) | 🔴 Alta   | Muy Alta    |
-| Health     | 6         | 5+       | ✅     | Bull Board Auth   | 🟢 Baja   | Baja        |
-| **TOTAL**  | **57**    | **200+** | **✅** | **Completado**    | -         | -           |
-
----
-
-## 🚀 Quick Start
-
-### 1. Configurar Variables de Entorno
-
-```bash
-# Base URL
-export BASE_URL="http://localhost:3000"
-
-# Autenticación
-export TOKEN=""
-export ADMIN_TOKEN=""
-export REFRESH_TOKEN=""
-
-# IDs de recursos
+# IDs de recursos (se obtienen durante los tests)
 export USER_ID=""
 export PRODUCT_ID=""
-export ORDER_ID=""
 export CATEGORY_ID=""
+export ORDER_ID=""
 ```
 
-### 2. Obtener Token de Autenticación
+### 🎨 Testing con Swagger UI (Alternativa Interactiva)
 
-```bash
-# Login como usuario normal
-export TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "YourPassword123!"
-  }' | jq -r '.accessToken')
+Además del testing manual con `curl`, puedes usar **Swagger UI** para una experiencia más visual e interactiva:
 
-echo "Token: $TOKEN"
+**URL:** `http://localhost:3002/api/docs`
 
-# Login como admin
-export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@example.com",
-    "password": "AdminPassword123!"
-  }' | jq -r '.accessToken')
+**Características:**
 
-echo "Admin Token: $ADMIN_TOKEN"
-```
+- ✅ **Exploración visual** de todos los endpoints organizados por módulos
+- ✅ **Pruebas interactivas** directamente desde el navegador (sin necesidad de curl)
+- ✅ **Autenticación integrada**: Click en "Authorize" → Pegar tu JWT token
+- ✅ **Esquemas detallados**: Ver estructura completa de request/response bodies
+- ✅ **Validación en tiempo real**: Swagger valida tus requests antes de enviarlos
+- ✅ **Ejemplos auto-generados**: Pre-poblado con valores de ejemplo
+- ✅ **Exportar OpenAPI**: Descargar especificación en formato JSON/YAML
 
-### 3. Verificar Salud del Sistema
+**Cómo usar Swagger:**
 
-```bash
-# Health check
-curl -X GET "$BASE_URL/health" | jq '.'
+1. **Iniciar servidor:** `npm run start:dev`
+2. **Abrir Swagger:** Navegar a `http://localhost:3002/api/docs`
+3. **Autenticarse:**
+   - Click en botón "Authorize" (icono de candado arriba a la derecha)
+   - Obtener token desde Auth module (POST `/api/v1/auth/login`)
+   - Pegar token en el campo `Bearer <token>`
+   - Click "Authorize" y "Close"
+4. **Probar endpoints:**
+   - Expandir módulo (ej: "products")
+   - Click en endpoint (ej: GET `/api/v1/products`)
+   - Click "Try it out"
+   - Rellenar parámetros si es necesario
+   - Click "Execute"
+   - Ver respuesta con status code, headers y body
 
-# Métricas Prometheus
-curl -X GET "$BASE_URL/metrics"
+**💡 Tip:** Swagger es ideal para exploración rápida y pruebas ad-hoc. Para testing sistemático y repetible, sigue los documentos de testing manual con `curl`.
 
-# Bull Board Dashboard
-open "http://localhost:3000/admin/queues"
+---
+
+### Orden Sugerido de Testing
+
+Para una validación completa del sistema, se recomienda seguir este orden:
+
+1. **Auth Module** - Obtener tokens para el resto de los tests
+2. **Users Module** - Validar gestión de usuarios y RBAC
+3. **Categories Module** - Crear estructura de categorías para productos
+4. **Products Module** - Crear productos asociados a categorías
+5. **Inventory Module** - Verificar stock y reservas
+6. **Orders Module** - Probar flujo completo de órdenes
+7. **Health & Monitoring** - Validar estado del sistema
+
+### Estructura de Cada Documento
+
+Todos los documentos siguen la misma estructura para facilitar la lectura:
+
+```markdown
+## 📋 Índice de Tests
+
+- Checkbox list de todos los tests
+
+## 🚀 Pre-requisitos
+
+- Setup inicial específico del módulo
+
+## Variables de Entorno
+
+- Variables necesarias para el módulo
+
+## 🔑 Obtener Tokens (si aplica)
+
+- Comandos para autenticación
+
+## Tests Individuales
+
+- Comando curl
+- Respuesta esperada
+- Checklist de validación
+- Explicación de campos importantes
+
+## ⚠️ Respuestas de Error
+
+- Casos de error comunes
 ```
 
 ---
 
-## 🧪 Flujos de Testing Recomendados
+## 🔐 Sistema de Autorización (RBAC)
 
-### Flujo 1: Testing de Usuario Nuevo (Happy Path)
+El sistema implementa control de acceso basado en roles:
 
-```bash
-#!/bin/bash
-# Flujo completo de usuario nuevo realizando compra
+### Roles Disponibles
 
-BASE_URL="http://localhost:3000"
+- **ADMIN**: Acceso completo a todos los recursos
+- **USER**: Acceso limitado (solo sus propios recursos)
 
-echo "=== 🛍️ Flujo de Usuario Nuevo ==="
+### Niveles de Acceso por Módulo
 
-# 1. Registro
-echo "1️⃣ Registrando usuario..."
-REGISTER_RESPONSE=$(curl -s -X POST "$BASE_URL/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "newuser@example.com",
-    "password": "SecurePassword123!",
-    "firstName": "New",
-    "lastName": "User"
-  }')
+| Módulo     | Endpoint                  | ADMIN  | USER | Público |
+| ---------- | ------------------------- | ------ | ---- | ------- |
+| Auth       | POST /auth/register       | ✅     | ✅   | ✅      |
+| Auth       | POST /auth/login          | ✅     | ✅   | ✅      |
+| Auth       | GET /auth/profile         | ✅     | ✅   | ❌      |
+| Users      | POST /users               | ✅     | ❌   | ❌      |
+| Users      | GET /users                | ✅     | ❌   | ❌      |
+| Users      | GET /users/profile        | ✅     | ✅   | ❌      |
+| Products   | POST /products            | ✅     | ❌   | ❌      |
+| Products   | GET /products             | ✅     | ✅   | ✅      |
+| Categories | POST /categories          | ✅     | ❌   | ❌      |
+| Categories | GET /categories           | ✅     | ✅   | ✅      |
+| Inventory  | POST /inventory/add-stock | ✅     | ❌   | ❌      |
+| Inventory  | GET /inventory            | ✅     | ✅   | ❌      |
+| Orders     | POST /orders              | ✅     | ✅   | ❌      |
+| Orders     | GET /orders               | ✅     | ✅\* | ❌      |
+| Health     | GET /health               | ✅     | ✅   | ✅      |
+| Metrics    | GET /metrics              | ✅     | ✅   | ✅      |
+| Bull Board | GET /admin/queues         | ✅\*\* | ❌   | ❌      |
 
-TOKEN=$(echo $REGISTER_RESPONSE | jq -r '.accessToken')
-echo "✅ Usuario registrado. Token obtenido."
-
-# 2. Listar productos
-echo "2️⃣ Buscando productos..."
-PRODUCTS=$(curl -s -X GET "$BASE_URL/products?limit=5")
-PRODUCT_ID=$(echo $PRODUCTS | jq -r '.data[0].id')
-echo "✅ Producto seleccionado: $PRODUCT_ID"
-
-# 3. Verificar stock
-echo "3️⃣ Verificando stock..."
-STOCK=$(curl -s -X POST "$BASE_URL/inventory/check-availability" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 2
-  }")
-
-AVAILABLE=$(echo $STOCK | jq -r '.available')
-echo "✅ Stock disponible: $AVAILABLE"
-
-# 4. Crear orden
-echo "4️⃣ Creando orden..."
-ORDER=$(curl -s -X POST "$BASE_URL/orders" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"items\": [{
-      \"productId\": \"$PRODUCT_ID\",
-      \"quantity\": 2,
-      \"price\": 99.99
-    }],
-    \"shippingAddress\": {
-      \"street\": \"123 Main St\",
-      \"city\": \"Buenos Aires\",
-      \"state\": \"CABA\",
-      \"postalCode\": \"1000\",
-      \"country\": \"Argentina\"
-    },
-    \"paymentMethod\": \"CREDIT_CARD\",
-    \"idempotencyKey\": \"order_$(date +%s)\"
-  }")
-
-ORDER_ID=$(echo $ORDER | jq -r '.id')
-ORDER_STATUS=$(echo $ORDER | jq -r '.status')
-echo "✅ Orden creada: $ORDER_ID (Status: $ORDER_STATUS)"
-
-# 5. Monitorear orden
-echo "5️⃣ Monitoreando orden..."
-sleep 3
-
-ORDER_STATUS_RESPONSE=$(curl -s -X GET "$BASE_URL/orders/$ORDER_ID/status" \
-  -H "Authorization: Bearer $TOKEN")
-
-FINAL_STATUS=$(echo $ORDER_STATUS_RESPONSE | jq -r '.status')
-echo "✅ Estado final: $FINAL_STATUS"
-
-echo ""
-echo "=== ✅ Flujo completado exitosamente ==="
-```
-
-### Flujo 2: Testing de Admin (Gestión de Catálogo)
-
-```bash
-#!/bin/bash
-# Flujo de admin gestionando catálogo
-
-BASE_URL="http://localhost:3000"
-ADMIN_TOKEN="your-admin-token"
-
-echo "=== 👨‍💼 Flujo de Administrador ==="
-
-# 1. Crear categoría
-echo "1️⃣ Creando categoría..."
-CATEGORY=$(curl -s -X POST "$BASE_URL/categories" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Electronics",
-    "slug": "electronics"
-  }')
-
-CATEGORY_ID=$(echo $CATEGORY | jq -r '.id')
-echo "✅ Categoría creada: $CATEGORY_ID"
-
-# 2. Crear producto
-echo "2️⃣ Creando producto..."
-PRODUCT=$(curl -s -X POST "$BASE_URL/products" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"name\": \"Laptop Pro 2024\",
-    \"description\": \"High-performance laptop\",
-    \"price\": 1299.99,
-    \"sku\": \"LAPTOP-2024-001\",
-    \"categoryId\": \"$CATEGORY_ID\",
-    \"stock\": 50
-  }")
-
-PRODUCT_ID=$(echo $PRODUCT | jq -r '.id')
-echo "✅ Producto creado: $PRODUCT_ID"
-
-# 3. Agregar stock
-echo "3️⃣ Agregando stock adicional..."
-ADD_STOCK=$(curl -s -X POST "$BASE_URL/inventory/add-stock" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 100,
-    \"reason\": \"Stock replenishment\"
-  }")
-
-NEW_QUANTITY=$(echo $ADD_STOCK | jq -r '.newQuantity')
-echo "✅ Stock agregado. Nuevo total: $NEW_QUANTITY"
-
-# 4. Ver estadísticas
-echo "4️⃣ Obteniendo estadísticas de inventario..."
-STATS=$(curl -s -X GET "$BASE_URL/inventory/stats" \
-  -H "Authorization: Bearer $ADMIN_TOKEN")
-
-TOTAL_PRODUCTS=$(echo $STATS | jq -r '.totalProducts')
-echo "✅ Total de productos en sistema: $TOTAL_PRODUCTS"
-
-echo ""
-echo "=== ✅ Flujo de admin completado ==="
-```
-
-### Flujo 3: Testing de Inventario (Reservas con TTL)
-
-```bash
-#!/bin/bash
-# Flujo de testing de sistema de reservas
-
-BASE_URL="http://localhost:3000"
-TOKEN="your-token"
-
-echo "=== 📦 Testing de Reservas con TTL ==="
-
-# 1. Obtener producto
-PRODUCT_ID=$(curl -s -X GET "$BASE_URL/products?limit=1" | jq -r '.data[0].id')
-
-# 2. Verificar stock inicial
-echo "1️⃣ Stock inicial..."
-INITIAL=$(curl -s -X GET "$BASE_URL/inventory/product/$PRODUCT_ID")
-INITIAL_AVAILABLE=$(echo $INITIAL | jq -r '.availableQuantity')
-echo "   Disponible: $INITIAL_AVAILABLE"
-
-# 3. Reservar stock
-echo "2️⃣ Reservando stock..."
-RESERVATION_ID="res_test_$(date +%s)"
-
-RESERVE=$(curl -s -X POST "$BASE_URL/inventory/reserve" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"productId\": \"$PRODUCT_ID\",
-    \"quantity\": 5,
-    \"reservationId\": \"$RESERVATION_ID\",
-    \"ttlMinutes\": 30
-  }")
-
-echo "   Reserva creada: $RESERVATION_ID"
-EXPIRES_AT=$(echo $RESERVE | jq -r '.expiresAt')
-echo "   Expira en: $EXPIRES_AT"
-
-# 4. Verificar stock después de reserva
-echo "3️⃣ Stock después de reserva..."
-AFTER_RESERVE=$(curl -s -X GET "$BASE_URL/inventory/product/$PRODUCT_ID")
-AFTER_AVAILABLE=$(echo $AFTER_RESERVE | jq -r '.availableQuantity')
-RESERVED=$(echo $AFTER_RESERVE | jq -r '.reservedQuantity')
-echo "   Disponible: $AFTER_AVAILABLE"
-echo "   Reservado: $RESERVED"
-
-# 5. Liberar reserva
-echo "4️⃣ Liberando reserva..."
-RELEASE=$(curl -s -X PUT "$BASE_URL/inventory/release-reservation" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"reservationId\": \"$RESERVATION_ID\"
-  }")
-
-echo "   Reserva liberada"
-
-# 6. Verificar stock final
-echo "5️⃣ Stock final..."
-FINAL=$(curl -s -X GET "$BASE_URL/inventory/product/$PRODUCT_ID")
-FINAL_AVAILABLE=$(echo $FINAL | jq -r '.availableQuantity')
-echo "   Disponible: $FINAL_AVAILABLE"
-
-echo ""
-echo "=== ✅ Testing de reservas completado ==="
-```
+\*USER solo ve sus propias órdenes  
+\*\*Requiere Basic Auth (no JWT)
 
 ---
 
-## 🔧 Herramientas Recomendadas
+## 📊 Formato de Respuestas
 
-### Testing Manual
+Todos los endpoints siguen un formato estándar de respuesta:
 
-- **curl** - Línea de comandos (incluido en guías)
-- **Postman** - UI para testing de APIs
-- **Insomnia** - Alternativa a Postman
-- **HTTPie** - Cliente HTTP user-friendly
-
-### Testing Automatizado
-
-- **Jest** - Framework de testing (usado en el proyecto)
-- **Supertest** - Testing de APIs HTTP
-- **Newman** - Postman CLI para CI/CD
-
-### Monitoreo
-
-- **Prometheus** - Métricas (`/metrics`)
-- **Grafana** - Visualización de métricas
-- **Bull Board** - Dashboard de queues (`/admin/queues`)
-- **Swagger UI** - Documentación interactiva (`/api`)
-
-### Debugging
-
-- **Chrome DevTools** - Network inspection
-- **Redis Commander** - Visualizar Redis
-- **pgAdmin** - Gestión de PostgreSQL
-
----
-
-## 📝 Convenciones de Testing
-
-### Estructura de Tests
-
-Cada módulo sigue esta estructura:
-
-1. **Variables de Entorno** - Setup inicial
-2. **Casos de Éxito (✅)** - Happy path scenarios
-3. **Casos de Error (❌)** - Error handling
-4. **Edge Cases** - Casos límite
-5. **Script Automatizado** - Testing completo
-
-### Códigos de Estado HTTP
-
-| Código  | Significado           | Uso                                                                     |
-| ------- | --------------------- | ----------------------------------------------------------------------- |
-| 200     | OK                    | GET exitoso, operación completada                                       |
-| 201     | Created               | POST exitoso, recurso creado                                            |
-| 202     | Accepted              | Procesamiento asíncrono iniciado                                        |
-| 204     | No Content            | DELETE exitoso, sin body                                                |
-| 400     | Bad Request           | Validación fallida, datos inválidos                                     |
-| **401** | **Unauthorized**      | **Sin autenticación, token inválido/ausente**                           |
-| **403** | **Forbidden**         | **Autenticado pero sin permisos (ej: USER intentando operación ADMIN)** |
-| 404     | Not Found             | Recurso no encontrado                                                   |
-| 409     | Conflict              | Conflicto (e.g., email duplicado)                                       |
-| 422     | Unprocessable Entity  | Lógica de negocio inválida                                              |
-| **429** | **Too Many Requests** | **Rate limit excedido**                                                 |
-| 500     | Internal Server Error | Error del servidor                                                      |
-| 503     | Service Unavailable   | Servicio no disponible                                                  |
-
-### Diferencia entre 401 y 403
-
-| Aspecto         | 401 Unauthorized           | 403 Forbidden                                   |
-| --------------- | -------------------------- | ----------------------------------------------- |
-| **Significado** | No identificado            | Identificado pero sin permisos                  |
-| **Token JWT**   | No enviado o inválido      | Válido pero rol insuficiente                    |
-| **Ejemplo**     | Sin header `Authorization` | USER intentando crear producto (requiere ADMIN) |
-| **Solución**    | Obtener token válido       | Obtener token con rol correcto (ADMIN)          |
-
-### Formato de Respuestas
-
-**Respuesta exitosa:**
+### Respuesta Exitosa
 
 ```json
 {
-  "id": "uuid",
-  "field1": "value1",
-  "createdAt": "2025-10-11T10:00:00.000Z"
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    // Datos del recurso
+  },
+  "timestamp": "2025-10-15T00:00:00.000Z",
+  "path": "/api/v1/resource",
+  "success": true
 }
 ```
 
-**Respuesta con error:**
+### Respuesta con Paginación
+
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [
+      /* array de items */
+    ],
+    "meta": {
+      "total": 100,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 10,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    }
+  },
+  "timestamp": "2025-10-15T00:00:00.000Z",
+  "path": "/api/v1/resource",
+  "success": true
+}
+```
+
+### Respuesta de Error
 
 ```json
 {
   "statusCode": 400,
-  "message": ["field must be valid"],
-  "error": "Bad Request"
+  "message": "Validation failed",
+  "error": "BAD_REQUEST",
+  "details": ["Field 'email' must be a valid email address"],
+  "timestamp": "2025-10-15T00:00:00.000Z",
+  "path": "/api/v1/resource",
+  "method": "POST",
+  "correlationId": "uuid-here",
+  "success": false
 }
 ```
 
-**Respuesta paginada:**
+### Códigos de Estado Comunes
 
-```json
-{
-  "data": [...],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 100,
-    "totalPages": 10
-  }
-}
+| Código | Significado           | Uso                                     |
+| ------ | --------------------- | --------------------------------------- |
+| 200    | OK                    | Operación exitosa (GET, PATCH, PUT)     |
+| 201    | Created               | Recurso creado exitosamente (POST)      |
+| 204    | No Content            | Recurso eliminado exitosamente (DELETE) |
+| 400    | Bad Request           | Validación fallida o request inválido   |
+| 401    | Unauthorized          | Token faltante o inválido               |
+| 403    | Forbidden             | Sin permisos suficientes (RBAC)         |
+| 404    | Not Found             | Recurso no encontrado                   |
+| 409    | Conflict              | Conflicto (ej: email duplicado)         |
+| 500    | Internal Server Error | Error del servidor                      |
+| 503    | Service Unavailable   | Servicio no disponible (health checks)  |
+
+---
+
+## 🛠️ Herramientas Recomendadas
+
+### Para Testing Manual
+
+- **curl** - Incluido en los ejemplos de cada documento
+- **Postman** - Importar colecciones desde los comandos curl
+- **Insomnia** - Alternativa a Postman
+- **HTTPie** - CLI más amigable que curl
+- **Swagger UI** - 📚 Documentación interactiva en `http://localhost:3002/api/docs`
+  - Explorar todos los endpoints disponibles
+  - Probar requests directamente desde el navegador
+  - Ver esquemas completos de request/response
+  - Autenticación JWT integrada (botón "Authorize")
+  - Exportar especificaciones OpenAPI
+
+### Para Monitoreo
+
+- **Bull Board** - Dashboard web para queues (incluido en el proyecto)
+- **Prometheus** - Scraping de métricas (`/api/v1/metrics`)
+- **Grafana** - Visualización de métricas de Prometheus
+
+### Para Automatización
+
+- **Jest + Supertest** - Tests E2E automatizados (ver `/test/e2e`)
+- **GitHub Actions** - CI/CD pipelines
+- **Postman Collections** - Test runners automatizados
+
+---
+
+## 📝 Convenciones de Nomenclatura
+
+### Variables de Entorno
+
+- Mayúsculas con guiones bajos: `ADMIN_TOKEN`, `BASE_URL`
+- Prefijo por tipo: `USER_`, `PRODUCT_`, `ORDER_`
+
+### Placeholders en Ejemplos
+
+- UUIDs: `<USER_UUID>`, `uuid-generado`
+- Timestamps: `<timestamp>`, `2025-10-15T00:00:00.000Z`
+- Valores dinámicos: `<nombre-campo>`
+
+### Comandos curl
+
+- Una línea por flag para legibilidad
+- Headers explícitos (`-H "Authorization: Bearer $TOKEN"`)
+- JSON formateado con `python -m json.tool` o `jq`
+
+---
+
+## 🐛 Troubleshooting
+
+### Puerto ya en uso (EADDRINUSE)
+
+```bash
+# Windows
+netstat -ano | findstr :3002
+taskkill //PID <PID> //F
+
+# Linux/Mac
+lsof -ti:3002 | xargs kill -9
+```
+
+### Base de datos no responde
+
+```bash
+# Verificar PostgreSQL corriendo
+npm run db:status
+
+# Ejecutar migraciones
+npm run migration:run
+
+# Ejecutar seed
+npm run seed:run
+```
+
+### Redis no disponible
+
+```bash
+# Verificar Redis corriendo
+redis-cli ping  # Debe responder: PONG
+
+# En Windows con Memurai
+memurai-cli ping
+```
+
+### Tokens expirados
+
+```bash
+# Los tokens expiran después de 15 minutos
+# Volver a obtener tokens desde Auth module
+curl -X POST "$BASE_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@test.com","password":"Admin123!"}'
 ```
 
 ---
 
-## 🎯 Checklist de Testing
+## 🔄 Actualizaciones y Mantenimiento
 
-### Pre-requisitos
+### Última Actualización
 
-- [ ] Aplicación corriendo en `http://localhost:3000`
-- [ ] Base de datos PostgreSQL iniciada
-- [ ] Redis iniciado
-- [ ] Variables de entorno configuradas
-- [ ] `jq` instalado para parsear JSON
+**Fecha:** 2025-10-15  
+**Versión API:** v1  
+**Estado:** ✅ Todos los módulos documentados y probados
 
-### Testing por Módulo
+### Cambios Recientes
 
-- [ ] Auth Module - Autenticación funcional
-- [ ] Users Module - CRUD de usuarios
-- [ ] Products Module - Gestión de productos
-- [ ] Categories Module - Jerarquía de categorías
-- [ ] Orders Module - Procesamiento asíncrono
-- [ ] Inventory Module - Reservas y stock
-- [ ] Health Module - Monitoreo
+- ✅ Agregada documentación de Swagger UI y testing interactivo
+- ✅ Corrección de comandos de seeds (seed:run → seed:all para testing completo)
+- ✅ Corrección de puerto (3000 → 3002) en Health module
+- ✅ Documentación de Redis/Queues health checks (implementados pero no registrados)
+- ✅ Actualización de ejemplos de respuesta con wrapper estándar
+- ✅ Corrección de rutas con prefijo `/api/v1`
 
-### Testing de Integración
+### Contribuir
 
-- [ ] Flujo completo: Registro → Login → Crear orden
-- [ ] Flujo admin: Crear categoría → Crear producto
-- [ ] Flujo inventario: Reservar → Fulfill/Release
-- [ ] Idempotencia funciona en Orders
-- [ ] TTL de reservas funciona correctamente
-- [ ] Queues procesando jobs
+Si encuentras discrepancias entre la documentación y el comportamiento real de la API:
 
-### Performance
-
-- [ ] Endpoints responden en < 100ms (sin procesamiento pesado)
-- [ ] Paginación funciona con datasets grandes
-- [ ] Filtros y búsquedas son eficientes
-- [ ] No hay memory leaks (verificar `/health/detailed`)
-
-### Seguridad
-
-- [ ] Endpoints protegidos requieren autenticación (401)
-- [ ] RBAC: Roles (ADMIN/USER) funcionan correctamente (403)
-- [ ] Tokens JWT expiran correctamente
-- [ ] Rate limiting en auth (login: 5/min, register: 3/hr) (429)
-- [ ] Validaciones de input funcionan (400)
-- [ ] No se exponen datos sensibles (passwords)
-- [ ] Bull Board protegido con Basic Auth
-- [ ] Soft delete funciona con @DeleteDateColumn (deletedAt)
-- [ ] Admin no puede eliminarse a sí mismo
-- [ ] USER recibe 403 al intentar operaciones ADMIN
+1. Verifica que el servidor esté en la última versión
+2. Ejecuta los tests manuales siguiendo el documento al pie de la letra
+3. Documenta las diferencias encontradas
+4. Crea un issue o PR con las correcciones necesarias
 
 ---
 
-## 📞 Soporte y Contacto
+## 📚 Recursos Adicionales
 
-**Repositorio:** [github.com/ArielDRighi/ecommerce-async-resilient-system](https://github.com/ArielDRighi/ecommerce-async-resilient-system)  
-**Branch:** `docs/complete-documentation`  
-**Autor:** Ariel D. Righi  
-**Email:** [tu-email@example.com]
+### Documentación Interactiva
 
----
+- **[📚 Swagger UI - Documentación API Interactiva](http://localhost:3002/api/docs)**
+  - Exploración visual de todos los endpoints
+  - Testing interactivo desde el navegador
+  - Esquemas completos de request/response
+  - Autenticación JWT integrada
+  - Especificaciones OpenAPI exportables
 
-## 📄 Licencia
+### Documentación Técnica
 
-Este proyecto y su documentación están bajo la licencia MIT. Ver archivo `LICENSE` para más detalles.
+- [Arquitectura del Sistema](../ARCHITECTURE.md)
+- [Diseño de Base de Datos](../DATABASE_DESIGN.md)
 
----
+### ADRs (Architecture Decision Records)
 
-## 🔒 Resumen de Seguridad Implementada
+- [ADR Directory](../adr/README.md)
+- Decisiones arquitectónicas documentadas
 
-**✅ RBAC (Role-Based Access Control):** Control de acceso por roles (ADMIN/USER/Público) en todos los módulos  
-**✅ Rate Limiting:** Protección contra ataques de fuerza bruta en autenticación (5 req/min login, 3 req/hr register)  
-**✅ Soft Delete:** Eliminación lógica con `@DeleteDateColumn` preservando histórico de datos  
-**✅ Bull Board Auth:** Dashboard de colas protegido con Basic Authentication  
-**✅ Admin Protection:** Validación para prevenir auto-eliminación de administradores  
-**✅ Price Validation:** Precio mínimo configurado en $0.50 (PRODUCT_PRICE.MIN)  
-**✅ Authorization Tests:** Pruebas 403 para verificar restricciones de permisos  
-**✅ JWT Expiration:** Tokens con tiempo de vida limitado
+### Testing Automatizado
 
-> **Nota de Seguridad:** Todos los endpoints administrativos están protegidos con el decorador `@Roles('ADMIN')` y retornan `403 Forbidden` cuando un usuario con rol USER intenta acceder.
+- Tests E2E en `/test/e2e`
+- Tests unitarios en cada módulo (`*.spec.ts`)
 
 ---
 
-**Última Actualización:** 2025-10-14  
-**Versión de Documentación:** 2.0.0  
-**Tests Totales:** 200+  
-**Cobertura de Código:** 74.66%  
-**Estado:** ✅ Producción Ready con RBAC implementado
+## 📧 Contacto y Soporte
+
+Para preguntas o problemas relacionados con esta documentación:
+
+- **Issues:** GitHub Issues del proyecto
+- **Tech Lead:** Ver CODEOWNERS
+- **Documentación:** Este directorio `/docs/api-testing`
+
+---
+
+**Happy Testing! 🚀**
