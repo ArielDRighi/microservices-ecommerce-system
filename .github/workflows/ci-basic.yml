@@ -40,36 +40,38 @@ jobs:
                   test -f docs/adr/026-api-gateway-express-custom.md && echo "✅ ADR-026 exists"
                   echo "✅ Documentation files present"
 
-  # Job 2: Orders Service - Estructura básica
-  orders-service-basic:
-    name: Orders Service - Basic Checks
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./services/orders-service
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    # Job 2: Orders Service - Estructura básica
+    orders-service-basic:
+        name: Orders Service - Basic Checks
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./services/orders-service
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
 
-      - name: Check Orders Service structure
-        run: |
-          echo "Validating Orders Service structure..."
-          test -f package.json && echo "✅ package.json exists"
-          test -f tsconfig.json && echo "✅ tsconfig.json exists"
-          test -f .eslintrc.json && echo "✅ .eslintrc.json exists"
-          test -f jest.config.js && echo "✅ jest.config.js exists"
-          test -d src && echo "✅ src/ directory exists"
-          test -d test && echo "✅ test/ directory exists"
-          echo "✅ Orders Service structure is valid"
-          
-      - name: Validate package.json
-        run: |
-          echo "Checking package.json..."
-          if command -v jq &> /dev/null; then
-            jq -r '.scripts | keys[]' package.json
-          else
-            echo "Scripts found in package.json"
-          fi    # Job 3: Inventory Service - Validar estructura Go
+            - name: Check Orders Service structure
+              run: |
+                  echo "Validating Orders Service structure..."
+                  test -f package.json && echo "✅ package.json exists"
+                  test -f tsconfig.json && echo "✅ tsconfig.json exists"
+                  test -f .eslintrc.json && echo "✅ .eslintrc.json exists"
+                  test -f jest.config.js && echo "✅ jest.config.js exists"
+                  test -d src && echo "✅ src/ directory exists"
+                  test -d test && echo "✅ test/ directory exists"
+                  echo "✅ Orders Service structure is valid"
+
+            - name: Validate package.json
+              run: |
+                  echo "Checking package.json..."
+                  if command -v jq &> /dev/null; then
+                    jq -r '.scripts | keys[]' package.json
+                  else
+                    echo "Scripts found in package.json"
+                  fi
+
+    # Job 3: Inventory Service - Validar estructura Go
     inventory-service-basic:
         name: Inventory Service - Basic Checks
         runs-on: ubuntu-latest
