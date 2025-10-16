@@ -70,15 +70,24 @@ Cliente → API Gateway → [Orders Service (NestJS)]
   - Métricas: `prom-client` (Prometheus)
 - **Implementación:** Ver Epic 4.1 y 4.2 en Fase 4
 
-#### ⏳ T0.1.2: Spike - Testcontainers en Go - Viabilidad para CI/CD
+#### ✅ T0.1.2: Spike - Testcontainers en Go - Viabilidad para CI/CD
 
-- **Status:** ⏳ PENDIENTE
+- **Status:** ✅ COMPLETADA (2025-10-16)
 - **Contexto:** Inventory Service (Go) necesita tests de integración con PostgreSQL real
-- **A investigar:**
-  - ¿Testcontainers funciona bien en GitHub Actions?
-  - ¿Tiempo de setup es aceptable? (<2 min ideal)
-  - ¿Alternativas como sqlmock son suficientes para el portfolio?
-- **Entregable:** PoC de test con testcontainers + decisión documentada
+- **Investigado:**
+  - ✅ Testcontainers funciona perfectamente en local (27s setup)
+  - ✅ Tiempo de setup ACEPTABLE (<2 min target, actual: 27.35s)
+  - ✅ sqlmock no es suficiente (no valida SQL real, constraints, locking)
+- **Decisión:** Estrategia híbrida (Unit Tests con mocks + Integration Tests con Testcontainers)
+- **Entregables:**
+  - ✅ PoC funcional: `tests/integration/poc_testcontainers_test.go`
+  - ✅ ADR-027: Testcontainers vs Mocks (análisis detallado)
+  - ✅ Reporte de resultados: `services/inventory-service/docs/POC_TESTCONTAINERS_RESULTS.md`
+- **Métricas:**
+  - Setup: 27.35s (✅ bajo target de 120s)
+  - Query 100 productos: 1.24ms (✅ excelente performance)
+  - Coverage esperado: 75% unit + 20% integration + 5% e2e
+- **Referencia:** Ver ADR-027
 
 #### ⏳ T0.1.3: Spike - Estrategia de Comunicación Síncrona
 
