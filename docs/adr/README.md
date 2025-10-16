@@ -90,6 +90,10 @@ Cada ADR sigue esta estructura:
 - [ADR-024](024-docker-compose-development.md) - Docker Compose para Desarrollo
 - [ADR-025](025-multi-stage-docker-builds.md) - Multi-stage Docker Builds
 
+### Microservices y API Gateway
+
+- [ADR-026](026-api-gateway-express-custom.md) - API Gateway Custom con Express.js
+
 ## Proceso de Creación de ADRs
 
 ### 1. **Identificar una Decisión Arquitectónica**

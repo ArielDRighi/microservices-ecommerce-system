@@ -1,0 +1,140 @@
+# golangci-lint configuration for Inventory Service
+# See: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck # Checking for unchecked errors
+    - gosimple # Simplify code
+    - govet # Reports suspicious constructs
+    - ineffassign # Detects ineffectual assignments
+    - staticcheck # Static analysis
+    - typecheck # Type-checks Go code
+    - unused # Checks for unused constants, variables, functions and types
+    - gofmt # Checks whether code was gofmt-ed
+    - goimports # Checks import statements are formatted
+    - misspell # Finds commonly misspelled English words
+    - gosec # Security issues
+    - gocritic # Provides diagnostics that check for bugs, performance and style issues
+    - gocyclo # Computes cyclomatic complexity
+    - dupl # Code clone detection
+    - unparam # Reports unused function parameters
+    - unconvert # Unnecessary type conversions
+    - prealloc # Finds slice declarations that could potentially be preallocated
+    - exportloopref # Checks for pointers to enclosing loop variables
+    - noctx # Finds sending http request without context.Context
+    - bodyclose # Checks whether HTTP response body is closed successfully
+    - errorlint # Find code that will cause problems with the error wrapping scheme
+    - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go
+
+  disable:
+    - deadcode # Deprecated (replaced by unused)
+    - structcheck # Deprecated (replaced by unused)
+    - varcheck # Deprecated (replaced by unused)
+    - scopelint # Deprecated (replaced by exportloopref)
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+
+  gocyclo:
+    min-complexity: 15
+
+  dupl:
+    threshold: 100
+
+  misspell:
+    locale: US
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - hugeParam
+      - rangeValCopy
+
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+  gosec:
+    excludes:
+      - G104 # Audit errors not checked - covered by errcheck
+
+issues:
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - "bin/.*"
+    - "vendor/.*"
+
+  exclude-dirs:
+    - bin
+    - vendor
+
+  exclude-rules:
+    # Exclude some linters from running on test files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+
+    # Exclude test helpers from some checks
+    - path: tests/
+      linters:
+        - errcheck
+        - gosec
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+severity:
+  default: warning
+  rules:
+    - linters:
+        - errcheck
+        - govet
+        - staticcheck
+      severity: error
