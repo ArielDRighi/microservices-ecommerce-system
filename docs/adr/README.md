@@ -93,6 +93,7 @@ Cada ADR sigue esta estructura:
 ### Microservices y API Gateway
 
 - [ADR-026](026-api-gateway-express-custom.md) - API Gateway Custom con Express.js
+- [ADR-027](027-testcontainers-vs-mocks-go-testing.md) - Estrategia de Testing con Testcontainers (Go)
 
 ## Proceso de Creación de ADRs
 
