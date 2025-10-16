@@ -1,178 +1,158 @@
+# ============================================================================
+# MICROSERVICES E-COMMERCE SYSTEM - GITIGNORE
+# ============================================================================
+# Multi-language support: Node.js, Go, Docker
+# Multi-IDE support: VSCode, IntelliJ, GoLand, Vim, Emacs
+
+# ============================================================================
+# NODE.JS / TYPESCRIPT
+# ============================================================================
+
 # Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-.nyc_output
+lerna-debug.log*
 
 # Build outputs
 dist/
 build/
+.webpack/
 .parcel-cache/
 
-# Environment files
+# Testing & Coverage
+coverage/
+*.lcov
+.nyc_output
+.jest-cache/
+junit.xml
+test-results/
+
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# NestJS
+.nest/
+
+# ESLint/Prettier cache
+.eslintcache
+.prettiercache
+
+# ============================================================================
+# GO
+# ============================================================================
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go compiler
+*.o
+*.a
+*.out
+
+# Go build artifacts
+bin/
+pkg/
+vendor/
+
+# Go coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Go workspace
+go.work
+go.work.sum
+
+# Air (hot reload)
+tmp/
+.air.toml
+
+# ============================================================================
+# DATABASES
+# ============================================================================
+
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+
+# PostgreSQL dumps
+*.dump
+*.sql.backup
+
+# ============================================================================
+# ENVIRONMENT & SECRETS
+# ============================================================================
+
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
-# Secrets and sensitive data
 .env.*.local
+
+# Sensitive files
 *.pem
 *.key
+*.cert
+*.crt
 secrets/
 config/secrets.json
+credentials.json
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# ============================================================================
+# DOCKER
+# ============================================================================
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+docker-compose.override.yml
+.dockerignore
 
-# Logs
+# ============================================================================
+# LOGS
+# ============================================================================
+
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Runtime and temp files
-.tmp/
-.temp/
-.cache/
-*.tmp
-*.temp
+# ============================================================================
+# IDEs & EDITORS
+# ============================================================================
 
-# Testing
-.jest-cache/
-junit.xml
-test-results/
-*coverage*.txt
-*coverage*.json
-test-*.js
+# VSCode
+.vscode/
+*.code-workspace
 
-# Database
-*.sqlite
-*.db
-database.sqlite3
-
-# Docker
-.dockerignore
-docker-compose.override.yml
-
-# NestJS specific
-dist/
-.webpack/
-
-# TypeScript
-*.tsbuildinfo
-.tsbuildinfo
-
-# ESLint cache
-.eslintcache
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
-# Temporary folders
-tmp/
-temp/
-
-# Local Netlify folder
-.netlify
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# Serverless directories
-.serverless/
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
-
-# PM2
-.pm2
-
-# Backup files
-*.backup
-*.bak
-
-# JetBrains IDEs
-*.iml
+# IntelliJ IDEA / GoLand / WebStorm
 .idea/
+*.iml
 *.ipr
 *.iws
+out/
 
 # Vim
 *.swp
 *.swo
 *~
+.netrwhist
 
 # Emacs
 *~
@@ -184,18 +164,175 @@ auto-save-list
 tramp
 .\#*
 
-# MacOS
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Eclipse
+.project
+.classpath
+.settings/
+*.launch
+
+# ============================================================================
+# OPERATING SYSTEMS
+# ============================================================================
+
+# macOS
 .DS_Store
+.DS_Store?
+._*
 .AppleDouble
 .LSOverride
+.Spotlight-V100
+.Trashes
+Icon?
 
 # Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
 # Linux
 *~
+.directory
+.Trash-*
+.nfs*
 
-# Bull Dashboard
-bull-board.json
+# ============================================================================
+# TEMPORARY & CACHE FILES
+# ============================================================================
+
+.tmp/
+.temp/
+.cache/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ============================================================================
+# FRAMEWORKS & TOOLS
+# ============================================================================
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+dist/
+
+# Gatsby
+.cache/
+public/
+
+# Serverless
+.serverless/
+
+# FuseBox
+.fusebox/
+
+# DynamoDB Local
+.dynamodb/
+
+# TernJS
+.tern-port
+
+# PM2
+.pm2/
+
+# Storybook
+.storybook-out/
+.out/
+
+# Local Netlify folder
+.netlify/
+
+# ============================================================================
+# PROJECT SPECIFIC
+# ============================================================================
+
+# Bull Dashboard state
+bull-board-state/
+
+# Migration files temporales
+migrations/*.tmp
+
+# Seed data backups
+seeds/backups/
+
+# Local development overrides
+docker-compose.dev.override.yml
+
+# Generated documentation
+docs/generated/
+
+# Backup del proyecto anterior (si existe)
+docker-compose.old.yml
+
+# ============================================================================
+# SECURITY SCANS
+# ============================================================================
+
+# Dependency vulnerability reports
+vulnerability-report.json
+security-audit.log
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+.github/workflows/*.local.yml
+.gitlab-ci.local.yml
+
+# ============================================================================
+# MISC
+# ============================================================================
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Debug files
+debug/
+*.debug
+
+# Large files (add specific patterns if needed)
+*.mov
+*.mp4
+*.avi

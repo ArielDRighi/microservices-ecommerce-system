@@ -1,135 +1,217 @@
 version: '3.8'
 
+# ============================================================================
+# MICROSERVICES E-COMMERCE SYSTEM - PROYECTO 3
+# ============================================================================
+# 
+# Este docker-compose está completamente separado del Proyecto 2
+# Usa puertos y nombres diferentes para permitir ejecución simultánea
+#
+# COMPARACIÓN PROYECTO 2 vs PROYECTO 3:
+# ┌─────────────────┬──────────────┬──────────────┐
+# │ Servicio        │ Proyecto 2   │ Proyecto 3   │
+# ├─────────────────┼──────────────┼──────────────┤
+# │ Orders Service  │ 3000         │ 3001         │
+# │ Inventory Svc   │ N/A          │ 8080         │
+# │ PostgreSQL      │ 5432         │ 5433         │
+# │ Redis           │ 6379         │ 6380         │
+# │ PgAdmin         │ 8080         │ 5050         │
+# └─────────────────┴──────────────┴──────────────┘
+#
+# ============================================================================
+
 services:
-  # PostgreSQL Database
+  # ============================================================================
+  # INFRAESTRUCTURA COMPARTIDA
+  # ============================================================================
+  
+  # PostgreSQL Database (compartida por todos los microservicios)
   postgres:
     image: postgres:15-alpine
-    container_name: ecommerce-postgres
+    container_name: microservices-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ecommerce_async
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: microservices_pass_2024
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - microservices_postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - '5432:5432'
+      - '5433:5432'  # Puerto externo 5433 para no conflictuar con Proyecto 2
     networks:
-      - ecommerce-network
+      - microservices-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d ecommerce_async']
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis Cache & Message Queue
+  # Redis Cache & Message Queue (compartida)
   redis:
     image: redis:7-alpine
-    container_name: ecommerce-redis
+    container_name: microservices-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ""
     volumes:
-      - redis_data:/data
+      - microservices_redis_data:/data
     ports:
-      - '6379:6379'
+      - '6380:6379'  # Puerto externo 6380 para no conflictuar con Proyecto 2
     networks:
-      - ecommerce-network
+      - microservices-network
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # NestJS Application (for development)
-  app:
+  # ============================================================================
+  # SERVICIOS
+  # ============================================================================
+
+  # Orders Service (NestJS) - Puerto 3001
+  orders-service:
     build:
-      context: .
+      context: ./services/orders-service
       dockerfile: Dockerfile
-      target: builder
-    container_name: ecommerce-app-dev
+      target: development
+    container_name: microservices-orders-service
     restart: unless-stopped
     environment:
       - NODE_ENV=development
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
-      - DATABASE_NAME=ecommerce_async
+      - DATABASE_NAME=microservices_orders
       - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=password
+      - DATABASE_PASSWORD=microservices_pass_2024
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=development-jwt-secret-key
-      - ENCRYPTION_KEY=dev-encryption-key-32-characters
+      - INVENTORY_SERVICE_URL=http://inventory-service:8080
+      - JWT_SECRET=microservices-jwt-secret-key-2024
+      - ENCRYPTION_KEY=microservices-encryption-key-32
       - LOG_LEVEL=debug
       - LOG_COLORIZE=true
       - ENABLE_SWAGGER=true
       - HELMET_ENABLED=false
     volumes:
-      - ./src:/app/src:ro
-      - ./package*.json:/app/
+      - ./services/orders-service/src:/app/src:ro
+      - ./services/orders-service/test:/app/test:ro
       - /app/node_modules
     ports:
-      - '3000:3000'
-      - '9229:9229' # Debug port
+      - '3001:3000'  # Puerto externo 3001 para no conflictuar con Proyecto 2
+      - '9230:9229'  # Debug port diferente
     networks:
-      - ecommerce-network
+      - microservices-network
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: npm run start:dev
     healthcheck:
-      test: ['CMD', 'node', 'health-check.js']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # Database Management Tool (optional)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: ecommerce-pgadmin
+  # Inventory Service (Go) - Puerto 8080
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      dockerfile: Dockerfile
+    container_name: microservices-inventory-service
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@ecommerce.local
+      - PORT=8080
+      - GIN_MODE=debug
+      - ENVIRONMENT=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=microservices_inventory
+      - DB_USER=postgres
+      - DB_PASSWORD=microservices_pass_2024
+      - DB_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    ports:
+      - '8080:8080'
+    networks:
+      - microservices-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ============================================================================
+  # HERRAMIENTAS DE DESARROLLO (OPCIONALES)
+  # ============================================================================
+
+  # PgAdmin - Administrador de PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: microservices-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@microservices.local
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - microservices_pgadmin_data:/var/lib/pgadmin
     ports:
-      - '8080:80'
+      - '5050:80'  # Puerto 5050 para no conflictuar con Proyecto 2
     networks:
-      - ecommerce-network
+      - microservices-network
     depends_on:
       - postgres
     profiles:
       - tools
 
-  # Redis Commander (optional)
+  # Redis Commander - Administrador de Redis
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: ecommerce-redis-commander
+    container_name: microservices-redis-commander
     restart: unless-stopped
     environment:
       REDIS_HOSTS: local:redis:6379
     ports:
-      - '8081:8081'
+      - '8082:8081'  # Puerto 8082 para no conflictuar
     networks:
-      - ecommerce-network
+      - microservices-network
     depends_on:
       - redis
     profiles:
       - tools
 
+# ============================================================================
+# VOLÚMENES PERSISTENTES
+# ============================================================================
+# Nombres únicos para no conflictuar con Proyecto 2
+
 volumes:
-  postgres_data:
+  microservices_postgres_data:
     driver: local
-  redis_data:
+    name: microservices_postgres_data
+  microservices_redis_data:
     driver: local
-  pgadmin_data:
+    name: microservices_redis_data
+  microservices_pgadmin_data:
     driver: local
+    name: microservices_pgadmin_data
+
+# ============================================================================
+# REDES
+# ============================================================================
 
 networks:
-  ecommerce-network:
+  microservices-network:
     driver: bridge
+    name: microservices-ecommerce-network

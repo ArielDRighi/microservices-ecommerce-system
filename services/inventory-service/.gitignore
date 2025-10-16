@@ -1,0 +1,55 @@
+# Binarios
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+main
+
+# Test binary
+*.test
+
+# Output del compilador Go
+*.o
+*.a
+*.out
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Vendor
+vendor/
+
+# Go workspace
+go.work
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Air (hot reload)
+tmp/
+.air.toml
+
+# Database
+*.db
+*.sqlite
+
+# OS
+Thumbs.db
