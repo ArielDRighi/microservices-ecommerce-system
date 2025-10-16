@@ -66,6 +66,8 @@ git --version
 
 ## ⚡ Instalación Rápida
 
+> **📌 Nota sobre Puertos**: Por defecto la aplicación corre en el puerto **3000** (según `.env.example`). Si usas `.env.development`, el puerto será **3002**. Ajusta las URLs según tu configuración.
+
 ### Opción 1: Con Docker (Recomendado) 🐳
 
 **Ideal para**: Setup rápido sin instalar PostgreSQL/Redis localmente
@@ -94,9 +96,9 @@ npm run seed:run
 # 7. Iniciar aplicación
 npm run start:dev
 
-# ✅ API disponible en http://localhost:3002
-# ✅ Swagger docs en http://localhost:3002/api/docs
-# ✅ Bull Board en http://localhost:3002/api/v1/admin/queues
+# ✅ API disponible en http://localhost:3000
+# ✅ Swagger docs en http://localhost:3000/api/docs
+# ✅ Bull Board en http://localhost:3000/api/v1/admin/queues
 ```
 
 ### Opción 2: Sin Docker (Manual)
@@ -131,7 +133,7 @@ npm run seed:run
 # 8. Iniciar aplicación
 npm run start:dev
 
-# ✅ API disponible en http://localhost:3002
+# ✅ API disponible en http://localhost:3000
 ```
 
 ### Opción 3: Docker Compose Completo 🚀
@@ -263,21 +265,20 @@ API_PREFIX=api/v1
 # ===============================================
 # DATABASE CONFIGURATION
 # ===============================================
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_NAME=ecommerce_async
-DATABASE_USER=postgres
-DATABASE_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ecommerce_async
+DB_USERNAME=postgres
+DB_PASSWORD=your_secure_password_here
 
 # Connection pool settings
-DATABASE_CONNECTION_POOL_MIN=5
-DATABASE_CONNECTION_POOL_MAX=20
-DATABASE_CONNECTION_TIMEOUT=30000
+DB_MAX_CONNECTIONS=10
+DB_SSL=false
 
 # TypeORM Settings
-TYPEORM_SYNCHRONIZE=false
-TYPEORM_LOGGING=false
-TYPEORM_MIGRATIONS_RUN=false
+DB_SYNCHRONIZE=false
+DB_LOGGING=true
+RUN_MIGRATIONS=true
 
 # ===============================================
 # REDIS CONFIGURATION
@@ -291,14 +292,14 @@ REDIS_KEY_PREFIX=ecommerce:
 # ===============================================
 # BULL QUEUE CONFIGURATION
 # ===============================================
-BULL_REDIS_DB=1
-BULL_KEY_PREFIX=bull
-BULL_DEFAULT_ATTEMPTS=3
+QUEUE_PREFIX=ecommerce_async
 BULL_REMOVE_ON_COMPLETE=100
 BULL_REMOVE_ON_FAIL=50
-BULL_RATE_LIMIT=true
-BULL_RATE_LIMIT_MAX=100
-BULL_RATE_LIMIT_DURATION=1000
+BULL_ATTEMPTS=3
+
+# Bull Board Dashboard
+BULL_BOARD_USERNAME=admin
+BULL_BOARD_PASSWORD=changeme_in_production
 
 # ===============================================
 # JWT AUTHENTICATION
@@ -309,34 +310,29 @@ JWT_REFRESH_SECRET=your-refresh-secret-key-change-this
 JWT_REFRESH_EXPIRES_IN=7d
 
 # ===============================================
-# ENCRYPTION
-# ===============================================
-ENCRYPTION_KEY=change-this-32-character-key!!
-ENCRYPTION_IV=16-character-iv
-
-# ===============================================
 # LOGGING
 # ===============================================
 LOG_LEVEL=info
-LOG_DIR=logs
-LOG_MAX_FILES=14d
+LOG_FORMAT=json
+LOG_FILE_ERROR=logs/error.log
+LOG_FILE_COMBINED=logs/combined.log
 LOG_MAX_SIZE=20m
-LOG_COLORIZE=true
+LOG_MAX_FILES=14
 
 # ===============================================
 # SECURITY
 # ===============================================
 HELMET_ENABLED=true
-CORS_ENABLED=true
-CORS_ORIGIN=http://localhost:3001
-RATE_LIMIT_TTL=60000
-RATE_LIMIT_MAX=100
+CORS_ORIGIN=true
+CORS_CREDENTIALS=true
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=1000
 
 # ===============================================
 # API DOCUMENTATION
 # ===============================================
 ENABLE_SWAGGER=true
-SWAGGER_PATH=api
+SWAGGER_PATH=api/docs
 
 # ===============================================
 # EXTERNAL SERVICES (Mock in development)
@@ -353,24 +349,23 @@ EMAIL_FROM_NAME=E-commerce System
 # MONITORING & HEALTH CHECKS
 # ===============================================
 ENABLE_PROMETHEUS=true
+PROMETHEUS_PORT=9090
 HEALTH_CHECK_TIMEOUT=5000
-HEALTH_CHECK_MEMORY_HEAP_THRESHOLD=150
-HEALTH_CHECK_MEMORY_RSS_THRESHOLD=150
-HEALTH_CHECK_DISK_THRESHOLD=0.9
 ```
 
 ### Variables Críticas por Ambiente
 
-| Variable              | Development   | Staging       | Production    |
-| --------------------- | ------------- | ------------- | ------------- |
-| `NODE_ENV`            | `development` | `staging`     | `production`  |
-| `TYPEORM_SYNCHRONIZE` | `false`       | `false`       | `false` ⚠️    |
-| `TYPEORM_LOGGING`     | `true`        | `false`       | `false`       |
-| `JWT_SECRET`          | Mock OK       | Strong random | Strong random |
-| `DATABASE_PASSWORD`   | Simple OK     | Strong        | Strong        |
-| `HELMET_ENABLED`      | `false`       | `true`        | `true`        |
-| `LOG_LEVEL`           | `debug`       | `info`        | `warn`        |
-| `ENABLE_SWAGGER`      | `true`        | `true`        | `false` 🔒    |
+| Variable         | Development   | Staging       | Production    |
+| ---------------- | ------------- | ------------- | ------------- |
+| `NODE_ENV`       | `development` | `staging`     | `production`  |
+| `DB_SYNCHRONIZE` | `false`       | `false`       | `false` ⚠️    |
+| `DB_LOGGING`     | `true`        | `false`       | `false`       |
+| `RUN_MIGRATIONS` | `true`        | `true`        | `true`        |
+| `JWT_SECRET`     | Mock OK       | Strong random | Strong random |
+| `DB_PASSWORD`    | Simple OK     | Strong        | Strong        |
+| `HELMET_ENABLED` | `false`       | `true`        | `true`        |
+| `LOG_LEVEL`      | `debug`       | `info`        | `warn`        |
+| `ENABLE_SWAGGER` | `true`        | `true`        | `false` 🔒    |
 
 ### Generar Secrets Seguros
 
@@ -392,9 +387,6 @@ node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
 ### Migraciones
 
 ```bash
-# Ver estado de migraciones
-npm run migration:show
-
 # Ejecutar migraciones pendientes
 npm run migration:run
 
@@ -465,7 +457,7 @@ SELECT * FROM orders LIMIT 10;  # Query de ejemplo
 
 ```bash
 # API debe estar corriendo
-curl http://localhost:3002/api/v1/health
+curl http://localhost:3000/api/v1/health
 
 # Respuesta esperada:
 {
@@ -484,7 +476,7 @@ curl http://localhost:3002/api/v1/health
 
 ```bash
 # Abrir en navegador
-open http://localhost:3002/api/docs
+open http://localhost:3000/api/docs
 
 # Deberías ver:
 # - Documentación completa de API
@@ -496,7 +488,7 @@ open http://localhost:3002/api/docs
 
 ```bash
 # Abrir dashboard de colas
-open http://localhost:3002/api/v1/admin/queues
+open http://localhost:3000/api/v1/admin/queues
 
 # Deberías ver:
 # - 4 colas: order-processing, payment-processing, inventory-management, notification-sending
@@ -508,7 +500,7 @@ open http://localhost:3002/api/v1/admin/queues
 
 ```bash
 # Crear usuario de prueba
-curl -X POST http://localhost:3002/api/v1/auth/register \
+curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -518,7 +510,7 @@ curl -X POST http://localhost:3002/api/v1/auth/register \
   }'
 
 # Login
-curl -X POST http://localhost:3002/api/v1/auth/login \
+curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -529,7 +521,7 @@ curl -X POST http://localhost:3002/api/v1/auth/login \
 export TOKEN="eyJhbGciOiJIUzI1..."
 
 # Test endpoint protegido
-curl http://localhost:3002/api/v1/users/profile \
+curl http://localhost:3000/api/v1/users/profile \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -771,14 +763,13 @@ git pull origin develop
 Después del setup, explora:
 
 1. **[Architecture Documentation](ARCHITECTURE.md)** - Entender la arquitectura del sistema
-2. **[API Documentation](API_DOCUMENTATION.md)** - Detalles de todos los endpoints
-3. **[Database Design](DATABASE_DESIGN.md)** - Esquema de base de datos
-4. **[ADRs](adr/README.md)** - Decisiones arquitectónicas
+2. **[Database Design](DATABASE_DESIGN.md)** - Esquema de base de datos
+3. **[ADRs](adr/README.md)** - Decisiones arquitectónicas
 
 ### Tutoriales Recomendados
 
-- **Crear una orden**: Ver [Swagger UI](http://localhost:3002/api/docs) → POST /orders
-- **Monitorear procesamiento**: Ver [Bull Board](http://localhost:3002/api/v1/admin/queues)
+- **Crear una orden**: Ver [Swagger UI](http://localhost:3000/api/docs) → POST /orders
+- **Monitorear procesamiento**: Ver [Bull Board](http://localhost:3000/api/v1/admin/queues)
 - **Testing con Postman**: Importar colección (si existe en `/docs`)
 
 ---
@@ -794,7 +785,7 @@ Después del setup, explora:
 ### Contacto
 
 - **GitHub**: [@ArielDRighi](https://github.com/ArielDRighi)
-- **Email**: ariel.righi@example.com
+- **Email**: arieldavidrighi@gmail.com
 
 ---
 

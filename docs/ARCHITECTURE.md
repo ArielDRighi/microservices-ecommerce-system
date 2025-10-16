@@ -2,7 +2,9 @@
 
 > **Versión**: 1.0.0  
 > **Última actualización**: Octubre 2025  
-> **Estado**: ✅ En Producción
+> **Estado**: 📚 Portfolio/Demo Project
+
+> **⚠️ Disclaimer**: Este documento describe tanto la **arquitectura implementada actualmente** (single-instance) como el **diseño teórico para escalabilidad en producción**. La implementación actual es single-instance para propósitos de demostración y aprendizaje. Las secciones sobre escalabilidad horizontal muestran cómo el sistema está diseñado para crecer.
 
 ## 📋 Tabla de Contenidos
 
@@ -20,13 +22,15 @@
 
 ## 🎯 Introducción
 
-Este sistema implementa una arquitectura **asíncrona, resiliente y escalable** para procesamiento de órdenes de e-commerce. El diseño prioriza:
+Este sistema demuestra una arquitectura **asíncrona, resiliente y diseñada para escalabilidad** en el procesamiento de órdenes de e-commerce. La implementación actual es single-instance (portfolio/demo), pero el diseño y los patrones aplicados permiten escalar a producción con cambios de configuración mínimos.
 
-- ⚡ **Baja Latencia**: Respuestas HTTP <100ms
-- 🔄 **Procesamiento Asíncrono**: Jobs en background
-- 🛡️ **Resiliencia**: Auto-recuperación de fallos
-- 📊 **Observabilidad**: Monitoreo en tiempo real
-- 🚀 **Escalabilidad**: Horizontal y vertical
+### Principios de Diseño
+
+- ⚡ **Baja Latencia**: Respuestas HTTP <100ms (implementado)
+- 🔄 **Procesamiento Asíncrono**: Jobs en background (implementado)
+- 🛡️ **Resiliencia**: Auto-recuperación de fallos con retry patterns (implementado)
+- 📊 **Observabilidad**: Monitoreo en tiempo real con Prometheus + Winston (implementado)
+- 🚀 **Escalabilidad**: Diseñado para escalar horizontal y verticalmente (preparado, no desplegado)
 
 ### Problema que Resuelve
 
@@ -52,19 +56,16 @@ Cliente → [API acepta orden <100ms] → Respuesta inmediata
 
 ## 🏛️ Arquitectura de Alto Nivel
 
-### Diagrama de Arquitectura
+### Diagrama de Arquitectura - Implementación Actual
 
 ```mermaid
 graph TB
     subgraph "Client Layer"
-        CLIENT[Cliente Web/Mobile]
+        CLIENT[Cliente HTTP/Postman/Frontend]
     end
 
     subgraph "API Layer"
-        NGINX[Nginx Load Balancer]
-        API1[NestJS API - Instance 1]
-        API2[NestJS API - Instance 2]
-        APIM[API Gateway]
+        API[NestJS API - Single Instance]
     end
 
     subgraph "Application Layer"
@@ -118,15 +119,13 @@ graph TB
         HEALTH[Health Checks]
     end
 
-    CLIENT --> NGINX
-    NGINX --> API1
-    NGINX --> API2
-    API1 --> AUTH
-    API1 --> ORDERS
-    API1 --> PRODUCTS
-    API2 --> INVENTORY
-    API2 --> PAYMENTS
-    API2 --> NOTIF
+    CLIENT --> API
+    API --> AUTH
+    API --> ORDERS
+    API --> PRODUCTS
+    API --> INVENTORY
+    API --> PAYMENTS
+    API --> NOTIF
 
     ORDERS --> OUTBOX
     OUTBOX --> POSTGRES
@@ -152,37 +151,36 @@ graph TB
     PAYMENTS --> STRIPE
     NOTIF --> SENDGRID
 
-    API1 --> POSTGRES
-    API2 --> POSTGRES
-    API1 --> REDIS_CACHE
+    API --> POSTGRES
+    API --> REDIS_CACHE
 
-    API1 --> WINSTON
-    API1 --> PROM
+    API --> WINSTON
+    API --> PROM
     REDIS --> BULL_BOARD
-    API1 --> HEALTH
+    API --> HEALTH
 ```
 
 ### Capas de la Arquitectura
 
-| Capa                  | Responsabilidad                           | Tecnología                 |
-| --------------------- | ----------------------------------------- | -------------------------- |
-| **Client Layer**      | Aplicaciones cliente (Web, Mobile)        | React, React Native        |
-| **API Layer**         | Endpoints HTTP, validación, autenticación | NestJS, Express            |
-| **Application Layer** | Lógica de negocio, servicios              | TypeScript, NestJS Modules |
-| **Event Layer**       | Publicación de eventos, Outbox Pattern    | TypeORM, PostgreSQL        |
-| **Queue Layer**       | Colas de mensajes, job management         | Redis, Bull                |
-| **Worker Layer**      | Procesamiento asíncrono background        | Bull Processors            |
-| **Saga Layer**        | Orquestación de procesos, compensación    | Custom Saga Service        |
-| **Data Layer**        | Persistencia de datos                     | PostgreSQL, Redis          |
-| **Monitoring Layer**  | Observabilidad, métricas, logs            | Winston, Prometheus        |
+| Capa                  | Responsabilidad                           | Tecnología                 | Implementación Actual  |
+| --------------------- | ----------------------------------------- | -------------------------- | ---------------------- |
+| **Client Layer**      | Aplicaciones cliente (HTTP requests)      | Postman, cURL, Frontend    | Cualquier HTTP client  |
+| **API Layer**         | Endpoints HTTP, validación, autenticación | NestJS, Express            | 1 instancia NestJS     |
+| **Application Layer** | Lógica de negocio, servicios              | TypeScript, NestJS Modules | Módulos integrados     |
+| **Event Layer**       | Publicación de eventos, Outbox Pattern    | TypeORM, PostgreSQL        | Outbox pattern impl.   |
+| **Queue Layer**       | Colas de mensajes, job management         | Redis, Bull                | 4 colas en 1 Redis     |
+| **Worker Layer**      | Procesamiento asíncrono background        | Bull Processors            | Mismo proceso Node     |
+| **Saga Layer**        | Orquestación de procesos, compensación    | Custom Saga Service        | Saga service integrado |
+| **Data Layer**        | Persistencia de datos                     | PostgreSQL, Redis          | 1 PG + 1 Redis         |
+| **Monitoring Layer**  | Observabilidad, métricas, logs            | Winston, Prometheus        | Integrado en API       |
 
 ---
 
 ## 🔧 Componentes Principales
 
-### 1. **API Gateway (NestJS)**
+### 1. **NestJS API (REST API)**
 
-**Responsabilidad**: Punto de entrada HTTP para todos los clientes
+**Responsabilidad**: Punto de entrada HTTP para todos los clientes (no es un API Gateway separado, es la aplicación completa)
 
 ```typescript
 // Endpoints principales
@@ -259,16 +257,18 @@ async processOutbox() {
 
 **4 Colas Especializadas**:
 
-| Cola                   | Propósito                | Throughput   | Workers |
-| ---------------------- | ------------------------ | ------------ | ------- |
-| `order-processing`     | Procesamiento de órdenes | 50 jobs/seg  | 2-4     |
-| `payment-processing`   | Transacciones de pago    | 20 jobs/seg  | 1-2     |
-| `inventory-management` | Gestión de stock         | 30 jobs/seg  | 2-3     |
-| `notification-sending` | Emails/SMS               | 100 jobs/seg | 3-5     |
+| Cola                   | Propósito                | Throughput Actual | Workers Actual    | Throughput Teórico |
+| ---------------------- | ------------------------ | ----------------- | ----------------- | ------------------ |
+| `order-processing`     | Procesamiento de órdenes | ~5-10 jobs/seg    | 1 (mismo proceso) | 50 jobs/seg        |
+| `payment-processing`   | Transacciones de pago    | ~5-10 jobs/seg    | 1 (mismo proceso) | 20 jobs/seg        |
+| `inventory-processing` | Gestión de stock         | ~5-10 jobs/seg    | 1 (mismo proceso) | 30 jobs/seg        |
+| `notification-sending` | Emails/SMS               | ~10-20 jobs/seg   | 1 (mismo proceso) | 100 jobs/seg       |
+
+> **Nota**: Workers actuales corren en el mismo proceso Node.js que la API. Para producción se recomienda separar en procesos independientes.
 
 **Características**:
 
-- ⚡ Performance: 1000+ jobs/seg
+- ⚡ Performance actual: ~50-100 jobs/seg (single instance), teórico: 1000+ jobs/seg (escalado)
 - 🔄 Retry con exponential backoff
 - 📊 Priority queues
 - ⏰ Scheduled/delayed jobs
@@ -364,12 +364,12 @@ sendOrderCancellation(orderId, userId);
 ```mermaid
 sequenceDiagram
     participant C as Cliente
-    participant API as API Gateway
+    participant API as NestJS API
     participant OS as Orders Service
     participant DB as PostgreSQL
     participant EP as Event Publisher
     participant Q as Redis Queue
-    participant W as Worker
+    participant W as Worker (mismo proceso)
     participant SAGA as Saga Orchestrator
     participant INV as Inventory
     participant PAY as Payment
@@ -527,7 +527,7 @@ Attempt 4: Success ✅
 
 **Beneficio**: Recuperación de fallos transitorios
 
-### 6. **Circuit Breaker (preparado)**
+### 6. **Circuit Breaker (implementado)**
 
 ```
 Closed → Normal operation
@@ -538,6 +538,8 @@ Half-Open → Prueba 1 request
   ↓ (success)
 Closed ← Vuelve a normal
 ```
+
+**Implementación**: Circuit breakers activos en OrderProcessingSagaService para Payment, Inventory y Notification services.
 
 **Beneficio**: Evita cascada de fallos
 
@@ -610,11 +612,42 @@ Monitoring:
 
 ## 📈 Escalabilidad
 
-### Horizontal Scaling
+### 📌 Implementación Actual (Single-Instance)
+
+```yaml
+Deployment:
+  API: 1 instancia NestJS (Docker container)
+  Workers: Bull processors en el mismo proceso Node
+  Database: 1 PostgreSQL 15 (sin réplicas)
+  Cache: 1 Redis 7 (sin cluster)
+
+Docker Compose:
+  - ecommerce-app-dev (NestJS API + Workers)
+  - ecommerce-postgres (PostgreSQL single instance)
+  - ecommerce-redis (Redis single instance)
+
+Limitaciones actuales:
+  - No hay load balancer
+  - No hay múltiples instancias API
+  - Workers comparten el mismo event loop que la API
+  - Single point of failure en cada componente
+
+Adecuado para:
+  - Desarrollo local
+  - Testing
+  - Demos y portfolio
+  - Tráfico bajo-medio (<100 req/s)
+```
+
+### 🚀 Diseño Teórico para Escalabilidad en Producción
+
+> **⚠️ NOTA**: Lo siguiente describe cómo el sistema está **diseñado** para escalar, NO la implementación actual.
+
+#### Horizontal Scaling (Futuro)
 
 ```
 ┌─────────────────────────────────────┐
-│     Load Balancer (Nginx)           │
+│     Load Balancer (Nginx/ALB)       │
 └────────┬────────┬────────┬──────────┘
          │        │        │
     ┌────▼───┐ ┌──▼────┐ ┌──▼────┐
@@ -631,42 +664,58 @@ Monitoring:
 └────────┬────────┬────────┬──────────┘
          │        │        │
     ┌────▼───┐ ┌──▼────┐ ┌──▼────┐
-    │Worker 1│ │Worker2│ │Worker3│  ← Escalables independientemente
+    │Worker 1│ │Worker2│ │Worker3│  ← Procesos separados
     └────────┘ └───────┘ └───────┘
 ```
 
-**Componentes Stateless**:
+**Componentes Stateless** (pueden escalar horizontalmente):
 
-- ✅ API instances (NestJS)
-- ✅ Workers (Bull processors)
-- ✅ Event processors
+- ✅ API instances (NestJS) - actualmente: 1
+- ✅ Workers (Bull processors) - actualmente: mismo proceso
+- ✅ Event processors - actualmente: integrado
 
-**Componentes Stateful** (con replicación):
+**Componentes Stateful** (requieren replicación):
 
-- 📊 PostgreSQL (master + replicas)
-- 🔴 Redis (sentinel o cluster)
+- 📊 PostgreSQL (master + replicas) - actualmente: single instance
+- 🔴 Redis (sentinel o cluster) - actualmente: single instance
 
-### Vertical Scaling
+#### Vertical Scaling (Actual vs. Recomendado)
 
 ```yaml
-API Instances:
-  CPU: 2-4 cores
-  RAM: 4-8 GB
-  Concurrent: 1000+ requests
+Implementación Actual (Docker local):
+  API + Workers (mismo proceso):
+    CPU: 2 cores (host)
+    RAM: 512 MB - 1 GB (Docker limit)
+    Concurrent: ~50-100 requests
 
-Workers:
-  CPU: 1-2 cores
-  RAM: 2-4 GB
-  Concurrent: 50-100 jobs
+  PostgreSQL:
+    CPU: 1 core (host)
+    RAM: 256 MB - 512 MB
+    Storage: Docker volume (host disk)
 
-PostgreSQL:
-  CPU: 8+ cores
-  RAM: 16+ GB
-  Storage: SSD NVMe
+  Redis:
+    CPU: 1 core (host)
+    RAM: 128 MB - 256 MB
 
-Redis:
-  CPU: 2-4 cores
-  RAM: 8-16 GB (según job size)
+Recomendado para Producción:
+  API Instances (separados):
+    CPU: 2-4 cores
+    RAM: 4-8 GB
+    Concurrent: 1000+ requests
+
+  Workers (procesos separados):
+    CPU: 1-2 cores
+    RAM: 2-4 GB
+    Concurrent: 50-100 jobs
+
+  PostgreSQL:
+    CPU: 8+ cores
+    RAM: 16+ GB
+    Storage: SSD NVMe
+
+  Redis:
+    CPU: 2-4 cores
+    RAM: 8-16 GB (según job size)
 ```
 
 ---
@@ -675,14 +724,14 @@ Redis:
 
 ### Failure Modes y Recovery
 
-| Componente          | Fallo | Impacto    | Recovery                           |
-| ------------------- | ----- | ---------- | ---------------------------------- |
-| **API Instance**    | Crash | 🟡 Parcial | Load balancer redirige             |
-| **Worker**          | Crash | 🟢 Mínimo  | Bull reencola job automáticamente  |
-| **PostgreSQL**      | Crash | 🔴 Crítico | Failover a replica (30-60s)        |
-| **Redis**           | Crash | 🟠 Medio   | Redis Sentinel failover (10-30s)   |
-| **Payment Gateway** | Down  | 🟡 Parcial | Circuit breaker, retry exponencial |
-| **Email Service**   | Down  | 🟢 Mínimo  | Jobs se encolan, se reintentan     |
+| Componente          | Fallo | Impacto Actual | Recovery Actual                       | Recovery en Producción             |
+| ------------------- | ----- | -------------- | ------------------------------------- | ---------------------------------- |
+| **API Instance**    | Crash | � Total        | Manual restart (Docker)               | Load balancer redirige             |
+| **Worker**          | Crash | � Total        | Restart API (mismo proceso)           | Otro worker toma el job            |
+| **PostgreSQL**      | Crash | 🔴 Crítico     | Manual restart, data loss posible     | Failover a replica (30-60s)        |
+| **Redis**           | Crash | 🟠 Medio       | Manual restart, jobs en cola perdidos | Redis Sentinel failover (10-30s)   |
+| **Payment Gateway** | Down  | 🟡 Parcial     | Circuit breaker, retry exponencial    | Circuit breaker, retry exponencial |
+| **Email Service**   | Down  | 🟢 Mínimo      | Jobs se encolan, se reintentan        | Jobs se encolan, se reintentan     |
 
 ### Auto-Recovery Mechanisms
 
@@ -760,6 +809,69 @@ Health Check:
     - Redis connectivity
     - Memory usage
     - Disk space
+```
+
+---
+
+## 🎯 Implementación Actual vs. Diseño Teórico
+
+### Resumen Ejecutivo
+
+| Aspecto                 | Implementación Actual (Portfolio)               | Diseño Teórico (Producción)                                          |
+| ----------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
+| **Deployment**          | Docker Compose local, single instance           | Kubernetes/ECS, múltiples instancias, auto-scaling                   |
+| **Load Balancer**       | ❌ No existe                                    | ✅ Nginx/ALB con health checks                                       |
+| **API Instances**       | 1 instancia NestJS                              | 3+ instancias con load balancing                                     |
+| **Workers**             | Mismo proceso Node que API                      | Procesos separados, escalables independientemente                    |
+| **PostgreSQL**          | Single instance (Docker)                        | Master + Read Replicas con failover automático                       |
+| **Redis**               | Single instance (Docker)                        | Redis Cluster o Sentinel para alta disponibilidad                    |
+| **Monitoring**          | ✅ Prometheus metrics, Winston logs, Bull Board | Prometheus + Grafana dashboards + AlertManager + Distributed Tracing |
+| **CI/CD**               | GitHub Actions (test + build)                   | GitHub Actions + ArgoCD/Flux + Blue-Green/Canary deployments         |
+| **Alta Disponibilidad** | ❌ Single point of failure                      | ✅ Redundancia en todos los componentes                              |
+| **Throughput**          | ~50-100 req/s, ~100 jobs/s                      | 1000+ req/s, 1000+ jobs/s                                            |
+| **Adecuado para**       | Desarrollo, testing, demos, portfolio           | Producción, tráfico real, usuarios concurrentes                      |
+
+### Por Qué Esta Arquitectura es Valiosa Aunque Sea Single-Instance
+
+✅ **Patrones Implementados**: Todos los patrones (Outbox, Saga, CQRS, Circuit Breaker) están completamente implementados y funcionando
+
+✅ **Diseño Escalable**: El código está estructurado para escalar horizontalmente sin refactoring mayor
+
+✅ **Producción-Ready**: Con ajustes de configuración (no código), puede desplegarse en producción
+
+✅ **Aprendizaje Real**: Demuestra comprensión de arquitecturas distribuidas y microservicios
+
+✅ **Testing Exhaustivo**: 262 E2E + 1212 unit tests prueban todos los flujos críticos
+
+### Cómo Llevar a Producción (Roadmap)
+
+```yaml
+Fase 1: Infraestructura (Semana 1-2)
+  - Deploy a AWS ECS/Fargate o GCP Cloud Run
+  - Configurar RDS PostgreSQL con Multi-AZ
+  - Configurar ElastiCache Redis con replicación
+  - Setup ALB/NLB con health checks
+
+Fase 2: Separación de Workers (Semana 2-3)
+  - Crear Dockerfile específico para workers
+  - Deploy workers como servicios separados
+  - Configurar auto-scaling basado en queue length
+
+Fase 3: Observabilidad (Semana 3-4)
+  - Deploy Prometheus + Grafana stack
+  - Configurar alertas críticas (Slack/PagerDuty)
+  - Implementar distributed tracing (Jaeger/DataDog)
+
+Fase 4: Alta Disponibilidad (Semana 4-5)
+  - Configurar múltiples instancias API (min 3)
+  - Setup database failover automático
+  - Implementar Redis Sentinel
+  - Configurar backups automáticos
+
+Fase 5: CI/CD Avanzado (Semana 5-6)
+  - Blue-green deployments
+  - Canary releases con métricas
+  - Automated rollback en caso de errores
 ```
 
 ---

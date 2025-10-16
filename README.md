@@ -56,7 +56,7 @@ docker-compose up -d
 npm install && npm run seed:all
 
 # 2. Abrir Swagger y seguir la guía
-# http://localhost:3002/api/docs
+# http://localhost:3000/api/docs
 ```
 
 ➡️ **[Guía de 5 minutos: Quick Start Demo](/docs/api-testing/00-QUICK-START-DEMO.md)**
@@ -147,8 +147,6 @@ Este enfoque demuestra un compromiso con la planificación estratégica, la gest
 - **Pipeline CI/CD con GitHub Actions:** Linting, testing, security scanning, build validation automatizado.
 - **Documentación API con Swagger:** OpenAPI completo con ejemplos, schemas detallados, endpoints documentados.
 
-➡️ **[📊 Ver Reporte de Issues de Testing](./docs/TESTING_ISSUES_REPORT.md)** - 261/262 tests E2E pasando (99.6%), arquitectura asíncrona 100% verificada
-
 ---
 
 ## 🛠️ Stack Tecnológico
@@ -218,314 +216,65 @@ Este proyecto está construido con un stack tecnológico moderno y de nivel empr
 
 Este proyecto implementa una **arquitectura asíncrona de 8 capas** con patrones avanzados de resiliencia y escalabilidad.
 
-```mermaid
-graph TB
-    Client[🌐 Cliente HTTP] --> API[📡 API Layer - NestJS]
+### � Capas Principales
 
-    API --> OrderController[🛒 Orders Controller]
-    API --> ProductController[📦 Products Controller]
-    API --> InventoryController[📊 Inventory Controller]
+| Capa              | Responsabilidad                  | Tecnologías                   |
+| ----------------- | -------------------------------- | ----------------------------- |
+| **API**           | Controllers, Guards, Validation  | NestJS, JWT, Swagger          |
+| **Application**   | Business Logic, Services         | TypeScript, DTOs              |
+| **Event**         | Event Publishing, Outbox Pattern | Outbox Table, Events          |
+| **Queue**         | Async Job Management             | Bull, Redis                   |
+| **Worker**        | Background Processors            | Bull Processors               |
+| **Saga**          | Long-running Workflows           | Saga Pattern, Compensation    |
+| **Data**          | Persistence, Queries             | PostgreSQL, TypeORM           |
+| **Observability** | Monitoring, Logs, Metrics        | Terminus, Winston, Prometheus |
 
-    OrderController --> OrderService[⚙️ Order Service]
-    ProductController --> ProductService[⚙️ Product Service]
-    InventoryController --> InventoryService[⚙️ Inventory Service]
+### 📖 Documentación Completa de Arquitectura
 
-    OrderService --> EventPublisher[📤 Event Publisher]
-    EventPublisher --> OutboxTable[(📝 Outbox Events Table)]
-    EventPublisher --> Queue[🔄 Bull Queues - Redis]
+➡️ **[🏛️ Guía Completa de Arquitectura](./docs/ARCHITECTURE.md)**
 
-    Queue --> OrderProcessor[⚡ Order Processor Worker]
-    Queue --> PaymentProcessor[💳 Payment Processor]
-    Queue --> InventoryProcessor[📦 Inventory Processor]
-    Queue --> NotificationProcessor[📧 Notification Processor]
+Este documento de 800+ líneas incluye:
 
-    OrderProcessor --> SagaOrchestrator[🎭 Saga Orchestrator]
-    SagaOrchestrator --> SagaStateTable[(🗂️ Saga States Table)]
-
-    OrderService --> DB[(🗄️ PostgreSQL)]
-    ProductService --> DB
-    InventoryService --> DB
-    PaymentProcessor --> PaymentGateway[💰 Payment Gateway API]
-    NotificationProcessor --> EmailProvider[📮 Email Provider]
-
-    subgraph "🔍 Observability Layer"
-        HealthCheck[❤️ Health Checks - Terminus]
-        Metrics[📊 Prometheus Metrics]
-        Logs[📜 Winston Structured Logs]
-        BullBoard[📈 Bull Board Dashboard]
-    end
-
-    style Client fill:#e1f5ff
-    style API fill:#fff3e0
-    style Queue fill:#f3e5f5
-    style DB fill:#e8f5e9
-    style SagaOrchestrator fill:#fff9c4
-```
-
-### 📐 Capas Arquitectónicas
-
-| Capa               | Responsabilidad                  | Tecnologías                |
-| ------------------ | -------------------------------- | -------------------------- |
-| **1. Client**      | Aplicaciones frontend/mobile     | HTTP/REST                  |
-| **2. API**         | Controllers, Guards, Validation  | NestJS, JWT, Swagger       |
-| **3. Application** | Services, Business Logic         | TypeScript, DTOs           |
-| **4. Event**       | Event Publishing, Outbox Pattern | Outbox Table, Events       |
-| **5. Queue**       | Async Job Management             | Bull, Redis                |
-| **6. Worker**      | Background Processors            | Bull Processors            |
-| **7. Saga**        | Long-running Workflows           | Saga Pattern, Compensation |
-| **8. Data**        | Persistence, Queries             | PostgreSQL, TypeORM        |
-
-> 📖 **Documentación Detallada**: Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para diagramas completos, flujos de datos, y decisiones arquitectónicas.
+- **Diagramas detallados** con Mermaid (arquitectura de alto nivel, flujos de datos)
+- **Componentes principales** explicados en profundidad
+- **Flujos de datos** completos (happy path y compensación)
+- **Patrones de diseño** implementados (Outbox, Saga, CQRS, Circuit Breaker, etc.)
+- **Decisiones arquitectónicas** y justificaciones técnicas
+- **Stack tecnológico** con versiones y configuraciones
 
 ---
 
 ## ⚖️ Trade-offs Arquitectónicos y Decisiones Conscientes
 
-Este proyecto fue construido con **pragmatismo sobre purismo arquitectónico**. Aplicando más de 10 años de experiencia en la industria de videojuegos y metodología ágil, prioricé **entrega incremental de valor** sobre **perfección teórica**.
+Este proyecto fue construido con **pragmatismo sobre purismo arquitectónico**, priorizando **entrega incremental de valor** sobre **perfección teórica**.
 
-### 🎯 Filosofía de Desarrollo
+### 📊 Resumen de Trade-offs
 
-> "Un sistema funcional con trade-offs documentados es más valioso que un sistema perfecto que nunca se termina."
+He identificado y documentado **15 gaps arquitectónicos** mediante autocrítica técnica rigurosa:
 
-He identificado **15 gaps arquitectónicos** mediante autocrítica técnica rigurosa. Esto NO es debilidad, es **transparencia profesional**. Cada decisión tiene su contexto, justificación y plan de corrección.
+- 🔴 **5 Críticos**: Impactan funcionalidad (Outbox bypass, race conditions, etc.)
+- 🟡 **5 Medios**: Impactan mantenibilidad (Circuit breaker, Repository pattern, etc.)
+- 🟢 **5 Bajos**: Deuda técnica menor (Logger manual, Value Objects, etc.)
 
-➡️ **[📋 Análisis Completo de Vulnerabilidades Técnicas](./docs/VULNERABILIDADES_TECNICAS_Y_ARQUITECTONICAS.md)** (53KB, 15 vulnerabilidades documentadas)
+**Cada trade-off incluye:**
 
----
+- ❌ Descripción del problema
+- ✅ Justificación de la decisión
+- 🛠️ Solución planificada
+- 📊 Estado actual e impacto
 
-### 🔴 Trade-offs Críticos (Conocidos y Aceptados)
+### 📖 Documentación Completa
 
-#### 1️⃣ **Bypass del Outbox Pattern en OrdersService**
+➡️ **[📋 Análisis Completo: Vulnerabilidades Técnicas y Arquitectónicas](./docs/VULNERABILIDADES_TECNICAS_Y_ARQUITECTONICAS.md)**
 
-**❌ El Problema:**
+Este documento de 1,300+ líneas detalla:
 
-```typescript
-// Encolo jobs DESPUÉS del commit (fuera de transacción)
-await queryRunner.commitTransaction();
-await this.orderProcessingQueue.add('create-order', { ... });  // ← Puede fallar
-```
+- Análisis técnico profundo de cada vulnerabilidad
+- Ejemplos de código del problema y la solución
+- Contexto y justificación de decisiones
+- Roadmap de corrección y mejoras
 
-**⚠️ Impacto:** Si Redis cae después del commit DB, la orden queda en PENDING sin procesarse.
-
-**✅ Por qué lo hice así:**
-
-- **Latencia**: Eliminar 5 segundos de polling del OutboxProcessor
-- **UX**: Respuesta <100ms al usuario (202 Accepted inmediato)
-- **MVP Velocity**: Entregar funcionalidad crítica primero
-
-**🛠️ Solución Planificada (Q4 2025):**
-
-```typescript
-// Opción 1: Outbox puro + immediate trigger
-await queryRunner.commitTransaction();
-await this.outboxProcessor.triggerImmediateProcessing();
-
-// Opción 2: Transactional outbox + CDC (Debezium)
-// Event automáticamente encolado por Change Data Capture
-```
-
-**📊 Estado Actual:** Funciona en 99.9% de casos (Redis es altamente disponible), pero técnicamente incorrecto.
-
----
-
-#### 2️⃣ **Race Condition en Idempotencia Keys**
-
-**❌ El Problema:**
-
-```typescript
-// Check-then-act race window
-const existing = await repo.findOne({ idempotencyKey });
-if (existing) return existing;
-// ← RACE WINDOW: Otro request puede pasar aquí
-await repo.save(newOrder); // ← Duplicado posible
-```
-
-**⚠️ Impacto:** Con alta concurrencia (>100 req/s), pueden crearse órdenes duplicadas.
-
-**✅ Por qué lo hice así:**
-
-- Unique constraint en DB protege el 95% de casos
-- El problema solo aparece con **concurrencia extrema**
-- Para MVP, el riesgo es bajo
-
-**🛠️ Solución Planificada (Q4 2025):**
-
-```typescript
-// INSERT ... ON CONFLICT (PostgreSQL native)
-const result = await this.dataSource.query(`
-  INSERT INTO orders (idempotency_key, ...)
-  VALUES ($1, ...)
-  ON CONFLICT (idempotency_key) DO NOTHING
-  RETURNING *
-`, [key, ...]);
-```
-
-**📊 Estado Actual:** Protegido por unique index, falla con exception en duplicados (no silencioso).
-
----
-
-### 🟡 Trade-offs Arquitectónicos (Técnicamente Imperfectos, Pragmáticamente Válidos)
-
-#### 3️⃣ **Anemic Domain Model**
-
-**El Trade-off:** Usé **Transaction Script Pattern** (Martin Fowler) en lugar de **Rich Domain Model** (DDD).
-
-```typescript
-// ❌ Actual: Lógica en servicios
-export class OrdersService {
-  async createOrder(...) {
-    order.status = OrderStatus.PENDING;  // Lógica en servicio
-    order.totalAmount = this.calculateTotal(items);
-  }
-}
-
-// ✅ Debería ser: Lógica en dominio
-export class Order extends AggregateRoot {
-  confirm(paymentId: string): void {
-    if (this.status !== OrderStatus.PENDING) {
-      throw new DomainException('...');
-    }
-    this.status = OrderStatus.CONFIRMED;
-    this.addDomainEvent(new OrderConfirmedEvent(this));
-  }
-}
-```
-
-**Por qué lo acepté:**
-
-- **Menor curva de aprendizaje**: Transaction Script es más directo
-- **Velocidad de desarrollo**: 60% menos código para demostración
-- **Dominio simple**: E-commerce básico no requiere DDD completo
-- **Proyecto de portfolio**: No evolucionará a sistema productivo
-
-**Nota:** En un sistema enterprise real, migrar a Rich Domain Model sería recomendable.
-
----
-
-#### 4️⃣ **God Objects (Saga Service 700+ líneas)**
-
-**El Trade-off:** `OrderProcessingSagaService` tiene múltiples responsabilidades (violación SRP).
-
-**Por qué lo acepté:**
-
-- **Cohesión funcional**: Toda la lógica del Saga en un lugar
-- **Debugging más fácil**: Un solo archivo para entender el flujo completo
-- **Comprensión del patrón**: Demuestra conocimiento de la arquitectura ideal
-- **Proyecto de portfolio**: No requiere refactor a Strategy Pattern
-
-**Nota:** En un sistema enterprise real, se refactorizaría a **Strategy Pattern** + **Decorators**.
-
----
-
-#### 5️⃣ **No hay Repository Pattern abstracto**
-
-**El Trade-off:** Acoplamiento directo a TypeORM en lugar de interfaces.
-
-```typescript
-// ❌ Actual
-constructor(
-  @InjectRepository(Order)
-  private readonly orderRepository: Repository<Order>,  // TypeORM directo
-) {}
-
-// ✅ Debería ser
-constructor(
-  @Inject('IOrderRepository')
-  private readonly orderRepository: IOrderRepository,  // Interface
-) {}
-```
-
-**Por qué lo acepté:**
-
-- **TypeORM ya ES un repositorio**: Abstraer sería wrapper innecesario
-- **YAGNI Principle**: No cambiaré de ORM en este proyecto
-- **Menos boilerplate**: 50% menos código de infraestructura
-- **Proyecto de portfolio**: El ORM no cambiará
-
-**Nota:** En sistemas multi-tenant o polyglot persistence, el Repository Pattern abstracto sería esencial.
-
----
-
-### 🟢 Otros Trade-offs Menores
-
-| Trade-off                               | Decisión Tomada                        | Justificación                                   |
-| --------------------------------------- | -------------------------------------- | ----------------------------------------------- |
-| **CQRS explícito**                      | Commands/Queries en mismo servicio     | Complejidad innecesaria para workload simétrico |
-| **Value Objects**                       | Uso de primitives (`number`, `string`) | Overhead mínimo para tipos simples              |
-| **Unit of Work**                        | Transacciones manuales con QueryRunner | TypeORM ya provee UoW implícito                 |
-| **Circuit Breaker + Retry integración** | Implementados pero desacoplados        | Funciona correctamente, optimización futura     |
-| **Logger injection**                    | `new Logger()` en constructores        | Simplicidad vs. testabilidad perfecta           |
-
----
-
-### 📊 Métricas de Cumplimiento Arquitectónico
-
-```
-✅ Patrones Implementados Correctamente:
-├─ Saga Pattern (Orchestration + Compensation): 90%
-├─ Circuit Breaker Pattern: 95%
-├─ Retry Pattern con Exponential Backoff: 100%
-├─ Dead Letter Queue: 100%
-├─ Event Sourcing: 85%
-├─ Health Checks (Terminus): 100%
-├─ Structured Logging (Winston): 100%
-└─ Prometheus Metrics: 95%
-
-⚠️ Patrones Implementados con Trade-offs:
-├─ Outbox Pattern: 75% (bypass en OrdersService)
-├─ Idempotency: 85% (race condition teórica)
-├─ CQRS: 60% (commands/queries no separados)
-└─ DDD: 40% (anemic domain model)
-
-❌ Patrones No Implementados (conscientemente):
-├─ Repository Pattern abstracto (YAGNI)
-├─ Unit of Work explícito (TypeORM provee implícito)
-├─ Value Objects (primitives suficientes)
-└─ CQRS con Event Store separado (overkill)
-```
-
----
-
-### 🎓 Aprendizajes y Evolución
-
-Este proyecto representa mi transición desde Lead Game Designer hacia el desarrollo backend profesional. Los trade-offs reflejan:
-
-1. ✅ **Conocimiento de patrones enterprise** (comprensión de soluciones ideales)
-2. ✅ **Criterio de priorización** (cuándo aplicar cada patrón)
-3. ✅ **Mentalidad pragmática** (entregar valor incremental)
-4. ✅ **Autocrítica técnica** (transparencia sobre gaps)
-
-El proyecto demuestra:
-
-- 🧠 **Comprensión profunda** de arquitecturas complejas
-- 🔍 **Capacidad de análisis crítico** (15 vulnerabilidades identificadas y documentadas)
-- 📊 **Trade-off thinking** (balance entre perfección y pragmatismo)
-- 🗺️ **Visión de mejora continua** (roadmap concreto de correcciones)
-
----
-
-### 📅 Soluciones Ideales (Referencia Educativa)
-
-> **Nota:** Este roadmap es **referencial** para demostrar conocimiento de las soluciones correctas. Este proyecto de portfolio **no será refactorizado** ya que cumple su propósito educativo actual.
-
-| Prioridad | Vulnerabilidad     | Esfuerzo | Solución Ideal                          |
-| --------- | ------------------ | -------- | --------------------------------------- |
-| **P0**    | #1 Outbox bypass   | 6h       | Outbox puro + immediate trigger         |
-| **P1**    | #5 Race conditions | 4h       | INSERT ... ON CONFLICT (PostgreSQL)     |
-| **P1**    | #9 Compensations   | 1 sem    | Compensation states + alerting          |
-| **P2**    | #2 Saga refactor   | 3 sem    | Strategy Pattern + Decorators           |
-| **P2**    | #3 Rich Domain     | 4 sem    | DDD con Rich Domain Model               |
-| **P3**    | #7 Repository      | 2 sem    | Repository Pattern abstracto + Adapters |
-
----
-
-### 💡 Filosofía Final
-
-> **"Prefiero un sistema funcional con trade-offs documentados que un sistema perfecto que nunca se termina."**
-
-Este README no oculta problemas, los **expone con contexto profesional**. Eso es más valioso que pretender perfección.
-
-El código perfecto no existe. El código **honesto, funcional y mejorable** sí.
+> **Filosofía**: "Prefiero un sistema funcional con trade-offs documentados que un sistema perfecto que nunca se termina."
 
 ---
 
@@ -893,20 +642,13 @@ Este proyecto incluye documentación técnica completa y profesional que demuest
 
 ### 📖 Documentos Técnicos Principales
 
-| Documento                | Descripción                                             | Link                                                   |
-| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------ |
-| **🏗️ Architecture**      | Arquitectura completa del sistema con diagramas Mermaid | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)           |
-| **🗄️ Database Design**   | Diseño de base de datos, tablas, índices, relaciones    | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md)     |
-| **🌐 API Documentation** | Documentación exhaustiva de endpoints, request/response | [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) |
-| **⚙️ Project Setup**     | Guía de instalación, configuración, despliegue          | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md)         |
-| **📋 ADRs (25 docs)**    | Architecture Decision Records en español                | [docs/adr/README.md](docs/adr/README.md)               |
-
-### 🌐 API Swagger UI
-
-Una vez ejecutada la aplicación, la documentación interactiva Swagger está disponible en:
-
-- **Desarrollo**: http://localhost:3000/api/docs
-- **Producción**: https://your-domain.com/api/docs
+| Documento              | Descripción                                             | Link                                               |
+| ---------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| **🏗️ Architecture**    | Arquitectura completa del sistema con diagramas Mermaid | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)       |
+| **🗄️ Database Design** | Diseño de base de datos, tablas, índices, relaciones    | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) |
+| **⚙️ Project Setup**   | Guía de instalación, configuración, despliegue          | [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md)     |
+| **📋 ADRs (25 docs)**  | Architecture Decision Records en español                | [docs/adr/README.md](docs/adr/README.md)           |
+| **🧪 API Testing**     | Guías de testing manual con curl para cada módulo       | [docs/api-testing/](docs/api-testing/)             |
 
 ---
 
@@ -944,19 +686,7 @@ La arquitectura de este proyecto se basa en **25 Architectural Decision Records 
 | [ADR-024](docs/adr/024-docker-compose-orchestration.md)      | Orquestación con Docker Compose                 | ✅ Aceptado | 2024-01-17 |
 | [ADR-025](docs/adr/025-cicd-husky-lint-staged.md)            | CI/CD con Husky & lint-staged                   | ✅ Aceptado | 2024-01-17 |
 
-### 🎯 Principios de Arquitectura Aplicados
-
-- **Event-Driven Architecture**: Desacoplamiento mediante eventos de dominio y message queues
-- **Asynchronous Processing**: Procesamiento no-bloqueante para alta disponibilidad y UX mejorada
-- **Resilience Patterns**: Circuit Breaker, Retry, Idempotency, DLQ para manejo robusto de fallos
-- **Transactional Consistency**: Outbox Pattern garantiza consistencia entre DB y message queue
-- **Saga Pattern**: Coordinación de transacciones distribuidas con compensación automática
-- **CQRS**: Separación de comandos y queries para optimización de performance
-- **Observability First**: Logging estructurado, health checks, métricas de Prometheus
-- **Security by Design**: JWT authentication, RBAC, Helmet security headers
-- **DevOps Automation**: Docker multi-stage, CI/CD con GitHub Actions, testing exhaustivo
-
-### 🌐 API Swagger UI
+### API Swagger UI
 
 Una vez ejecutada la aplicación, la documentación interactiva Swagger está disponible en:
 
@@ -1022,37 +752,6 @@ src/
 │   ├── queue.service.ts          # Servicio de gestión de colas
 │   └── bull-board.controller.ts  # Dashboard Bull Board
 └── database/                     # Migraciones y seeds
-```
-
-## 🤝 Guía de Contribución
-
-### Flujo de Trabajo
-
-1. **Fork** el repositorio
-2. Crear una **branch** desde `develop`:
-   ```bash
-   git checkout develop
-   git checkout -b feature/nueva-funcionalidad
-   ```
-3. **Commit** cambios siguiendo [Conventional Commits](https://www.conventionalcommits.org/)
-4. **Push** a tu fork y crear un **Pull Request**
-
-### Estándares de Código
-
-- ✅ **ESLint**: Sin errores de linting
-- ✅ **Prettier**: Código formateado
-- ✅ **TypeScript**: Sin errores de tipos
-- ✅ **Testing**: Coverage mínimo 80%
-- ✅ **Commits**: Formato conventional commits
-
-### Conventional Commits
-
-```bash
-feat: add new order processing saga
-fix: resolve inventory race condition
-docs: update API documentation
-test: add unit tests for payment service
-refactor: optimize database queries
 ```
 
 ## 📊 Monitoreo y Observabilidad
@@ -1274,7 +973,7 @@ chore: update dependencies
 
 ---
 
-## �📄 Licencia
+## 📄 Licencia
 
 Este proyecto está bajo la licencia [MIT](LICENSE).
 
@@ -1295,8 +994,8 @@ ecommerce-async-resilient-system/
 ├── docs/                            # 📚 Documentación técnica completa
 │   ├── ARCHITECTURE.md              # Arquitectura del sistema con diagramas
 │   ├── DATABASE_DESIGN.md           # Diseño de base de datos
-│   ├── API_DOCUMENTATION.md         # Documentación de API REST
 │   ├── PROJECT_SETUP.md             # Guía de instalación y configuración
+│   ├── api-testing/                 # Guías de testing manual con curl
 │   └── adr/                         # 25 Architecture Decision Records (español)
 │       ├── README.md                # Índice completo de ADRs
 │       ├── 001-async-non-blocking-architecture.md
@@ -1487,44 +1186,6 @@ curl http://localhost:3002/health
 
 # ✅ Correcto
 curl http://localhost:3002/api/v1/health
-```
-
-### Verificación Rápida del Sistema
-
-Ejecuta este script para verificar que todo está configurado correctamente:
-
-```bash
-#!/bin/bash
-echo "🔍 Verificando configuración del sistema..."
-
-# 1. Verificar que Docker está corriendo
-echo "1️⃣ Verificando Docker..."
-docker ps | grep ecommerce-postgres && echo "✅ PostgreSQL corriendo" || echo "❌ PostgreSQL NO está corriendo"
-docker ps | grep ecommerce-redis && echo "✅ Redis corriendo" || echo "❌ Redis NO está corriendo"
-
-# 2. Verificar conexión a la base de datos
-echo "2️⃣ Verificando conexión a PostgreSQL..."
-docker exec ecommerce-postgres psql -U postgres -d ecommerce_async -c "SELECT version();" > /dev/null 2>&1 \
-  && echo "✅ Conexión a PostgreSQL exitosa" \
-  || echo "❌ No se puede conectar a PostgreSQL"
-
-# 3. Verificar que las tablas existen
-echo "3️⃣ Verificando tablas..."
-TABLES=$(docker exec ecommerce-postgres psql -U postgres -d ecommerce_async -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';")
-if [ "$TABLES" -gt 5 ]; then
-  echo "✅ Tablas creadas correctamente ($TABLES tablas)"
-else
-  echo "⚠️  Solo $TABLES tablas encontradas. Verifica RUN_MIGRATIONS=true"
-fi
-
-# 4. Verificar que la aplicación responde
-echo "4️⃣ Verificando aplicación..."
-curl -s http://localhost:3002/api/v1/health > /dev/null 2>&1 \
-  && echo "✅ Aplicación respondiendo correctamente" \
-  || echo "❌ Aplicación no responde"
-
-echo ""
-echo "✨ Verificación completada!"
 ```
 
 ---

@@ -34,9 +34,9 @@
 ### Estadísticas del Schema
 
 ```
-📊 Tablas: 9 principales
+📊 Tablas: 10 principales (incluye inventory_reservations)
 🔑 Índices: 60+ índices estratégicos
-📈 Relaciones: 12 foreign keys
+📈 Relaciones: 11 foreign keys
 🔐 Constraints: 15 unique constraints
 📏 Tamaño estimado: ~500 MB para 100k órdenes
 ```
@@ -45,10 +45,10 @@
 
 ```typescript
 // Tablas: snake_case, plural
-(users, orders, order_items, outbox_events);
+(users, orders, order_items, outbox_events, inventory_reservations);
 
 // Columnas: snake_case
-(user_id, created_at, is_active);
+(user_id, created_at, is_active, expires_at);
 
 // Índices: idx_tabla_columnas
 (idx_orders_user_id, idx_products_name);
@@ -57,7 +57,7 @@
 fk_orders_user_id;
 
 // Enums: tipo_nombre_enum
-(order_status_enum, saga_status_enum);
+(order_status_enum, saga_status_enum, user_role_enum, reservation_status_enum);
 ```
 
 ---
@@ -73,9 +73,11 @@ erDiagram
     PRODUCTS ||--o{ ORDER_ITEMS : "ordered_in"
     PRODUCTS ||--o{ INVENTORY : "has_stock"
     INVENTORY ||--o{ INVENTORY_MOVEMENTS : tracks
+    INVENTORY ||--o{ INVENTORY_RESERVATIONS : "has_reservations"
+    PRODUCTS ||--o{ INVENTORY_RESERVATIONS : "reserved_for"
     ORDERS ||--o{ SAGA_STATES : "orchestrated_by"
     ORDERS ||--o{ OUTBOX_EVENTS : emits
-    PRODUCTS }o--o{ CATEGORIES : "belongs_to"
+    CATEGORIES ||--o{ PRODUCTS : "contains"
 
     USERS {
         uuid id PK
@@ -92,6 +94,7 @@ erDiagram
         varchar name
         varchar sku UK
         decimal price
+        uuid category_id FK
         bool is_active
         jsonb attributes
         timestamptz created_at
@@ -133,7 +136,20 @@ erDiagram
         uuid id PK
         uuid inventory_id FK
         movement_type_enum movement_type
-        int quantity_change
+        int quantity
+        int stock_before
+        int stock_after
+        timestamptz created_at
+    }
+
+    INVENTORY_RESERVATIONS {
+        uuid id PK
+        varchar reservation_id UK
+        uuid product_id FK
+        uuid inventory_id FK
+        int quantity
+        reservation_status_enum status
+        timestamptz expires_at
         timestamptz created_at
     }
 
@@ -172,8 +188,10 @@ CREATE TABLE "users" (
     "password_hash" varchar(255) NOT NULL,
     "first_name" varchar(100) NOT NULL,
     "last_name" varchar(100) NOT NULL,
+    "role" user_role_enum DEFAULT 'USER',
     "is_active" boolean DEFAULT true,
     "phone_number" varchar(20),
+    "deleted_at" timestamptz,
     "date_of_birth" date,
     "language" varchar(10) DEFAULT 'en',
     "timezone" varchar(10) DEFAULT 'UTC',
@@ -187,7 +205,9 @@ CREATE TABLE "users" (
 **Columnas Clave**:
 
 - `password_hash`: Bcrypt hash (nunca plain text)
-- `is_active`: Soft delete / account suspension
+- `role`: Rol del usuario (ADMIN o USER) para autorización
+- `is_active`: Estado de cuenta activa/inactiva
+- `deleted_at`: Soft delete (NULL = no eliminado)
 - `email_verified_at`: Email verification tracking
 - `last_login_at`: Activity tracking
 
@@ -263,7 +283,7 @@ ON products USING GIN (
 
 ### 3. **categories** - Categorías de Productos
 
-**Propósito**: Organizar productos en categorías (many-to-many via junction table)
+**Propósito**: Organizar productos en categorías jerárquicas
 
 ```sql
 CREATE TABLE "categories" (
@@ -281,15 +301,17 @@ CREATE TABLE "categories" (
 );
 ```
 
-**Product-Category Junction Table**:
+**Relación con Products**:
+
+La relación es **ManyToOne** (muchos productos → una categoría), implementada mediante:
 
 ```sql
-CREATE TABLE "product_categories" (
-    "product_id" uuid REFERENCES products(id) ON DELETE CASCADE,
-    "category_id" uuid REFERENCES categories(id) ON DELETE CASCADE,
-    PRIMARY KEY (product_id, category_id)
-);
+-- En la tabla products
+ALTER TABLE "products"
+ADD COLUMN "category_id" uuid REFERENCES categories(id) ON DELETE SET NULL;
 ```
+
+> 📝 **Nota**: No existe tabla junction `product_categories`. Cada producto pertenece a una sola categoría.
 
 **Índices**:
 
@@ -297,6 +319,10 @@ CREATE TABLE "product_categories" (
 CREATE UNIQUE INDEX idx_categories_slug ON categories(slug) WHERE deleted_at IS NULL;
 CREATE INDEX idx_categories_active_name ON categories(is_active, name);
 CREATE INDEX idx_categories_sort_order ON categories(sort_order, is_active);
+
+-- Índices en products para la relación
+CREATE INDEX idx_products_category_id ON products(category_id);
+CREATE INDEX idx_products_category_active ON products(category_id, is_active);
 ```
 
 ---
@@ -326,8 +352,10 @@ CREATE TABLE "orders" (
     "completed_at" timestamptz,
     "failed_at" timestamptz,
     "failure_reason" text,
-    "cancelled_at" timestamptz,
-    "cancellation_reason" text,
+    "tracking_number" varchar(100),
+    "shipping_carrier" varchar(100),
+    "shipped_at" timestamptz,
+    "delivered_at" timestamptz,
     "created_at" timestamptz DEFAULT now(),
     "updated_at" timestamptz DEFAULT now()
 );
@@ -459,14 +487,14 @@ CREATE TABLE "inventory_movements" (
     "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     "inventory_id" uuid NOT NULL REFERENCES inventory(id),
     "movement_type" inventory_movement_type_enum NOT NULL,
-    "quantity_change" integer NOT NULL,     -- Positive = increase, Negative = decrease
-    "quantity_before" integer NOT NULL,
-    "quantity_after" integer NOT NULL,
+    "quantity" integer NOT NULL,            -- Positive for additions, negative for removals
+    "stock_before" integer NOT NULL,
+    "stock_after" integer NOT NULL,
+    "unit_cost" decimal(10,2),              -- Cost per unit (optional)
     "reference_type" varchar(100),          -- 'order', 'restock', 'adjustment'
-    "reference_id" varchar(100),            -- Order ID, Purchase Order ID, etc.
+    "reference_id" varchar(255),            -- Order ID, Purchase Order ID, etc.
     "reason" text,
     "performed_by" varchar(100),            -- User ID or system
-    "metadata" jsonb,
     "created_at" timestamptz DEFAULT now()
 );
 ```
@@ -500,7 +528,68 @@ CREATE INDEX idx_inventory_movements_created_at ON inventory_movements(created_a
 
 ---
 
-### 8. **saga_states** - Orquestación de Sagas
+### 8. **inventory_reservations** - Reservas de Inventario
+
+**Propósito**: Gestionar reservas temporales de stock con expiración automática (TTL)
+
+```sql
+CREATE TABLE "inventory_reservations" (
+    "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "reservation_id" varchar(255) NOT NULL UNIQUE,
+    "product_id" uuid NOT NULL REFERENCES products(id),
+    "inventory_id" uuid NOT NULL REFERENCES inventory(id),
+    "quantity" integer NOT NULL,
+    "location" varchar(100) DEFAULT 'MAIN_WAREHOUSE',
+    "status" reservation_status_enum DEFAULT 'ACTIVE',
+    "reference_id" varchar(255),                -- Order ID, Payment ID, etc.
+    "reason" varchar(500),
+    "expires_at" timestamptz NOT NULL,           -- TTL expiration
+    "created_at" timestamptz DEFAULT now(),
+    "updated_at" timestamptz DEFAULT now()
+);
+```
+
+**Estados de Reserva** (reservation_status_enum):
+
+```
+ACTIVE      → Reserva activa y vigente
+RELEASED    → Reserva liberada manualmente
+FULFILLED   → Reserva completada (stock deducido)
+EXPIRED     → Reserva expirada por timeout
+```
+
+**Características**:
+
+- **TTL (Time To Live)**: Reservas expiran automáticamente después de un tiempo
+- **Liberación Automática**: Worker procesa reservas expiradas y libera stock
+- **Idempotencia**: `reservation_id` único previene duplicados
+- **Auditoría**: `reference_id` vincula con órdenes/pagos
+
+**Índices**:
+
+```sql
+CREATE UNIQUE INDEX idx_inventory_reservations_reservation_id
+    ON inventory_reservations(reservation_id);
+CREATE INDEX idx_inventory_reservations_product_location
+    ON inventory_reservations(product_id, location);
+CREATE INDEX idx_inventory_reservations_expires_at
+    ON inventory_reservations(expires_at);
+CREATE INDEX idx_inventory_reservations_status
+    ON inventory_reservations(status);
+```
+
+**Flujo de Reserva**:
+
+```
+1. Order created → Reserve stock (status = ACTIVE, expires_at = now() + 15 min)
+2a. Payment success → Fulfill reservation (status = FULFILLED, decrement stock)
+2b. Payment failed → Release reservation (status = RELEASED, restore available stock)
+2c. Timeout → Expire reservation (status = EXPIRED, restore available stock)
+```
+
+---
+
+### 9. **saga_states** - Orquestación de Sagas
 
 **Propósito**: Tracking de estados de Saga para orden processing
 
@@ -581,7 +670,7 @@ CREATE INDEX idx_saga_states_aggregate_id
 
 ---
 
-### 9. **outbox_events** - Outbox Pattern Implementation
+### 10. **outbox_events** - Outbox Pattern Implementation
 
 **Propósito**: Garantizar publicación confiable de eventos (at-least-once delivery)
 
@@ -713,7 +802,9 @@ orders (1) ----< (*) order_items
 products (1) ----< (*) order_items
 products (1) ----< (*) inventory
 inventory (1) ----< (*) inventory_movements
-products (*) ----< (*) categories (via product_categories)
+inventory (1) ----< (*) inventory_reservations
+products (1) ----< (*) inventory_reservations
+categories (1) ----< (*) products (ManyToOne via category_id)
 orders (1) ----< (*) saga_states (via aggregate_id)
 orders (1) ----< (*) outbox_events (via aggregate_id)
 ```
@@ -746,14 +837,10 @@ ALTER TABLE inventory_movements
 ADD CONSTRAINT fk_inventory_movements_inventory_id
 FOREIGN KEY (inventory_id) REFERENCES inventory(id);
 
--- Product Categories Junction
-ALTER TABLE product_categories
-ADD CONSTRAINT fk_product_categories_product
-FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
-
-ALTER TABLE product_categories
-ADD CONSTRAINT fk_product_categories_category
-FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE;
+-- Products → Categories (ManyToOne)
+ALTER TABLE products
+ADD CONSTRAINT fk_products_category
+FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL;
 ```
 
 ---
@@ -814,17 +901,40 @@ CREATE TYPE inventory_movement_type_enum AS ENUM (
 );
 ```
 
+### reservation_status_enum
+
+```sql
+CREATE TYPE reservation_status_enum AS ENUM (
+    'ACTIVE',       -- Reserva activa y vigente
+    'RELEASED',     -- Reserva liberada manualmente
+    'FULFILLED',    -- Reserva completada (stock deducido)
+    'EXPIRED'       -- Reserva expirada por timeout
+);
+```
+
+### user_role_enum
+
+```sql
+CREATE TYPE user_role_enum AS ENUM (
+    'ADMIN',        -- Administrador del sistema
+    'USER'          -- Usuario/Cliente estándar
+);
+```
+
 ---
 
 ## 🔄 Migraciones
 
 ### Migraciones Existentes
 
-| Timestamp       | Nombre                | Descripción                  |
-| --------------- | --------------------- | ---------------------------- |
-| `1727215000000` | CreateInitialSchema   | Schema inicial completo      |
-| `1727220000000` | CreateCategoriesTable | Tabla de categorías          |
-| `1727221000000` | AddCategoryToProducts | Relación products-categories |
+| Timestamp       | Nombre                           | Descripción                       |
+| --------------- | -------------------------------- | --------------------------------- |
+| `1727215000000` | CreateInitialSchema              | Schema inicial completo           |
+| `1727220000000` | CreateCategoriesTable            | Tabla de categorías               |
+| `1727221000000` | AddCategoryToProducts            | Relación products-categories      |
+| `1728843437000` | AddRoleToUsers                   | Campo role (ADMIN/USER) en users  |
+| `1760307900151` | CreateInventoryReservationsTable | Sistema de reservas de inventario |
+| `1760404000000` | AddDeletedAtToUsers              | Soft delete para users            |
 
 ### Comandos de Migraciones
 
@@ -867,6 +977,10 @@ export class CreateInitialSchema1727215000000 implements MigrationInterface {
     // Rollback in reverse order
     await queryRunner.query(`DROP INDEX "idx_users_email"`);
     await queryRunner.query(`DROP TABLE "users"`);
+    await queryRunner.query(`DROP TYPE "reservation_status_enum"`);
+    await queryRunner.query(`DROP TYPE "user_role_enum"`);
+    await queryRunner.query(`DROP TYPE "inventory_movement_type_enum"`);
+    await queryRunner.query(`DROP TYPE "saga_status_enum"`);
     await queryRunner.query(`DROP TYPE "order_status_enum"`);
   }
 }
