@@ -1,103 +1,429 @@
-# Sistema Procesador de Órdenes Asíncrono
+# 🛒 Ecosistema de Microservicios E-commerce
 
 <p align="center">
-  <a href="https://github.com/ArielDRighi/ecommerce-async-resilient-system/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/ecommerce-async-resilient-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
+  <a href="https://github.com/ArielDRighi/microservices-ecommerce-system/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/microservices-ecommerce-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/tests-1212%20passed%20(111%20suites)-brightgreen?style=for-the-badge" alt="Test Coverage"/>
+    <img src="https://img.shields.io/badge/microservices-3%20services-blue?style=for-the-badge" alt="Microservices"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/coverage-72.14%25%20(threshold%2071%25)-brightgreen?style=for-the-badge" alt="Code Coverage"/>
+    <img src="https://img.shields.io/badge/languages-TypeScript%20%2B%20Go-purple?style=for-the-badge" alt="Multi-Language"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/e2e-261%2F262%20(99.6%25)-brightgreen?style=for-the-badge" alt="E2E Tests"/>
+    <img src="https://img.shields.io/badge/architecture-event--driven-orange?style=for-the-badge" alt="Architecture"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/queues-4%20specialized-blue?style=for-the-badge" alt="Queue System"/>
+    <img src="https://img.shields.io/badge/ADRs-29%20documented-green?style=for-the-badge" alt="ADRs"/>
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/async%20patterns-6%20implemented-purple?style=for-the-badge" alt="Async Patterns"/>
+    <img src="https://img.shields.io/badge/testing-Testcontainers%20%2B%20E2E-brightgreen?style=for-the-badge" alt="Testing"/>
   </a>
 </p>
 
 <p align="center">
-  Sistema resiliente y escalable de nivel empresarial para procesamiento asíncrono de órdenes de e-commerce, construido con NestJS, demostrando arquitecturas event-driven, patrones avanzados de resiliencia y prácticas de DevOps profesionales.
+  Sistema distribuido de e-commerce con arquitectura de microservicios poliglota, implementando comunicación síncrona (REST) y asíncrona (RabbitMQ), patrones de resiliencia avanzados, y testing integral con Testcontainers.
 </p>
 
 <p align="center">
-  <a href="#-quick-start--demo-rápida">🚀 Quick Start</a> •
-  <a href="#-acerca-del-proyecto">Acerca del Proyecto</a> •
-  <a href="#-stack-tecnológico">Stack Tecnológico</a> •
-  <a href="#-arquitectura-del-sistema">Arquitectura</a> •
-  <a href="#-instalación-y-configuración">Instalación</a> •
-  <a href="#-comandos-de-desarrollo">Comandos</a> •
+  <a href="#-quick-start">🚀 Quick Start</a> •
+  <a href="#-arquitectura">Arquitectura</a> •
+  <a href="#-servicios">Servicios</a> •
+  <a href="#-stack-tecnológico">Stack</a> •
+  <a href="#-estructura-del-monorepo">Estructura</a> •
+  <a href="#-instalación">Instalación</a> •
   <a href="#-testing">Testing</a> •
-  <a href="#-documentación-completa">Documentación</a> •
-  <a href="#-decisiones-de-arquitectura">ADRs</a> •
-  <a href="#-contacto">Contacto</a>
+  <a href="#-documentación">Documentación</a> •
+  <a href="#-adrs">ADRs</a> •
+  <a href="#-para-entrevistas">Para Entrevistas</a>
 </p>
 
 ---
 
-## � Quick Start / Demo Rápida
-
-¿Quieres ver el sistema en acción **en 5 minutos**? Sigue esta guía express:
-
-### 📌 Para Evaluadores/Reclutadores
-
-**Opción 1: Demo Ultra-Rápida (5 min)**
+## 🚀 Quick Start
 
 ```bash
-# 1. Clonar y levantar
-git clone https://github.com/ArielDRighi/ecommerce-async-resilient-system.git
-cd ecommerce-async-resilient-system
-docker-compose up -d
-npm install && npm run seed:all
+# 1. Clonar repositorio
+git clone https://github.com/ArielDRighi/microservices-ecommerce-system.git
+cd microservices-ecommerce-system
 
-# 2. Abrir Swagger y seguir la guía
-# http://localhost:3000/api/docs
+# 2. Levantar infraestructura (PostgreSQL, Redis, RabbitMQ)
+docker-compose up -d
+
+# 3. Instalar dependencias
+cd services/orders-service && npm install && cd ../..
+
+# 4. Ejecutar migraciones y seeders
+npm run migrate
+npm run seed
+
+# 5. Iniciar servicios
+# Terminal 1 - Orders Service (NestJS)
+cd services/orders-service && npm run start:dev
+
+# Terminal 2 - Inventory Service (Go)
+cd services/inventory-service && make run
+
+# Terminal 3 - API Gateway (Express)
+cd services/api-gateway && npm run start:dev
 ```
 
-➡️ **[Guía de 5 minutos: Quick Start Demo](/docs/api-testing/00-QUICK-START-DEMO.md)**
+**Endpoints principales:**
+- 🌐 **API Gateway**: http://localhost:8080
+- 📦 **Orders API**: http://localhost:3000/api/docs (Swagger)
+- 📊 **Inventory API**: http://localhost:8081/health
+- 🐰 **RabbitMQ Management**: http://localhost:15672 (admin/admin)
+- 📈 **Bull Board**: http://localhost:3000/admin/queues
 
-Esta guía incluye:
-
-- ✅ Procesamiento asíncrono con respuesta inmediata (< 100ms)
-- ✅ Saga Pattern con 5 steps orquestados
-- ✅ Compensación automática en fallos
-- ✅ Idempotencia (prevención de duplicados)
-- ✅ Visualización en Bull Board Dashboard
-
-### 🎯 TL;DR - ¿Qué hace este proyecto?
-
-**Antes (Síncrono):** Cliente espera 3-5 segundos mientras se procesa stock, pago, emails → Timeouts, mala UX, no escalable
-
-**Ahora (Asíncrono):** Cliente recibe respuesta en <100ms (202 Accepted) → Procesamiento en background con workers → Auto-recuperación en fallos
-
-**Core Técnico:**
-
-- 🔹 **Patrón Outbox**: Garantía de eventos publicados transaccionalmente
-- 🔹 **Saga Pattern**: Orquestación de transacciones distribuidas con compensación
-- 🔹 **Circuit Breaker**: Protección contra cascading failures
-- 🔹 **Idempotencia**: Requests duplicados no crean órdenes duplicadas
-- 🔹 **Bull + Redis**: 4 colas especializadas con retry y DLQ
+➡️ **[Guía Completa de API Testing](docs/api-testing/00-QUICK-START-DEMO.md)**
 
 ---
 
-## �📖 Acerca del Proyecto
+## 🏗️ Arquitectura
 
-> **⚠️ Proyecto de Portfolio:** Este es un proyecto académico/demostrativo creado exclusivamente para mi portfolio profesional. **No está diseñado ni destinado para uso en producción.** Su propósito es demostrar comprensión de arquitecturas complejas y patrones enterprise.
+### Diagrama de Alto Nivel
 
-Este proyecto es un sistema de procesamiento asíncrono de órdenes para e-commerce, construido con **NestJS**, **TypeScript**, **PostgreSQL**, **Redis** y **Bull**. Sirve como demostración técnica de arquitecturas event-driven, patrones de resiliencia y procesamiento asíncrono de alto rendimiento.
+```mermaid
+graph TB
+    subgraph Client["🌐 Cliente / Frontend"]
+        Browser[Browser/Mobile App]
+    end
 
-El objetivo principal es demostrar la capacidad de diseñar y construir sistemas de backend desacoplados, escalables y resilientes, aplicando patrones avanzados como Event Sourcing, Outbox Pattern, Saga Orchestration, CQRS, Circuit Breaker y Retry con exponential backoff.
+    subgraph Gateway["⚡ API Gateway (Express)"]
+        APIGateway[API Gateway<br/>Express + http-proxy-middleware<br/>Puerto: 8080]
+    end
 
-**🎯 Documentación Completa:** El proyecto incluye documentación técnica profesional que demuestra planificación previa, incluyendo diseño de base de datos, diagramas de arquitectura, 25 ADRs (Architecture Decision Records) traducidos al español, y documentación exhaustiva de API.
+    subgraph Services["🔷 Microservicios"]
+        Orders[Orders Service<br/>NestJS + TypeScript<br/>Puerto: 3000]
+        Inventory[Inventory Service<br/>Go + Gin<br/>Puerto: 8081]
+    end
+
+    subgraph MessageBroker["📬 Message Broker"]
+        RabbitMQ[RabbitMQ 3.13<br/>Eventos Asíncronos<br/>Puertos: 5672, 15672]
+    end
+
+    subgraph DataLayer["💾 Capa de Datos"]
+        PostgreSQL[(PostgreSQL 16<br/>Base de Datos Principal)]
+        Redis[(Redis 7<br/>Cache + Bull Queues)]
+    end
+
+    Browser -->|HTTP REST| APIGateway
+    APIGateway -->|Proxy /orders/*| Orders
+    APIGateway -->|Proxy /inventory/*| Inventory
+    
+    Orders -->|HTTP GET/POST<br/>Check Stock / Reserve| Inventory
+    Inventory -->|Publish Events<br/>inventory.reserved<br/>inventory.confirmed| RabbitMQ
+    Orders -->|Consume Events<br/>Update Order Status| RabbitMQ
+    
+    Orders -->|Read/Write<br/>Orders, Users, Categories| PostgreSQL
+    Inventory -->|Read/Write<br/>Products, Reservations| PostgreSQL
+    Orders -->|Bull Queues<br/>Async Jobs| Redis
+    Inventory -->|Cache<br/>Product Data| Redis
+
+    style Browser fill:#e3f2fd
+    style APIGateway fill:#fff3e0
+    style Orders fill:#f3e5f5
+    style Inventory fill:#e8f5e9
+    style RabbitMQ fill:#ffe0b2
+    style PostgreSQL fill:#e1f5fe
+    style Redis fill:#ffebee
+```
+
+### Comunicación entre Servicios
+
+#### 🔵 Síncrona (REST)
+- **Orders → Inventory**: Check stock, Reserve, Release
+- **API Gateway → Orders/Inventory**: Proxy HTTP requests
+- **Implementación**: `@nestjs/axios` + `axios-retry` + `opossum` (circuit breaker)
+- **Timeouts**: 5s (read), 10s (write), 15s (critical)
+- **Referencia**: [ADR-028: REST Synchronous Communication](docs/adr/028-rest-synchronous-communication-strategy.md)
+
+#### 🟠 Asíncrona (RabbitMQ)
+- **Inventory → Orders**: `InventoryReserved`, `InventoryConfirmed`, `InventoryReleased`
+- **Orders → Inventory**: `OrderCancelled`, `OrderCompleted`
+- **Garantías**: At-least-once delivery, Dead Letter Queue, Idempotency
+- **Referencia**: [ADR-029: Message Broker RabbitMQ](docs/adr/029-message-broker-rabbitmq-vs-redis-pubsub.md)
 
 ---
 
-### 🎯 Problema que Resuelve
+## 🎯 ¿Qué Resuelve Este Proyecto?
+
+### Problema
+
+Sistemas de e-commerce tradicionales con arquitectura monolítica enfrentan:
+- ❌ **Acoplamiento**: Cambios en inventario requieren redeploy completo
+- ❌ **Escalabilidad limitada**: No se puede escalar inventario independiente de órdenes
+- ❌ **Tecnologías fijas**: Stack único (ej: solo Node.js o solo Java)
+- ❌ **Resiliencia pobre**: Fallo en un módulo afecta todo el sistema
+
+### Solución: Arquitectura de Microservicios
+
+Este proyecto demuestra:
+- ✅ **Desacoplamiento**: Servicios independientes con contratos API claros
+- ✅ **Escalabilidad horizontal**: Escalar Orders e Inventory por separado
+- ✅ **Tecnología apropiada**: Go para performance (Inventory), NestJS para DX (Orders)
+- ✅ **Resiliencia**: Circuit breakers, retries, Dead Letter Queues
+- ✅ **Event-Driven**: Comunicación asíncrona con RabbitMQ
+
+---
+
+## 🔷 Servicios
+
+### 1. Orders Service (NestJS + TypeScript)
+
+**Descripción**: Gestiona órdenes de compra, usuarios, categorías y procesamiento asíncrono.
+
+**Stack**:
+- Framework: NestJS 10.x
+- ORM: TypeORM
+- Queue: Bull + Redis
+- Testing: Jest + Supertest + Testcontainers
+
+**Responsabilidades**:
+- CRUD de órdenes, usuarios, categorías
+- Procesamiento asíncrono con Bull queues
+- Saga Pattern para transacciones distribuidas
+- Consumidor de eventos de Inventory (RabbitMQ)
+
+**Endpoints principales**:
+- `POST /orders` - Crear orden (trigger Saga)
+- `GET /orders/:id` - Consultar estado de orden
+- `POST /orders/:id/cancel` - Cancelar orden
+- `GET /users`, `GET /categories` - Recursos relacionados
+
+**Documentación**: [services/orders-service/README.md](services/orders-service/README.md)
+
+---
+
+### 2. Inventory Service (Go + Gin)
+
+**Descripción**: Gestiona inventario de productos y reservas con locking optimista.
+
+**Stack**:
+- Framework: Gin (Go)
+- ORM: GORM
+- Cache: Redis
+- Testing: Testcontainers + go-sqlmock
+
+**Responsabilidades**:
+- CRUD de productos (inventory items)
+- Reservas de stock con locking optimista (version column)
+- Confirmación y liberación de reservas
+- Publicación de eventos a RabbitMQ
+- Cache con Redis (Cache-Aside pattern)
+
+**Endpoints principales**:
+- `GET /inventory` - Listar productos
+- `GET /inventory/:id` - Detalle de producto
+- `POST /inventory/reserve` - Reservar stock
+- `POST /inventory/confirm/:id` - Confirmar reserva
+- `POST /inventory/release/:id` - Liberar reserva
+
+**Documentación**: [services/inventory-service/README.md](services/inventory-service/README.md)
+
+---
+
+### 3. API Gateway (Express + TypeScript)
+
+**Descripción**: Punto de entrada único para clientes, proxy a microservicios.
+
+**Stack**:
+- Framework: Express.js
+- Proxy: http-proxy-middleware
+- Auth: JWT (jsonwebtoken)
+- Rate Limiting: express-rate-limit + Redis
+- Circuit Breaker: opossum
+
+**Responsabilidades**:
+- Routing a servicios (`/orders/*` → Orders, `/inventory/*` → Inventory)
+- Autenticación JWT centralizada
+- Rate limiting (100 req/min por IP)
+- Circuit breaker por servicio
+- Logging y métricas (Prometheus)
+
+**Endpoints**:
+- `POST /auth/login` - Autenticación (genera JWT)
+- `/orders/*` - Proxy a Orders Service (puerto 3000)
+- `/inventory/*` - Proxy a Inventory Service (puerto 8081)
+
+**Documentación**: [services/api-gateway/README.md](services/api-gateway/README.md)
+
+**Referencia**: [ADR-026: API Gateway Express Custom](docs/adr/026-api-gateway-express-custom.md)
+
+---
+
+## �️ Stack Tecnológico
+
+### Backend Services
+
+| Tecnología | Uso | Versión |
+|------------|-----|---------|
+| **NestJS** | Orders Service framework | 10.x |
+| **Go (Golang)** | Inventory Service | 1.21+ |
+| **Express.js** | API Gateway | 4.x |
+| **TypeScript** | Lenguaje principal (Orders + Gateway) | 5.x |
+
+### Databases & Storage
+
+| Tecnología | Uso | Versión |
+|------------|-----|---------|
+| **PostgreSQL** | Base de datos relacional principal | 16.x |
+| **Redis** | Cache + Bull queues | 7.x |
+
+### Message Broker
+
+| Tecnología | Uso | Versión |
+|------------|-----|---------|
+| **RabbitMQ** | Eventos asíncronos entre servicios | 3.13 |
+
+### DevOps & Infrastructure
+
+| Tecnología | Uso |
+|------------|-----|
+| **Docker** | Containerización de servicios |
+| **Docker Compose** | Orquestación local |
+| **GitHub Actions** | CI/CD pipeline |
+| **Testcontainers** | Integration tests (Go + NestJS) |
+
+### Monitoring & Observability
+
+| Tecnología | Uso |
+|------------|-----|
+| **Prometheus** | Métricas de servicios |
+| **Grafana** | Dashboards de monitoreo |
+| **Winston** | Logging estructurado |
+| **Bull Board** | Dashboard de queues (NestJS) |
+| **RabbitMQ Management** | Dashboard de RabbitMQ |
+
+### Testing
+
+| Tecnología | Uso | Coverage |
+|------------|-----|----------|
+| **Jest** | Unit + E2E tests (NestJS) | >70% |
+| **Supertest** | API testing (NestJS) | - |
+| **Testcontainers** | Integration tests | - |
+| **go-sqlmock** | Unit tests (Go) | >75% |
+
+---
+
+## 📁 Estructura del Monorepo
+
+```
+microservices-ecommerce-system/
+├── 📂 services/                    # Microservicios independientes
+│   ├── 📦 orders-service/          # NestJS + TypeScript
+│   │   ├── src/
+│   │   │   ├── orders/             # Módulo de órdenes
+│   │   │   ├── users/              # Módulo de usuarios
+│   │   │   ├── categories/         # Módulo de categorías
+│   │   │   ├── saga/               # Saga Pattern implementation
+│   │   │   ├── messaging/          # RabbitMQ consumer
+│   │   │   └── queues/             # Bull queues (async jobs)
+│   │   ├── test/                   # E2E tests
+│   │   ├── package.json
+│   │   └── README.md
+│   │
+│   ├── 📦 inventory-service/       # Go + Gin
+│   │   ├── cmd/api/                # Entry point
+│   │   ├── internal/
+│   │   │   ├── domain/             # Entities (Product, Reservation)
+│   │   │   ├── application/        # Use cases
+│   │   │   ├── infrastructure/     # DB, Redis, RabbitMQ
+│   │   │   └── interfaces/         # HTTP handlers
+│   │   ├── tests/
+│   │   │   ├── unit/               # Unit tests con mocks
+│   │   │   └── integration/        # Testcontainers
+│   │   ├── go.mod
+│   │   ├── Makefile
+│   │   └── README.md
+│   │
+│   └── 📦 api-gateway/             # Express + TypeScript
+│       ├── src/
+│       │   ├── routes/             # Proxy routing
+│       │   ├── middleware/         # Auth, rate limit, circuit breaker
+│       │   └── monitoring/         # Prometheus metrics
+│       ├── package.json
+│       └── README.md
+│
+├── 📂 shared/                      # Código compartido
+│   ├── types/                      # TypeScript types (eventos, DTOs)
+│   └── proto/                      # Protobuf definitions (futuro gRPC)
+│
+├── 📂 docs/                        # Documentación completa
+│   ├── ARCHITECTURE.md             # Diagrama de arquitectura detallado
+│   ├── DATABASE_DESIGN.md          # Esquemas de DB
+│   ├── PROJECT_BACKLOG.md          # Backlog completo (8-10 semanas)
+│   ├── PROJECT_SETUP.md            # Guía de setup inicial
+│   ├── INFRASTRUCTURE_REFERENCE.md # Referencia de infra
+│   ├── VULNERABILIDADES.md         # Análisis de seguridad
+│   ├── adr/                        # Architecture Decision Records (29 ADRs)
+│   │   ├── 001-async-non-blocking-architecture.md
+│   │   ├── 026-api-gateway-express-custom.md
+│   │   ├── 027-testcontainers-vs-mocks-go-testing.md
+│   │   ├── 028-rest-synchronous-communication-strategy.md
+│   │   ├── 029-message-broker-rabbitmq-vs-redis-pubsub.md
+│   │   └── README.md
+│   └── api-testing/                # Guías de testing de API
+│       ├── 00-QUICK-START-DEMO.md
+│       ├── 01-AUTH-MODULE.md
+│       ├── 02-PRODUCTS-MODULE.md
+│       └── ...
+│
+├── 📂 scripts/                     # Scripts de DevOps
+│   ├── init-db.sql                 # Schema inicial
+│   ├── migrate.sh                  # Migraciones
+│   └── deploy-*.sh                 # Deployment scripts
+│
+├── docker-compose.yml              # Infraestructura completa
+├── docker-compose.dev.yml          # Desarrollo local
+├── .gitignore                      # Multi-lenguaje (Node + Go)
+├── Makefile                        # Comandos unificados
+├── README.md                       # Este archivo
+└── LICENSE                         # MIT License
+```
+
+### Decisiones de Estructura
+
+**¿Por qué Monorepo?**
+- ✅ **Atomic commits**: Cambios en múltiples servicios en un solo commit
+- ✅ **Refactoring simplificado**: Cambiar contratos API sin sync entre repos
+- ✅ **Documentación centralizada**: ADRs, arquitectura, backlog en un solo lugar
+- ✅ **CI/CD unificado**: Un pipeline para todo el ecosistema
+
+**Alternativas consideradas**:
+- ❌ **Multi-repo**: Complicaría sync de cambios entre Orders e Inventory
+- ❌ **Monolito modular**: No demostraría microservicios reales
+
+**Referencia**: [ADR-030: Monorepo Structure](docs/adr/030-monorepo-structure.md) _(pendiente)_
+
+---
+
+## 📖 Acerca del Proyecto
+
+> **⚠️ Proyecto de Portfolio:** Este es un proyecto académico/demostrativo creado exclusivamente para mi portfolio profesional. **No está diseñado para uso en producción real.** Su propósito es demostrar comprensión profunda de arquitecturas distribuidas, microservicios, y patrones enterprise.
+
+### Objetivos del Proyecto
+
+1. **Arquitectura de Microservicios**: Demostrar diseño de sistemas distribuidos con servicios independientes
+2. **Tecnología Poliglota**: Uso de Go (performance) y NestJS (DX) según necesidades
+3. **Comunicación Híbrida**: REST síncrono + RabbitMQ asíncrono
+4. **Patrones de Resiliencia**: Circuit breakers, retries, Dead Letter Queues
+5. **Testing Integral**: Unit, Integration (Testcontainers), E2E
+6. **Documentación Profesional**: 29 ADRs, diagramas, backlog detallado
+
+### Evolución del Proyecto
+
+Este proyecto es la **evolución** del [Sistema Procesador de Órdenes Asíncrono](https://github.com/ArielDRighi/ecommerce-async-resilient-system) (Proyecto 2), ahora transformado en una arquitectura de microservicios:
+
+| Aspecto | Proyecto 2 (Monolito) | Proyecto 3 (Microservicios) |
+|---------|----------------------|----------------------------|
+| **Arquitectura** | Monolito NestJS | 3 microservicios (NestJS + Go + Express) |
+| **Lenguajes** | Solo TypeScript | TypeScript + Go (poliglota) |
+| **Base de Datos** | PostgreSQL compartida | PostgreSQL con esquemas separados |
+| **Comunicación** | Interna (módulos) | REST + RabbitMQ (inter-service) |
+| **Inventario** | Lógica interna simulada | Servicio independiente en Go con concurrencia real |
+| **Testing** | Jest + Supertest | Jest + Supertest + Testcontainers (Go + NestJS) |
+| **Deployment** | Single container | Multi-container (Docker Compose) |
 
 Cuando un cliente crea una orden en un e-commerce, múltiples operaciones deben ejecutarse:
 
@@ -1190,4 +1516,130 @@ curl http://localhost:3002/api/v1/health
 
 ---
 
-**Proyecto 2 de 3** del Portfolio Profesional | **Última actualización**: 15 de Octubre, 2025
+## 📥 Instalación y Setup
+
+### Prerequisitos
+
+- **Node.js** 18+ (para Orders Service y API Gateway)
+- **Go** 1.21+ (para Inventory Service)
+- **Docker** 24+ y **Docker Compose** 2+
+- **Make** (opcional, para comandos unificados)
+
+### Setup Completo
+
+```bash
+# 1. Clonar repositorio
+git clone https://github.com/ArielDRighi/microservices-ecommerce-system.git
+cd microservices-ecommerce-system
+
+# 2. Levantar infraestructura (PostgreSQL + Redis + RabbitMQ)
+docker-compose up -d
+
+# 3. Instalar dependencias de Orders Service
+cd services/orders-service && npm install && cd ../..
+
+# 4. Instalar dependencias de API Gateway
+cd services/api-gateway && npm install && cd ../..
+
+# 5. Instalar dependencias de Inventory Service (Go)
+cd services/inventory-service && go mod download && cd../..
+
+# 6. Ejecutar migraciones y seeders
+cd services/orders-service && npm run migration:run && npm run seed && cd ../..
+```
+
+**Ver documentación completa de instalación**: [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md)
+
+---
+
+## 🧪 Testing Strategy
+
+### Cobertura por Servicio
+
+| Servicio | Framework | Coverage | Estrategia |
+|----------|-----------|----------|------------|
+| **Orders** | Jest + Supertest | >70% | Unit + Integration + E2E |
+| **Inventory** | go-sqlmock + Testcontainers | >75% | Unit + Integration |
+| **API Gateway** | Jest + Supertest | >65% | Unit + Integration |
+
+### Ejecutar Tests
+
+```bash
+# Orders Service
+cd services/orders-service
+npm test                # Unit tests
+npm run test:e2e        # E2E tests
+npm run test:cov        # Coverage report
+
+# Inventory Service
+cd services/inventory-service
+make test-unit          # Unit tests con mocks
+make test-integration   # Integration tests (Testcontainers)
+make test               # Todos los tests
+
+# API Gateway
+cd services/api-gateway
+npm test                # Unit + integration tests
+```
+
+**Referencia**: [ADR-027: Testing Strategy con Testcontainers](docs/adr/027-testcontainers-vs-mocks-go-testing.md)
+
+---
+
+## 📚 Documentación Completa
+
+| Documento | Descripción |
+|-----------|-------------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrama de arquitectura detallado |
+| [DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | Esquemas de PostgreSQL, relaciones |
+| [PROJECT_BACKLOG.md](docs/PROJECT_BACKLOG.md) | Backlog completo (8-10 semanas) |
+| [PROJECT_SETUP.md](docs/PROJECT_SETUP.md) | Guía de setup detallada |
+| [ADRs (29)](docs/adr/README.md) | Architecture Decision Records |
+| [API Testing Guides](docs/api-testing/) | Guías por módulo |
+
+---
+
+## 🎤 Para Entrevistas Técnicas
+
+### Habilidades Demostradas
+
+- ✅ **Microservicios**: Arquitectura distribuida con 3 servicios independientes
+- ✅ **Multi-lenguaje**: Go + TypeScript (poliglota)
+- ✅ **Event-Driven**: RabbitMQ con at-least-once delivery
+- ✅ **Resiliencia**: Circuit breakers, retries, Dead Letter Queues
+- ✅ **Testing**: Testcontainers + E2E (>70% coverage)
+- ✅ **Documentación**: 29 ADRs, diagramas, backlog detallado
+- ✅ **DevOps**: Docker, CI/CD, monitoring
+- ✅ **Pragmatismo**: Decisiones técnicas justificadas
+
+---
+
+## 🤝 Contribuciones
+
+Este es un proyecto de portfolio personal. No se aceptan contribuciones externas, pero **feedback es bienvenido** via issues.
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](LICENSE) para más detalles.
+
+---
+
+## 📬 Contacto
+
+**Ariel D. Righi**
+
+- 💼 LinkedIn: [linkedin.com/in/ariel-righi](https://linkedin.com/in/ariel-righi)
+- 🐙 GitHub: [@ArielDRighi](https://github.com/ArielDRighi)
+
+---
+
+<p align="center">
+  <strong>⭐ Si este proyecto te resultó útil, considera darle una estrella en GitHub ⭐</strong>
+</p>
+
+<p align="center">
+  <strong>Proyecto 3 de 3</strong> del Portfolio Profesional | <strong>Última actualización:</strong> 17 de Octubre, 2025
+</p>
+
