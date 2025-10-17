@@ -439,47 +439,62 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 **Contexto:** El Orders Service del Proyecto 2 fue diseñado como monolito con lógica de inventario interna. Debe ser refactorizado para funcionar en un ecosistema de microservicios delegando toda la gestión de stock al Inventory Service.
 
-#### ⏳ T1.6.1: Eliminar lógica de inventario interno del Orders Service
+#### ✅ T1.6.1: Eliminar lógica de inventario interno del Orders Service
 
-- **Status:** ⏳ PENDIENTE
-- Remover tabla `inventory` de la base de datos del Orders Service
-- Eliminar seeders relacionados con inventario
-- Eliminar endpoints internos `/inventory/*` del Orders Service
-- Actualizar migraciones para eliminar referencias a inventario
-- Crear migración de rollback por si es necesario
+- **Status:** ✅ COMPLETADA (2025-10-17)
+- **Commit:** c9513d8
+- ✅ Removida tabla `inventory` de la base de datos del Orders Service
+- ✅ Eliminados seeders relacionados con inventario
+- ✅ Eliminados endpoints internos `/inventory/*` del Orders Service
+- ✅ Actualizada migración para eliminar referencias a inventario
+- ✅ Creada migración de rollback
+- **Files changed:** 67 files, -5,671 lines
 
-#### ⏳ T1.6.2: Crear InventoryServiceClient (HTTP)
+#### ✅ T1.6.2: Crear InventoryServiceClient (HTTP)
 
-- **Status:** ⏳ PENDIENTE
-- Crear interface `IInventoryClient` en módulo común del Orders Service
-- Implementación con `@nestjs/axios` para llamadas HTTP
-- Manejo de errores de red (timeouts, 5xx, connection refused)
-- Retry logic con exponential backoff (3 intentos)
-- Logging estructurado de todas las llamadas al servicio externo
-- Tests unitarios del cliente con mocks
+- **Status:** ✅ COMPLETADA (2025-10-17)
+- **Commit:** 1c7a966
+- ✅ Creada interface `IInventoryClient` con 5 métodos (checkStock, reserveStock, confirmReservation, releaseReservation, healthCheck)
+- ✅ Implementación con `@nestjs/axios` + `axios-retry`
+- ✅ Manejo completo de errores de red (503, 504, 409, 404)
+- ✅ Retry logic con exponential backoff (3 intentos, delay base 1000ms)
+- ✅ Timeout configurado (5000ms)
+- ✅ Logging estructurado con winston
+- ✅ Tests unitarios: 13/13 passing
+- **Files changed:** 5 files, +1,026 lines
 
-#### ⏳ T1.6.3: Actualizar Saga Pattern para llamadas externas
+#### ✅ T1.6.3: Actualizar Saga Pattern para llamadas externas
 
-- **Status:** ⏳ PENDIENTE
-- Modificar `OrderSaga` para usar `InventoryServiceClient` en lugar de lógica interna
-- Añadir step de compensación para fallos de red
-- Implementar timeout en llamadas al servicio externo (max 5 segundos)
-- Manejar casos de servicio no disponible
-- Actualizar tests de saga con cliente HTTP mockeado
+- **Status:** ✅ COMPLETADA (2025-10-17)
+- **Commit:** ea3b5b9
+- ✅ Modificado `OrderProcessingSagaService` para usar `InventoryServiceClient`
+- ✅ Añadida compensación para fallos de red (InventoryServiceUnavailableException, InventoryServiceTimeoutException)
+- ✅ Implementado timeout en llamadas (5s por operación)
+- ✅ Manejo de InsufficientStockException (non-retryable)
+- ✅ Manejo de ReservationNotFoundException en compensación
+- ✅ Actualizados 5 test files (core, compensations, edge-cases, failures, retries)
+- ✅ Test helpers actualizados con nuevos DTOs
+- ✅ Comentada relación Inventory en ProductEntity
+- ✅ All saga tests passing: 16/16
+- ✅ Build successful
+- **Files changed:** 14 files, +787 insertions, -170 deletions
 
-#### ⏳ T1.6.4: Actualizar variables de entorno del Orders Service
+#### ✅ T1.6.4: Actualizar variables de entorno del Orders Service
 
-- **Status:** ⏳ PENDIENTE
-- Añadir `INVENTORY_SERVICE_URL=http://inventory-service:8080`
-- Añadir `INVENTORY_SERVICE_TIMEOUT=5000`
-- Añadir `INVENTORY_SERVICE_RETRY_ATTEMPTS=3`
-- Actualizar `.env.example` con nuevas variables
-- Documentar variables en README del Orders Service
+- **Status:** ✅ COMPLETADA (2025-10-17)
+- **Commit:** PENDIENTE
+- ✅ Añadido `INVENTORY_SERVICE_URL=http://localhost:8080` a .env.example, .env.development, .env.test
+- ✅ Añadido `INVENTORY_SERVICE_TIMEOUT=5000` (3000 para tests)
+- ✅ Añadido `INVENTORY_SERVICE_RETRY_ATTEMPTS=3` (1 para tests)
+- ✅ Añadido `INVENTORY_SERVICE_RETRY_DELAY=1000` (100 para tests)
+- ✅ Actualizado README del Orders Service con sección completa de variables de entorno
+- ✅ Documentada tabla con descripción, defaults y obligatoriedad
+- **Files changed:** 4 files (.env.example, .env.development, .env.test, README.md)
 
 #### ⏳ T1.6.5: Actualizar tests del Orders Service
 
 - **Status:** ⏳ PENDIENTE
-- Mockear `InventoryServiceClient` en unit tests
+- Mockear `InventoryServiceClient` en unit tests (PARCIAL: saga tests completados)
 - Crear fixtures para responses del Inventory Service
 - Actualizar E2E tests para levantar ambos servicios (docker-compose)
 - Tests de timeout y retry logic del cliente HTTP
@@ -487,12 +502,12 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 **✅ Definition of Done - Epic 1.6:**
 
-- [ ] Orders Service no tiene lógica de inventario interna
-- [ ] Todas las operaciones de stock se delegan al Inventory Service vía HTTP
-- [ ] Tests pasan con el cliente HTTP mockeado
-- [ ] E2E tests funcionan con ambos servicios corriendo en docker-compose
-- [ ] Cobertura de tests se mantiene >70%
-- [ ] Variables de entorno documentadas
+- [x] Orders Service no tiene lógica de inventario interna ✅ (T1.6.1)
+- [x] Todas las operaciones de stock se delegan al Inventory Service vía HTTP ✅ (T1.6.2, T1.6.3)
+- [x] Tests pasan con el cliente HTTP mockeado ✅ (16/16 saga tests passing)
+- [ ] E2E tests funcionan con ambos servicios corriendo en docker-compose ⏳ (T1.6.5)
+- [ ] Cobertura de tests se mantiene >70% ⏳ (T1.6.5)
+- [x] Variables de entorno documentadas ✅ (T1.6.4)
 
 ---
 

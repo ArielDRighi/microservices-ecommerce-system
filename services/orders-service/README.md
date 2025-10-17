@@ -86,6 +86,80 @@ npm run type-check         # Verificar tipos de TypeScript
 - **Bull Dashboard**: http://localhost:3000/admin/queues
 - **Health Check**: http://localhost:3000/health
 
+## ⚙️ Variables de Entorno
+
+### Core Configuration
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `NODE_ENV` | Entorno de ejecución | `development` | ✅ |
+| `PORT` | Puerto del servicio | `3000` | ✅ |
+| `API_PREFIX` | Prefijo de API | `api/v1` | ❌ |
+
+### Database (PostgreSQL)
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `DATABASE_HOST` | Host de PostgreSQL | `localhost` | ✅ |
+| `DATABASE_PORT` | Puerto de PostgreSQL | `5432` | ✅ |
+| `DATABASE_USERNAME` | Usuario de PostgreSQL | `postgres` | ✅ |
+| `DATABASE_PASSWORD` | Contraseña de PostgreSQL | - | ✅ |
+| `DATABASE_NAME` | Nombre de la base de datos | `ecommerce_async` | ✅ |
+| `RUN_MIGRATIONS` | Auto-ejecutar migraciones | `false` | ❌ |
+
+### Redis & Queues
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `REDIS_HOST` | Host de Redis | `localhost` | ✅ |
+| `REDIS_PORT` | Puerto de Redis | `6379` | ✅ |
+| `REDIS_PASSWORD` | Contraseña de Redis | - | ❌ |
+| `REDIS_DB` | Base de datos de Redis | `0` | ❌ |
+| `QUEUE_PREFIX` | Prefijo de colas Bull | `ecommerce_async` | ❌ |
+
+### JWT Authentication
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `JWT_SECRET` | Secret para firma JWT | - | ✅ |
+| `JWT_EXPIRES_IN` | Tiempo de expiración | `15m` | ❌ |
+| `JWT_REFRESH_SECRET` | Secret para refresh token | - | ✅ |
+| `JWT_REFRESH_EXPIRES_IN` | Expiración refresh token | `7d` | ❌ |
+
+### **✅ Epic 1.6 - Inventory Service (External HTTP Client)**
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `INVENTORY_SERVICE_URL` | URL del Inventory Service | `http://localhost:8080` | ✅ |
+| `INVENTORY_SERVICE_TIMEOUT` | Timeout en ms para llamadas HTTP | `5000` | ❌ |
+| `INVENTORY_SERVICE_RETRY_ATTEMPTS` | Número de reintentos en fallos | `3` | ❌ |
+| `INVENTORY_SERVICE_RETRY_DELAY` | Delay base entre reintentos (ms) | `1000` | ❌ |
+
+> **⚠️ Importante**: El Orders Service ahora se comunica con el Inventory Service vía HTTP.
+> Asegúrate de que el Inventory Service esté corriendo antes de iniciar el Orders Service.
+
+### Logging
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `LOG_LEVEL` | Nivel de logging | `info` | ❌ |
+| `LOG_FORMAT` | Formato de logs | `json` | ❌ |
+| `LOG_TO_FILE` | Escribir logs a archivo | `false` | ❌ |
+
+### Security
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `HELMET_ENABLED` | Habilitar Helmet | `true` | ❌ |
+| `RATE_LIMIT_WINDOW_MS` | Ventana de rate limit | `900000` | ❌ |
+| `RATE_LIMIT_MAX` | Máximo de requests | `1000` | ❌ |
+| `CORS_ORIGIN` | Orígenes permitidos CORS | `*` | ❌ |
+
+### Development
+| Variable | Descripción | Default | Obligatorio |
+|----------|-------------|---------|-------------|
+| `ENABLE_SWAGGER` | Habilitar Swagger UI | `true` | ❌ |
+| `SWAGGER_PATH` | Ruta de Swagger | `api/docs` | ❌ |
+| `DEBUG_NAMESPACE` | Namespace para debug | `ecommerce:*` | ❌ |
+
+Para más detalles, ver archivos:
+- `.env.example` - Plantilla con todas las variables
+- `.env.development` - Configuración para desarrollo
+- `.env.test` - Configuración para tests
+
 ## 🏗️ Arquitectura
 
 - **Patrón Outbox**: Garantiza publicación transaccional de eventos
