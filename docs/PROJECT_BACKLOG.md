@@ -223,11 +223,11 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 **✅ Definition of Done - Epic 1.1:**
 
-- [ ] Estructura de monorepo correctamente organizada
-- [ ] .gitignore cubre todos los lenguajes del proyecto
-- [ ] README principal con diagrama de arquitectura creado
-- [ ] ADR-026 documentando decisión de monorepo
-- [ ] Código de Orders Service migrado sin pérdida de funcionalidad
+- [x] Estructura de monorepo correctamente organizada
+- [x] .gitignore cubre todos los lenguajes del proyecto
+- [x] README principal con diagrama de arquitectura creado
+- [x] ADR-030 documentando decisión de monorepo
+- [x] Código de Orders Service migrado sin pérdida de funcionalidad
 
 ---
 
@@ -274,12 +274,12 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 **✅ Definition of Done - Epic 1.2:**
 
-- [ ] Proyecto Go inicializado con estructura hexagonal
-- [ ] Todas las dependencias instaladas y funcionando
-- [ ] Servidor HTTP corriendo en puerto 8080
-- [ ] Health check funcional con tests pasando
-- [ ] Configuración de entorno implementada
-- [ ] Graceful shutdown funcionando correctamente
+- [x] Proyecto Go inicializado con estructura hexagonal
+- [x] Todas las dependencias instaladas y funcionando
+- [x] Servidor HTTP corriendo en puerto 8080
+- [x] Health check funcional con tests pasando
+- [x] Configuración de entorno implementada
+- [x] Graceful shutdown funcionando correctamente
 
 ---
 
