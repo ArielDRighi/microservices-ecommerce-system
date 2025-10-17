@@ -1,0 +1,109 @@
+# ============================================================================
+# Air Configuration - Hot-reload for Go Development
+# ============================================================================
+# 
+# Air watch for file changes and automatically rebuild/restart the application
+# Documentation: https://github.com/air-verse/air
+#
+# ============================================================================
+
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  # Argumentos pasados al comando go build
+  args_bin = []
+  
+  # Binario compilado
+  bin = "./tmp/main"
+  
+  # Comando de build
+  cmd = "go build -o ./tmp/main ./cmd/api"
+  
+  # Delay antes de reiniciar (ms)
+  delay = 1000
+  
+  # Directorio a excluir del watch
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "bin", "docs", "scripts", "tests"]
+  
+  # Archivos a excluir del watch (regex)
+  exclude_file = []
+  
+  # Incluir extensiones de archivos a monitorear
+  exclude_regex = ["_test.go"]
+  
+  # Detener el proceso anterior antes de iniciar uno nuevo
+  exclude_unchanged = false
+  
+  # Seguir links simbólicos
+  follow_symlink = false
+  
+  # Comando de build completo
+  full_bin = ""
+  
+  # Incluir directorio
+  include_dir = []
+  
+  # Extensiones de archivos a monitorear
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  
+  # Detener proceso anterior antes de reiniciar
+  include_file = []
+  
+  # Matar proceso hijo antes de salir
+  kill_delay = "0s"
+  
+  # Log file
+  log = "build-errors.log"
+  
+  # Poll para cambios de archivos (útil en Docker)
+  poll = true
+  
+  # Intervalo de poll (ms)
+  poll_interval = 500
+  
+  # Comando post-build
+  post_cmd = []
+  
+  # Comando pre-build
+  pre_cmd = []
+  
+  # Reiniciar en caso de errores de build
+  rerun = false
+  
+  # Delay antes de reiniciar después de crash (ms)
+  rerun_delay = 500
+  
+  # Enviar SIGINT para detener el proceso
+  send_interrupt = false
+  
+  # Detener en errores de build
+  stop_on_error = false
+
+[color]
+  # Colorizar output de Air
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  # Mostrar logs del servicio
+  main_only = false
+  
+  # Timestamp en logs
+  time = false
+
+[misc]
+  # Limpiar pantalla en cada build
+  clean_on_exit = false
+
+[screen]
+  # Limpiar pantalla antes de cada build
+  clear_on_rebuild = false
+  
+  # Mantener scroll en rebuild
+  keep_scroll = true
+

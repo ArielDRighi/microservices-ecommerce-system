@@ -327,9 +327,9 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 ---
 
-### Epic 1.4: Docker & Orchestration **[70% COMPLETADA]**
+### ✅ Epic 1.4: Docker & Orchestration **[COMPLETADA]**
 
-**Priority:** CRITICAL
+**Priority:** CRITICAL | **Status:** ✅ DONE
 
 #### ✅ T1.4.1: Crear docker-compose.yml principal
 
@@ -352,29 +352,32 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 - Multi-stage build
 - Imagen optimizada con Alpine
 
-#### ⏳ T1.4.4: Dockerfile.dev para desarrollo
+#### ✅ T1.4.4: Dockerfile.dev para desarrollo
 
-- **Status:** ⏳ PENDIENTE
-- Hot-reload con Air
-- Volúmenes de código montados
+- **Status:** ✅ COMPLETADA
+- Hot-reload con Air (`services/inventory-service/Dockerfile.dev`)
+- Configuración Air en `.air.toml` con poll mode (Docker-compatible)
+- Volúmenes de código montados en `docker-compose.dev.yml`
+- Puerto debugger Delve expuesto (2345)
 
-#### ⏳ T1.4.5: Setup RabbitMQ en docker-compose
+#### ✅ T1.4.5: Setup RabbitMQ en docker-compose
 
-- **Status:** ⏳ PENDIENTE
-- Añadir servicio RabbitMQ con imagen `rabbitmq:3-management`
-- Configurar puerto 5672 (AMQP) y 15672 (Management UI)
-- Configurar persistencia de mensajes
-- Health check de RabbitMQ
-- Documentar acceso a Management UI en INFRASTRUCTURE_REFERENCE.md
+- **Status:** ✅ COMPLETADA
+- Servicio RabbitMQ con imagen `rabbitmq:3.13-management-alpine`
+- Puerto 5672 (AMQP) y 15672 (Management UI) configurados
+- Credenciales: microservices/microservices_pass_2024
+- Persistencia de mensajes con volúmenes Docker
+- Health check de RabbitMQ configurado (60s start period)
+- Documentación completa en INFRASTRUCTURE_REFERENCE.md con arquitectura de eventos (ADR-029)
 
 **✅ Definition of Done - Epic 1.4:**
 
-- [ ] docker-compose.yml levanta todos los servicios sin errores
-- [ ] Bases de datos separadas correctamente configuradas
-- [ ] Dockerfiles optimizados (multi-stage builds)
-- [ ] RabbitMQ corriendo y accesible
-- [ ] Health checks configurados para todos los servicios
-- [ ] Documentación de puertos actualizada
+- [x] docker-compose.yml levanta todos los servicios sin errores
+- [x] Bases de datos separadas correctamente configuradas
+- [x] Dockerfiles optimizados (multi-stage builds)
+- [x] RabbitMQ corriendo y accesible
+- [x] Health checks configurados para todos los servicios
+- [x] Documentación de puertos actualizada
 
 ---
 
