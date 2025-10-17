@@ -4,9 +4,11 @@ import { DataSource } from 'typeorm';
 import { ResponseHelper } from '../../helpers/response.helper';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ProductFactory } from '../../helpers/factories/product.factory';
-import { InventoryFactory } from '../../helpers/factories/inventory.factory';
+// ✅ Epic 1.6 - InventoryFactory removed (inventory now external service)
+// import { InventoryFactory } from '../../helpers/factories/inventory.factory';
 import { Product } from '../../../src/modules/products/entities/product.entity';
-import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
+// ✅ Epic 1.6 - Inventory entity removed (now external service)
+// import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 
 // Helper function to extract data from nested response structure - exact copy from products test
 
@@ -14,14 +16,16 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let productRepository: any;
-  let inventoryRepository: any;
+  // ✅ Epic 1.6 - Inventory repository removed (now external service)
+  // let inventoryRepository: any;
 
   beforeAll(async () => {
     // ✅ Usar TestAppHelper para dependencias REALES
     app = await TestAppHelper.createTestApp();
     dataSource = app.get(DataSource);
     productRepository = dataSource.getRepository(Product);
-    inventoryRepository = dataSource.getRepository(Inventory);
+    // ✅ Epic 1.6 - Inventory repository removed (now external service)
+    // inventoryRepository = dataSource.getRepository(Inventory);
   });
 
   afterAll(async () => {
@@ -55,11 +59,12 @@ describe('Order Processing Saga - Failure Scenarios (E2E)', () => {
 
       // Setup: product with low stock
       const product = await ProductFactory.create(productRepository);
-      await InventoryFactory.create(inventoryRepository, {
-        productId: product.id,
-        currentStock: 1,
-        sku: product.sku,
-      });
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // await InventoryFactory.create(inventoryRepository, {
+      //   productId: product.id,
+      //   currentStock: 1,
+      //   sku: product.sku,
+      // });
 
       // Try to order more than available
       const orderRes = await request(app.getHttpServer())

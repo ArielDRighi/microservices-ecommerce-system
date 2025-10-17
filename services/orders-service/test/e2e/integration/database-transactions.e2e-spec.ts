@@ -4,11 +4,13 @@ import { DataSource } from 'typeorm';
 import { ResponseHelper } from '../../helpers/response.helper';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 import { ProductFactory } from '../../helpers/factories/product.factory';
-import { InventoryFactory } from '../../helpers/factories/inventory.factory';
+// ✅ Epic 1.6 - InventoryFactory removed (inventory now external service)
+// import { InventoryFactory } from '../../helpers/factories/inventory.factory';
 import { Order } from '../../../src/modules/orders/entities/order.entity';
 import { OrderItem } from '../../../src/modules/orders/entities/order-item.entity';
 import { Product } from '../../../src/modules/products/entities/product.entity';
-import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
+// ✅ Epic 1.6 - Inventory entity removed (now external service)
+// import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 
 // Helper function to extract data from nested response structure
 
@@ -16,7 +18,8 @@ describe('Database Transactions & Consistency (E2E)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let productRepository: any;
-  let inventoryRepository: any;
+  // ✅ Epic 1.6 - Inventory repository removed (now external service)
+  // let inventoryRepository: any;
   let orderRepository: any;
   let orderItemRepository: any;
 
@@ -24,7 +27,8 @@ describe('Database Transactions & Consistency (E2E)', () => {
     app = await TestAppHelper.createTestApp();
     dataSource = app.get(DataSource);
     productRepository = dataSource.getRepository(Product);
-    inventoryRepository = dataSource.getRepository(Inventory);
+    // ✅ Epic 1.6 - Inventory repository removed (now external service)
+    // inventoryRepository = dataSource.getRepository(Inventory);
     orderRepository = dataSource.getRepository(Order);
     orderItemRepository = dataSource.getRepository(OrderItem);
   });
@@ -61,13 +65,14 @@ describe('Database Transactions & Consistency (E2E)', () => {
         ProductFactory.create(productRepository),
       ]);
 
-      for (const product of products) {
-        await InventoryFactory.create(inventoryRepository, {
-          productId: product.id,
-          currentStock: 100,
-          sku: product.sku,
-        });
-      }
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // for (const product of products) {
+      //   await InventoryFactory.create(inventoryRepository, {
+      //     productId: product.id,
+      //     currentStock: 100,
+      //     sku: product.sku,
+      //   });
+      // }
 
       const orderData = {
         items: [
@@ -126,11 +131,12 @@ describe('Database Transactions & Consistency (E2E)', () => {
 
       // Arrange: Create valid product and use invalid product ID
       const validProduct = await ProductFactory.create(productRepository);
-      await InventoryFactory.create(inventoryRepository, {
-        productId: validProduct.id,
-        currentStock: 100,
-        sku: validProduct.sku,
-      });
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // await InventoryFactory.create(inventoryRepository, {
+      //   productId: validProduct.id,
+      //   currentStock: 100,
+      //   sku: validProduct.sku,
+      // });
 
       const invalidProductId = '00000000-0000-0000-0000-000000000000';
 
@@ -155,12 +161,13 @@ describe('Database Transactions & Consistency (E2E)', () => {
       expect(orderCount).toBe(0);
       expect(orderItemCount).toBe(0);
 
-      // Verify inventory was not affected
-      const inventory = await inventoryRepository.findOne({
-        where: { productId: validProduct.id },
-      });
-      expect(inventory?.currentStock).toBe(100);
-      expect(inventory?.reservedStock).toBe(0);
+      // ✅ Epic 1.6 - Inventory verification removed (now handled by external Inventory Service)
+      // // Verify inventory was not affected
+      // const inventory = await inventoryRepository.findOne({
+      //   where: { productId: validProduct.id },
+      // });
+      // expect(inventory?.currentStock).toBe(100);
+      // expect(inventory?.reservedStock).toBe(0);
     });
   });
 
@@ -194,11 +201,12 @@ describe('Database Transactions & Consistency (E2E)', () => {
 
       // Arrange: Create product with specific stock
       const product = await ProductFactory.create(productRepository);
-      await InventoryFactory.create(inventoryRepository, {
-        productId: product.id,
-        currentStock: 10,
-        sku: product.sku,
-      });
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // await InventoryFactory.create(inventoryRepository, {
+      //   productId: product.id,
+      //   currentStock: 10,
+      //   sku: product.sku,
+      // });
 
       // Act: Two concurrent reservations of the same product
       const resTimestamp = Date.now();
@@ -282,11 +290,12 @@ describe('Database Transactions & Consistency (E2E)', () => {
 
       // Arrange: Create product with low stock
       const product = await ProductFactory.create(productRepository);
-      await InventoryFactory.create(inventoryRepository, {
-        productId: product.id,
-        currentStock: 5,
-        sku: product.sku,
-      });
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // await InventoryFactory.create(inventoryRepository, {
+      //   productId: product.id,
+      //   currentStock: 5,
+      //   sku: product.sku,
+      // });
 
       // Act: Multiple reservation attempts exceeding stock
       const resTimestamp2 = Date.now();
@@ -362,11 +371,12 @@ describe('Database Transactions & Consistency (E2E)', () => {
 
       // Arrange: Create valid order first
       const product = await ProductFactory.create(productRepository);
-      await InventoryFactory.create(inventoryRepository, {
-        productId: product.id,
-        currentStock: 100,
-        sku: product.sku,
-      });
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // await InventoryFactory.create(inventoryRepository, {
+      //   productId: product.id,
+      //   currentStock: 100,
+      //   sku: product.sku,
+      // });
 
       await request(app.getHttpServer())
         .post('/orders')
@@ -433,13 +443,14 @@ describe('Database Transactions & Consistency (E2E)', () => {
         ProductFactory.create(productRepository),
       ]);
 
-      for (const product of products) {
-        await InventoryFactory.create(inventoryRepository, {
-          productId: product.id,
-          currentStock: 100,
-          sku: product.sku,
-        });
-      }
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // for (const product of products) {
+      //   await InventoryFactory.create(inventoryRepository, {
+      //     productId: product.id,
+      //     currentStock: 100,
+      //     sku: product.sku,
+      //   });
+      // }
 
       const orderResponse = await request(app.getHttpServer())
         .post('/orders')
@@ -521,11 +532,12 @@ describe('Database Transactions & Consistency (E2E)', () => {
 
       // Arrange: Create product and order
       const product = await ProductFactory.create(productRepository);
-      await InventoryFactory.create(inventoryRepository, {
-        productId: product.id,
-        currentStock: 100,
-        sku: product.sku,
-      });
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // await InventoryFactory.create(inventoryRepository, {
+      //   productId: product.id,
+      //   currentStock: 100,
+      //   sku: product.sku,
+      // });
 
       const orderResponse = await request(app.getHttpServer())
         .post('/orders')
@@ -604,17 +616,18 @@ describe('Database Transactions & Consistency (E2E)', () => {
         ProductFactory.create(productRepository),
       ]);
 
-      const inventories = [];
-      for (const product of products) {
-        const inventory = await InventoryFactory.create(inventoryRepository, {
-          productId: product.id,
-          currentStock: 50,
-          sku: product.sku,
-        });
-        inventories.push(inventory);
-      }
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // const inventories = [];
+      // for (const product of products) {
+      //   const inventory = await InventoryFactory.create(inventoryRepository, {
+      //     productId: product.id,
+      //     currentStock: 50,
+      //     sku: product.sku,
+      //   });
+      //   inventories.push(inventory);
+      // }
 
-      const initialStockSum = inventories.reduce((sum, inv) => sum + inv.currentStock, 0);
+      // const initialStockSum = inventories.reduce((sum, inv) => sum + inv.currentStock, 0);
 
       // Act: Create multiple orders simultaneously
       const orderPromises = [
@@ -654,23 +667,26 @@ describe('Database Transactions & Consistency (E2E)', () => {
       });
 
       const orderItems = await orderItemRepository.find();
-      const currentInventories = await inventoryRepository.find();
+      // ✅ Epic 1.6 - Inventory verification removed (now handled by external Inventory Service)
+      // const currentInventories = await inventoryRepository.find();
 
       // Verify referential integrity
       for (const item of orderItems) {
         const order = orders.find((o: any) => o.id === item.orderId);
         expect(order).toBeDefined();
 
-        const inventory = currentInventories.find((i: any) => i.productId === item.productId);
-        expect(inventory).toBeDefined();
+        // ✅ Epic 1.6 - Inventory verification removed
+        // const inventory = currentInventories.find((i: any) => i.productId === item.productId);
+        // expect(inventory).toBeDefined();
       }
 
-      // Verify stock conservation (total stock + reserved should not exceed initial)
-      const currentStockSum = currentInventories.reduce(
-        (sum: number, inv: any) => sum + inv.currentStock + inv.reservedStock,
-        0,
-      );
-      expect(currentStockSum).toBeLessThanOrEqual(initialStockSum);
+      // ✅ Epic 1.6 - Stock conservation verification removed (now handled by external Inventory Service)
+      // // Verify stock conservation (total stock + reserved should not exceed initial)
+      // const currentStockSum = currentInventories.reduce(
+      //   (sum: number, inv: any) => sum + inv.currentStock + inv.reservedStock,
+      //   0,
+      // );
+      // expect(currentStockSum).toBeLessThanOrEqual(initialStockSum);
 
       // Verify no orphaned records
       const orphanedItems = await dataSource.query(`
