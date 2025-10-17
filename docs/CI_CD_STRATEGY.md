@@ -15,6 +15,7 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 ## 📊 Estado Actual del Proyecto
 
 ### Fase 1: Implementación Base - Epic 1.3 (ACTUAL)
+
 ```
 ├── Epic 1.1 ✅ Estructura del Monorepo (COMPLETADA)
 ├── Epic 1.2 ✅ Inventory Service - Esqueleto Básico (COMPLETADA)
@@ -39,6 +40,7 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 **Propósito:** Validación estructural ligera del monorepo  
 **Trigger:** `push` a cualquier rama, `pull_request`  
 **Lo que hace:**
+
 - ✅ Valida estructura de directorios
 - ✅ Verifica archivos de configuración existen
 - ✅ Ejecuta `gofmt` (formateo Go)
@@ -54,6 +56,7 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 **Propósito:** CI/CD completo para servicio Go  
 **Trigger:** `push`/`pull_request` con path filters (`services/inventory-service/**`)  
 **Lo que hace:**
+
 - ✅ **Build & Unit Tests**
   - Compila binario Go
   - Ejecuta tests unitarios con coverage
@@ -84,6 +87,7 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 **Propósito:** CI/CD completo para servicio NestJS  
 **Trigger:** `push`/`pull_request` con path filters (`services/orders-service/**`)  
 **Lo que hace:**
+
 - ✅ **Build & Unit Tests**
   - npm ci para dependencias
   - npm run lint (ESLint)
@@ -118,14 +122,16 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 
 **Propósito:** Build de Docker images + Deploy a staging/production  
 **Trigger anterior:** `push` a `main` (automático)  
-**Trigger actual:** `workflow_dispatch` (manual, deshabilitado)  
+**Trigger actual:** `workflow_dispatch` (manual, deshabilitado)
 
 **Por qué está deshabilitado:**
+
 ```
 ERROR: failed to read dockerfile: open Dockerfile: no such file or directory
 ```
 
 **Estado del código:**
+
 - API Gateway: **VACÍO** (solo ADR-026)
 - Inventory Service: **SKELETON** (estructura básica, sin implementación)
 - Orders Service: **COMPLETO** (pero no adaptado al monorepo)
@@ -141,13 +147,14 @@ ERROR: failed to read dockerfile: open Dockerfile: no such file or directory
 ## 📅 Roadmap de CI/CD por Fase
 
 ### Fase 0: Technical Spikes (ACTUAL)
+
 ```yaml
 CI:
   - ✅ ci-basic.yml (estructura, formateo, linting)
-  
+
 CD:
   - ⏸️ cd.yml (DESHABILITADO - no hay servicios)
-  
+
 Tests:
   - ⏸️ Sin tests automáticos (solo PoCs manuales)
 ```
@@ -158,6 +165,7 @@ Tests:
 ---
 
 ### Fase 1: Implementación Base (PRÓXIMA)
+
 ```yaml
 CI:
   - ✅ ci-basic.yml (mantener)
@@ -166,17 +174,18 @@ CI:
       - Unit tests (Jest, Go testing)
       - Linting avanzado (ESLint, golangci-lint)
       - Coverage reports (80%+ target)
-  
+
 CD:
   - ⏸️ cd.yml (TODAVÍA DESHABILITADO - no hay infra)
-  
+
 Tests:
   - ✅ Unit tests automáticos (cada push)
   - ⏸️ Integration tests (manual, requiere Docker)
 ```
 
 **Duración:** 2-3 semanas  
-**Entregable:** 
+**Entregable:**
+
 - Inventory Service completo (CRUD, repositorios, locking optimista)
 - API Gateway básico (routing, health checks)
 - Orders Service adaptado al monorepo
@@ -184,6 +193,7 @@ Tests:
 ---
 
 ### Fase 2: Integración y Testing Avanzado
+
 ```yaml
 CI:
   - ✅ ci-basic.yml (mantener)
@@ -192,10 +202,10 @@ CI:
       - Integration tests con Testcontainers
       - E2E tests con Postman/Newman
       - Performance tests básicos
-  
+
 CD:
   - ⏸️ cd.yml (TODAVÍA DESHABILITADO - testing en progreso)
-  
+
 Tests:
   - ✅ Unit tests (cada push)
   - ✅ Integration tests (cada push a main)
@@ -203,7 +213,8 @@ Tests:
 ```
 
 **Duración:** 1-2 semanas  
-**Entregable:** 
+**Entregable:**
+
 - Tests de integración completos
 - E2E flows críticos
 - Coverage >80%
@@ -211,12 +222,13 @@ Tests:
 ---
 
 ### Fase 3: Staging y Pre-Producción
+
 ```yaml
 CI:
   - ✅ ci-basic.yml (mantener)
   - ✅ ci-full.yml (mantener)
   - ✅ ci-integration.yml (mantener)
-  
+
 CD:
   - ✅ cd.yml (REACTIVAR - solo staging):
       - Build Docker images
@@ -224,7 +236,7 @@ CD:
       - Deploy to staging (Railway/Fly.io/Render)
       - Smoke tests
       - ⏸️ Production deploy (manual approval)
-  
+
 Infrastructure:
   - 🆕 Docker Compose actualizado (todos los servicios)
   - 🆕 Kubernetes manifests (opcional)
@@ -232,7 +244,8 @@ Infrastructure:
 ```
 
 **Duración:** 1-2 semanas  
-**Entregable:** 
+**Entregable:**
+
 - Staging environment funcional
 - Docker images publicadas
 - Deploy automatizado
@@ -240,10 +253,11 @@ Infrastructure:
 ---
 
 ### Fase 4: Producción (FINAL)
+
 ```yaml
 CI:
   - ✅ Todos los pipelines activos
-  
+
 CD:
   - ✅ cd.yml (COMPLETO):
       - ✅ Build + Push images
@@ -252,7 +266,7 @@ CD:
       - ✅ Rollback capability
       - ✅ Health checks
       - ✅ Notifications (Slack/Email)
-  
+
 Monitoring:
   - 🆕 Prometheus metrics
   - 🆕 Grafana dashboards
@@ -267,6 +281,7 @@ Monitoring:
 ## 🚨 Errores Comunes y Soluciones
 
 ### Error 1: "Dockerfile not found"
+
 ```
 ERROR: failed to read dockerfile: open Dockerfile: no such file or directory
 ```
@@ -278,6 +293,7 @@ ERROR: failed to read dockerfile: open Dockerfile: no such file or directory
 ---
 
 ### Error 2: "go: no Go files in /app"
+
 ```
 ERROR: go build: no Go files
 ```
@@ -289,6 +305,7 @@ ERROR: go build: no Go files
 ---
 
 ### Error 3: "npm install failed - package.json not found"
+
 ```
 ERROR: ENOENT: no such file or directory, open 'package.json'
 ```
@@ -302,21 +319,25 @@ ERROR: ENOENT: no such file or directory, open 'package.json'
 ## 📖 Filosofía de CI/CD en este Proyecto
 
 ### Principio 1: **Progresivo, no complejo desde el inicio**
+
 - ✅ Empezar simple (validación estructural)
 - ✅ Añadir capas según madurez del código
 - ❌ No configurar deploy cuando no hay nada que deployar
 
 ### Principio 2: **Fast feedback en desarrollo**
+
 - ✅ CI básico debe ser rápido (<30s)
 - ✅ Tests completos solo en branches importantes
 - ✅ Integration tests con flag `-short` para skip local
 
 ### Principio 3: **Visible y documentado**
+
 - ✅ Cada pipeline tiene comentarios explicativos
 - ✅ Errores esperados documentados (como este)
 - ✅ Estrategia clara en este documento
 
 ### Principio 4: **Portfolio-friendly**
+
 - ✅ Demostrar conocimiento de CI/CD progresivo
 - ✅ No "fake pipelines" que no hacen nada útil
 - ✅ Explicar decisiones en entrevistas
@@ -328,6 +349,7 @@ ERROR: ENOENT: no such file or directory, open 'package.json'
 **Pregunta:** "¿Por qué tu CD pipeline está deshabilitado?"
 
 **Respuesta:**
+
 > "Sigo una estrategia de CI/CD progresiva. En **Fase 0** (Technical Spikes), solo tengo documentación y decisiones arquitectónicas (ADRs), no código de producción. Por eso mi CD pipeline está comentado - no tiene sentido intentar buildear imágenes Docker cuando los servicios están en esqueleto.
 >
 > Mi **CI básico** valida estructura y formateo (gofmt, go vet), que es apropiado para esta fase. En **Fase 1**, activaré tests automáticos. En **Fase 3**, reactivaré el CD pipeline cuando tenga servicios completos y Dockerfiles listos.
@@ -361,11 +383,12 @@ ERROR: ENOENT: no such file or directory, open 'package.json'
 - [ ] Descomentar trigger `push: branches: [main]` en `cd.yml`
 
 **Comando para reactivar:**
+
 ```yaml
 # En .github/workflows/cd.yml
 on:
   push:
-    branches: [main]  # ← Descomentar esta línea
+    branches: [main] # ← Descomentar esta línea
   workflow_dispatch:
 ```
 

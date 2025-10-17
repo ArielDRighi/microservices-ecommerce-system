@@ -291,7 +291,7 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 - **Status:** ✅ COMPLETADA
 - Pipeline con paths filters (`services/inventory-service/**`)
-- Tests con PostgreSQL (Testcontainers) 
+- Tests con PostgreSQL (Testcontainers)
 - Coverage mínimo 70% enforced
 - Jobs: Build & Unit Tests, Integration Tests, Linting, Security Scan, Summary
 - golangci-lint, gofmt, go vet integrados
@@ -323,7 +323,7 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 - [x] Linter golangci-lint integrado y pasando
 - [x] Pipeline del Orders Service actualizado para monorepo
 - [x] Coverage reports generados (target: >70%)
-- [ ] Badges de CI/CD añadidos al README (pendiente T1.3.4)
+- [x] Badges de CI/CD añadidos al README (ci-basic, inventory-ci, orders-ci)
 
 ---
 

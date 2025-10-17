@@ -271,7 +271,7 @@ jobs:
                   echo "Linting:            ${{ needs.lint.result }}"
                   echo "Security Audit:     ${{ needs.security.result }}"
                   echo ""
-                  
+
                   if [ "${{ needs.build-and-test.result }}" == "success" ] && \
                      [ "${{ needs.e2e-tests.result }}" == "success" ] && \
                      [ "${{ needs.lint.result }}" == "success" ] && \
@@ -294,7 +294,7 @@ jobs:
                   script: |
                       const summary = `
                       ## 🚀 Orders Service CI Results
-                      
+
                       | Check | Status |
                       |-------|--------|
                       | Build & Tests | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
@@ -302,7 +302,7 @@ jobs:
                       | Linting | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |
                       | Security Audit | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |
                       `;
-                      
+
                       github.rest.issues.createComment({
                           issue_number: context.issue.number,
                           owner: context.repo.owner,
