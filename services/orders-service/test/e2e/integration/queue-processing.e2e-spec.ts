@@ -80,7 +80,7 @@ describe('Queue Processing - Integration (E2E)', () => {
       // In a real scenario, the Inventory Service would need to be running or mocked
       // For this test, we skip inventory setup as the saga will handle stock verification
       // via InventoryServiceClient (which will be mocked in unit tests)
-      
+
       // const inventory = inventoryRepository.create({
       //   productId: product.id,
       //   sku: product.sku,
