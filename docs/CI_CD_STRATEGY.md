@@ -1,8 +1,8 @@
 # Estrategia de CI/CD - Microservices E-commerce System
 
-**Fecha:** 2025-10-16  
-**Estado:** Fase 0 - Technical Spikes  
-**Última actualización:** Commit 2e83b19
+**Fecha:** 2025-10-17  
+**Estado:** Fase 1 - Implementación Base (Epic 1.3)  
+**Última actualización:** Epic 1.3 - CI/CD Pipeline Inicial
 
 ---
 
@@ -14,27 +14,29 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 
 ## 📊 Estado Actual del Proyecto
 
-### Fase 0: Technical Spikes (ACTUAL)
+### Fase 1: Implementación Base - Epic 1.3 (ACTUAL)
 ```
-├── T0.1.1 ✅ Spike API Gateway (ADR-026)
-├── T0.1.2 ✅ Spike Testcontainers (ADR-027 + PoC)
-├── T0.1.3 ⏳ Spike Comunicación Síncrona (pendiente)
-└── T0.1.4 ⏳ Spike RabbitMQ vs Redis (pendiente)
+├── Epic 1.1 ✅ Estructura del Monorepo (COMPLETADA)
+├── Epic 1.2 ✅ Inventory Service - Esqueleto Básico (COMPLETADA)
+└── Epic 1.3 🔄 CI/CD - Pipeline Inicial (EN PROGRESO)
+    ├── T1.3.1 ✅ Crear inventory-service-ci.yml
+    ├── T1.3.2 ✅ Configurar golangci-lint
+    └── T1.3.3 ✅ Actualizar CI del Orders Service
 ```
 
-**Objetivo:** Investigación y decisiones arquitectónicas (ADRs)  
-**Entregables:** Documentación, NO código de producción  
-**Duración:** ~1-2 semanas
+**Objetivo:** Establecer pipelines de CI/CD completos para ambos servicios  
+**Entregables:** Workflows funcionando con tests, coverage, linting  
+**Duración:** ~1 semana
 
 ---
 
 ## 🔧 Pipelines por Fase
 
-### ✅ Pipelines ACTIVOS en Fase 0
+### ✅ Pipelines ACTIVOS en Fase 1 (Epic 1.3)
 
 #### 1. **CI Basic** (`.github/workflows/ci-basic.yml`)
 
-**Propósito:** Validación estructural ligera  
+**Propósito:** Validación estructural ligera del monorepo  
 **Trigger:** `push` a cualquier rama, `pull_request`  
 **Lo que hace:**
 - ✅ Valida estructura de directorios
@@ -43,15 +45,70 @@ Este documento explica por qué ciertos pipelines están **deshabilitados tempor
 - ✅ Ejecuta `go vet` (análisis estático Go)
 - ✅ Verifica `package.json`, `tsconfig.json` (Orders)
 
-**Lo que NO hace:**
-- ❌ npm install / go mod download
-- ❌ Ejecutar tests
-- ❌ Build de aplicaciones
-- ❌ Coverage thresholds
+**Estado:** ✅ **ACTIVO** (desde Fase 0)
 
-**Razón:** En Fase 0 solo documentamos, no hay código completo para testear.
+---
 
-**Estado:** ✅ **ACTIVO**
+#### 2. **Inventory Service CI** (`.github/workflows/inventory-service-ci.yml`) 🆕
+
+**Propósito:** CI/CD completo para servicio Go  
+**Trigger:** `push`/`pull_request` con path filters (`services/inventory-service/**`)  
+**Lo que hace:**
+- ✅ **Build & Unit Tests**
+  - Compila binario Go
+  - Ejecuta tests unitarios con coverage
+  - Verifica threshold mínimo 70%
+  - Sube reporte de coverage
+- ✅ **Integration Tests**
+  - Tests con Testcontainers (PostgreSQL real)
+  - Timeout 5 minutos
+- ✅ **Linting**
+  - golangci-lint con `.golangci.yml` estricto
+  - gofmt check
+  - go vet
+- ✅ **Security Scan**
+  - gosec para vulnerabilidades
+  - SARIF upload para GitHub Security tab
+- ✅ **Summary**
+  - Reporte consolidado
+  - Comentario automático en PRs
+
+**Path filters:** Solo ejecuta si cambian archivos en `services/inventory-service/**`
+
+**Estado:** ✅ **ACTIVO** (Epic 1.3 - T1.3.1, T1.3.2)
+
+---
+
+#### 3. **Orders Service CI** (`.github/workflows/orders-service-ci.yml`) 🆕
+
+**Propósito:** CI/CD completo para servicio NestJS  
+**Trigger:** `push`/`pull_request` con path filters (`services/orders-service/**`)  
+**Lo que hace:**
+- ✅ **Build & Unit Tests**
+  - npm ci para dependencias
+  - npm run lint (ESLint)
+  - npm run build (TypeScript)
+  - npm run test:cov (Jest con coverage)
+  - Verifica threshold mínimo 70%
+  - Sube coverage a Codecov
+- ✅ **E2E Tests**
+  - Tests con Supertest
+  - PostgreSQL y Redis en GitHub Actions services
+- ✅ **Linting**
+  - ESLint con reglas estrictas
+  - Prettier check
+  - TypeScript type checking
+- ✅ **Security Audit**
+  - npm audit (nivel moderate)
+- ✅ **Summary**
+  - Reporte consolidado
+  - Comentario automático en PRs
+
+**Services:** PostgreSQL 16, Redis 7 (GitHub Actions containers)
+
+**Path filters:** Solo ejecuta si cambian archivos en `services/orders-service/**`
+
+**Estado:** ✅ **ACTIVO** (Epic 1.3 - T1.3.3)
 
 ---
 
