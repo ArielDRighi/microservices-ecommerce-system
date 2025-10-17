@@ -1,0 +1,59 @@
+# ============================================================================
+# Dockerfile.dev - Inventory Service (Development with Hot-Reload)
+# ============================================================================
+#
+# Este Dockerfile está optimizado para DESARROLLO con hot-reload usando Air
+# 
+# Features:
+# - Hot-reload automático con Air
+# - Volúmenes montados para edición en vivo
+# - Debug ports expuestos
+# - Build rápido (sin multi-stage)
+#
+# ============================================================================
+
+FROM golang:1.23-alpine AS development
+
+# Metadata
+LABEL maintainer="ArielDRighi"
+LABEL project="Microservices E-commerce System - Inventory Service"
+LABEL environment="development"
+LABEL description="Development image with hot-reload using Air"
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache \
+    git \
+    make \
+    curl \
+    bash
+
+# Instalar Air para hot-reload
+RUN go install github.com/air-verse/air@latest
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar go.mod y go.sum primero (cache de dependencias)
+COPY go.mod go.sum ./
+
+# Descargar dependencias
+RUN go mod download && go mod verify
+
+# Copiar código fuente
+COPY . .
+
+# Crear directorio bin para el binario compilado
+RUN mkdir -p bin
+
+# Exponer puerto de la aplicación
+EXPOSE 8080
+
+# Exponer puerto de debug (Delve)
+EXPOSE 2345
+
+# Healthcheck para verificar que el servicio está vivo
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Comando por defecto: usar Air para hot-reload
+CMD ["air", "-c", ".air.toml"]

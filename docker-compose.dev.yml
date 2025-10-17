@@ -1,51 +1,47 @@
+# ============================================================================
+# DOCKER COMPOSE - DEVELOPMENT MODE (Hot-Reload)
+# ============================================================================
+#
+# Este docker-compose extiende el principal y agrega configuración para desarrollo
+# con hot-reload usando Air (Go) y volúmenes montados
+#
+# Uso:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Features:
+#   - Hot-reload con Air para Inventory Service (Go)
+#   - Volúmenes montados para edición en vivo
+#   - Puerto de debugging expuesto (Delve para Go)
+#
+# ============================================================================
+
+version: "3.8"
+
 services:
-  # PostgreSQL Database for Development
-  postgres-dev:
-    image: postgres:15-alpine
-    container_name: ecommerce-postgres-dev
-    restart: unless-stopped
+  # ============================================================================
+  # Inventory Service (Go) - Desarrollo con Air
+  # ============================================================================
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      dockerfile: Dockerfile.dev # Usa Dockerfile.dev para hot-reload
+      target: development
+    volumes:
+      # Montar código fuente para hot-reload
+      - ./services/inventory-service:/app:rw
+      # Excluir bin y tmp del host (usar los del contenedor)
+      - /app/bin
+      - /app/tmp
     environment:
-      POSTGRES_DB: ecommerce_async_dev
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-      - ./src/database/init:/docker-entrypoint-initdb.d/
+      - GIN_MODE=debug # Modo debug de Gin (más verbose)
+      - AIR_ENABLED=true # Indicador de que Air está activo
+      - LOG_LEVEL=debug # Logs detallados en desarrollo
     ports:
-      - "5433:5432"
-    networks:
-      - ecommerce-dev-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce_async_dev"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "2345:2345" # Puerto para Delve debugger (Go)
 
-  # Redis for Development
-  redis-dev:
-    image: redis:7-alpine
-    container_name: ecommerce-redis-dev
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_dev_data:/data
-    ports:
-      - "6379:6379"
-    networks:
-      - ecommerce-dev-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-volumes:
-  postgres_dev_data:
-    driver: local
-  redis_dev_data:
-    driver: local
-
-networks:
-  ecommerce-dev-network:
-    driver: bridge
+  # ============================================================================
+  # Orders Service (NestJS) - Ya tiene hot-reload en docker-compose.yml
+  # ============================================================================
+  # El Dockerfile principal ya usa target: development con volúmenes montados
+  # No necesita override adicional para hot-reload

@@ -1,9 +1,9 @@
-version: '3.8'
+version: "3.8"
 
 # ============================================================================
 # MICROSERVICES E-COMMERCE SYSTEM - PROYECTO 3
 # ============================================================================
-# 
+#
 # Este docker-compose está completamente separado del Proyecto 2
 # Usa puertos y nombres diferentes para permitir ejecución simultánea
 #
@@ -24,7 +24,7 @@ services:
   # ============================================================================
   # INFRAESTRUCTURA COMPARTIDA
   # ============================================================================
-  
+
   # PostgreSQL Database (compartida por todos los microservicios)
   postgres:
     image: postgres:15-alpine
@@ -38,11 +38,11 @@ services:
       - microservices_postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - '5433:5432'  # Puerto externo 5433 para no conflictuar con Proyecto 2
+      - "5433:5432" # Puerto externo 5433 para no conflictuar con Proyecto 2
     networks:
       - microservices-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,14 +56,39 @@ services:
     volumes:
       - microservices_redis_data:/data
     ports:
-      - '6380:6379'  # Puerto externo 6380 para no conflictuar con Proyecto 2
+      - "6380:6379" # Puerto externo 6380 para no conflictuar con Proyecto 2
     networks:
       - microservices-network
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # RabbitMQ Message Broker (Event-Driven Communication)
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: microservices-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: microservices
+      RABBITMQ_DEFAULT_PASS: microservices_pass_2024
+      RABBITMQ_DEFAULT_VHOST: /
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,error},{default,warning}]
+    volumes:
+      - microservices_rabbitmq_data:/var/lib/rabbitmq
+      - microservices_rabbitmq_logs:/var/log/rabbitmq
+    ports:
+      - "5672:5672" # Puerto AMQP para mensajería
+      - "15672:15672" # Puerto Management UI
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # ============================================================================
   # SERVICIOS
@@ -98,8 +123,8 @@ services:
       - ./services/orders-service/test:/app/test:ro
       - /app/node_modules
     ports:
-      - '3001:3000'  # Puerto externo 3001 para no conflictuar con Proyecto 2
-      - '9230:9229'  # Debug port diferente
+      - "3001:3000" # Puerto externo 3001 para no conflictuar con Proyecto 2
+      - "9230:9229" # Debug port diferente
     networks:
       - microservices-network
     depends_on:
@@ -108,7 +133,15 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -136,7 +169,7 @@ services:
       - LOG_LEVEL=info
       - LOG_FORMAT=json
     ports:
-      - '8080:8080'
+      - "8080:8080"
     networks:
       - microservices-network
     depends_on:
@@ -145,7 +178,15 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/health']
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -163,11 +204,11 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@microservices.local
       PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - microservices_pgadmin_data:/var/lib/pgadmin
     ports:
-      - '5050:80'  # Puerto 5050 para no conflictuar con Proyecto 2
+      - "5050:80" # Puerto 5050 para no conflictuar con Proyecto 2
     networks:
       - microservices-network
     depends_on:
@@ -183,7 +224,7 @@ services:
     environment:
       REDIS_HOSTS: local:redis:6379
     ports:
-      - '8082:8081'  # Puerto 8082 para no conflictuar
+      - "8082:8081" # Puerto 8082 para no conflictuar
     networks:
       - microservices-network
     depends_on:
@@ -203,6 +244,12 @@ volumes:
   microservices_redis_data:
     driver: local
     name: microservices_redis_data
+  microservices_rabbitmq_data:
+    driver: local
+    name: microservices_rabbitmq_data
+  microservices_rabbitmq_logs:
+    driver: local
+    name: microservices_rabbitmq_logs
   microservices_pgadmin_data:
     driver: local
     name: microservices_pgadmin_data

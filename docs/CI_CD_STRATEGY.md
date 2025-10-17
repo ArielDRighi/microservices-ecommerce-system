@@ -1,8 +1,8 @@
 # Estrategia de CI/CD - Microservices E-commerce System
 
 **Fecha:** 2025-10-17  
-**Estado:** Fase 1 - Epic 1.3 (CI/CD Pipeline Inicial)  
-**Última actualización:** Epic 1.3 - Pipelines minimalistas configurados
+**Estado:** Fase 1 - Epic 1.3 ✅ COMPLETADO | Epic 1.4 EN PROGRESO  
+**Última actualización:** Epic 1.3 completado y mergeado - Epic 1.4 iniciado
 
 ---
 
@@ -14,21 +14,38 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 
 ## 📊 Estado Actual del Proyecto
 
-### Epic 1.3: CI/CD Pipeline Inicial (ACTUAL)
+### Epic 1.3: CI/CD Pipeline Inicial ✅ COMPLETADO
 
 ```
 ├── Epic 1.1 ✅ Estructura del Monorepo (COMPLETADA)
 ├── Epic 1.2 ✅ Inventory Service - Esqueleto Básico (COMPLETADA)
-└── Epic 1.3 🔄 CI/CD - Pipeline Inicial (EN PROGRESO)
-    ├── T1.3.1 ✅ Crear inventory-service-ci.yml
-    ├── T1.3.2 ✅ Configurar golangci-lint
-    ├── T1.3.3 ✅ Crear orders-service-ci.yml
-    └── T1.3.4 ✅ Añadir badges CI/CD al README
+├── Epic 1.3 ✅ CI/CD - Pipeline Inicial (COMPLETADA - MERGEADA)
+│   ├── T1.3.1 ✅ Crear inventory-service-ci.yml
+│   ├── T1.3.2 ✅ Configurar golangci-lint
+│   ├── T1.3.3 ✅ Crear orders-service-ci.yml
+│   └── T1.3.4 ✅ Añadir badges CI/CD al README
+└── Epic 1.4 🔄 Docker & Orchestration (EN PROGRESO)
+    ├── T1.4.1 ✅ docker-compose.yml principal
+    ├── T1.4.2 ✅ Bases de datos separadas
+    ├── T1.4.3 ✅ Dockerfile para Inventory Service
+    ├── T1.4.4 ⏳ Dockerfile.dev (desarrollo con hot-reload)
+    └── T1.4.5 ⏳ Setup RabbitMQ
 ```
 
-**Objetivo Epic 1.3:** Establecer pipelines **minimalistas** que validen builds y linting  
-**NO incluye:** Tests automáticos (requieren DB, configuración)  
-**Duración:** ~1 semana
+**Epic 1.3 - Resultado:**
+
+- ✅ Pipelines minimalistas: Build + Lint (non-blocking)
+- ✅ Tests deshabilitados explícitamente (con documentación)
+- ✅ CI pasa en todos los servicios
+- ✅ PR #6 mergeado a develop
+
+**Epic 1.4 - Objetivo:**
+
+- Completar infraestructura Docker
+- RabbitMQ para mensajería asíncrona
+- Hot-reload en desarrollo
+
+**Duración Epic 1.4:** ~3-5 días
 
 ---
 
@@ -39,6 +56,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 **Propósito:** Validación estructural ligera del monorepo
 
 **Lo que hace:**
+
 - ✅ Valida estructura de directorios
 - ✅ Verifica archivos de configuración existen
 - ✅ Linting básico (no bloqueante)
@@ -54,6 +72,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 **Jobs:**
 
 #### Job 1: Build & Unit Tests
+
 - ✅ **Build**: Compila binario Go
 - ⏸️ **Tests**: DISABLED (no hay DB configurada - pendiente Epic 1.4)
 - ⏸️ **Coverage**: DISABLED (se habilitará en Epic 2.x)
@@ -69,19 +88,22 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 ```
 
 #### Job 2: Integration Tests
+
 - ⏸️ **Status**: Skipped (requiere Testcontainers + Docker - Epic 1.4)
 
 #### Job 3: Linting
+
 - ✅ **golangci-lint**: Ejecuta pero `continue-on-error: true` (non-blocking)
 - ✅ **gofmt**: Check de formateo (warnings, no falla el pipeline)
 - ✅ **go vet**: Análisis estático (warnings, no falla el pipeline)
 
 ```yaml
 - uses: golangci/golangci-lint-action@v6
-  continue-on-error: true  # Non-blocking for Epic 1.3
+  continue-on-error: true # Non-blocking for Epic 1.3
 ```
 
 #### Job 4: Security
+
 - ✅ **gosec**: Scanner de seguridad (ejecuta, warnings non-blocking)
 
 **Path filters:** Solo ejecuta si cambian archivos en `services/inventory-service/**`
@@ -97,6 +119,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 **Jobs:**
 
 #### Job 1: Build & Unit Tests
+
 - ✅ **Install**: `npm ci --ignore-scripts` (evita husky en monorepo)
 - ✅ **Lint**: `npm run lint` (warnings non-blocking)
 - ✅ **Build**: `npm run build` (validación TypeScript)
@@ -104,7 +127,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 
 ```yaml
 - name: Install dependencies
-  run: npm ci --ignore-scripts  # Evita husky en CI
+  run: npm ci --ignore-scripts # Evita husky en CI
 
 - name: Run unit tests (DISABLED - Epic 1.3)
   run: |
@@ -114,6 +137,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 ```
 
 **Por qué tests están deshabilitados:**
+
 - Orders Service es **código reciclado** de otro proyecto
 - **NO está configurado** para este proyecto:
   - ❌ Sin `.env` configurado
@@ -121,6 +145,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
   - ❌ Variables de entorno incorrectas
 
 #### Job 2: E2E Tests
+
 - ⏸️ **Status**: Skipped (servicio no configurado, se habilitará en Epic 2.x)
 
 ```yaml
@@ -131,6 +156,7 @@ e2e-tests:
 ```
 
 #### Job 3: Linting
+
 - ✅ **ESLint**: Ejecuta (warnings non-blocking)
 - ✅ **Prettier**: Check de formateo (warnings non-blocking)
 - ✅ **TypeScript**: Type checking vía build (warnings non-blocking)
@@ -140,6 +166,7 @@ e2e-tests:
 ```
 
 #### Job 4: Security
+
 - ⏸️ **npm audit**: Skipped (23 vulnerabilidades conocidas en devDeps)
 
 **Path filters:** Solo ejecuta si cambian archivos en `services/orders-service/**`
@@ -257,11 +284,13 @@ CD:
 ### 1. Tests DISABLED en Epic 1.3
 
 **Razón:**
+
 - Epic 1.3 es **setup de CI/CD**, no configuración de servicios
 - **Inventory**: Solo tiene esqueleto (sin DB configurada)
 - **Orders**: Código reciclado (sin .env, sin adaptación)
 
 **Cuándo se habilitan:**
+
 - **Inventory**: Epic 1.4 (cuando Docker/DB estén listos)
 - **Orders**: Epic 2.x (cuando se adapte el servicio)
 
@@ -270,11 +299,13 @@ CD:
 ### 2. Linting Non-Blocking
 
 **Razón:**
+
 - Código reciclado tiene estilo diferente (otro proyecto)
 - PoC de Testcontainers tiene warnings técnicos
 - Epic 1.3 es **informativo**, no enforcement
 
 **Cuándo se vuelve bloqueante:**
+
 - Epic 2.x (cuando código esté limpio y adaptado)
 
 ---
@@ -282,10 +313,12 @@ CD:
 ### 3. Coverage DISABLED
 
 **Razón:**
+
 - No hay tests ejecutándose → no hay coverage
 - Coverage enforcement solo tiene sentido con tests activos
 
 **Cuándo se habilita:**
+
 - **Inventory**: Epic 1.4 (threshold >70%)
 - **Orders**: Epic 2.x (threshold >70%)
 
@@ -298,20 +331,23 @@ CD:
 **Respuesta profesional:**
 
 > "Aplico **CI/CD progresivo** alineado con la madurez del proyecto.
-> 
+>
 > Estoy en **Epic 1.3** (CI/CD Setup). Mi objetivo es validar:
+>
 > - ✅ El código **compila**
 > - ✅ El **linting** está configurado
 > - ✅ La **estructura** es correcta
-> 
+>
 > Los tests están **explícitamente deshabilitados** porque:
+>
 > 1. **Inventory Service**: Solo esqueleto básico (sin DB - pendiente Epic 1.4)
 > 2. **Orders Service**: Código reciclado, no configurado (sin .env, sin DB)
-> 
+>
 > Los habilito **progresivamente**:
+>
 > - Epic 1.4: Inventory tests (con Docker/DB)
 > - Epic 2.x: Orders tests (servicio adaptado)
-> 
+>
 > Es más **profesional** deshabilitar tests con documentación clara que tener pipelines rojos por configuración faltante."
 
 ---
@@ -328,7 +364,6 @@ CD:
 ---
 
 **Última actualización:** 2025-10-17 (Epic 1.3 - Pipelines minimalistas configurados)
-
 
 ---
 
