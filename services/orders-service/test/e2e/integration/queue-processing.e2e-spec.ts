@@ -7,7 +7,8 @@ import { QueueHelper } from '../../helpers/queue.helper';
 import { Queue } from 'bull';
 import { ProductFactory } from '../../helpers/factories/product.factory';
 import { Product } from '../../../src/modules/products/entities/product.entity';
-import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
+// ✅ Epic 1.6 - Inventory entity removed (now external service)
+// import { Inventory } from '../../../src/modules/inventory/entities/inventory.entity';
 import { OrderProcessingJobData } from '../../../src/common/interfaces/queue-job.interface';
 import { TestAppHelper } from '../../helpers/test-app.helper';
 
@@ -19,7 +20,8 @@ describe('Queue Processing - Integration (E2E)', () => {
   let queueService: QueueService;
   let orderQueue: Queue<OrderProcessingJobData>;
   let productRepository: Repository<Product>;
-  let inventoryRepository: Repository<Inventory>;
+  // ✅ Epic 1.6 - Inventory repository removed (now external service)
+  // let inventoryRepository: Repository<Inventory>;
 
   beforeAll(async () => {
     app = await TestAppHelper.createTestApp();
@@ -27,7 +29,8 @@ describe('Queue Processing - Integration (E2E)', () => {
     dataSource = app.get<DataSource>(DataSource);
     queueService = app.get<QueueService>(QueueService);
     productRepository = dataSource.getRepository(Product);
-    inventoryRepository = dataSource.getRepository(Inventory);
+    // ✅ Epic 1.6 - Inventory repository removed (now external service)
+    // inventoryRepository = dataSource.getRepository(Inventory);
 
     // Get order processing queue directly from Bull
     const orderQueueToken = 'BullQueue_order-processing';
@@ -73,14 +76,19 @@ describe('Queue Processing - Integration (E2E)', () => {
         sku: `TEST-QUEUE-${timestamp}`,
       });
 
-      const inventory = inventoryRepository.create({
-        productId: product.id,
-        sku: product.sku,
-        currentStock: 50,
-        reservedStock: 0,
-        location: 'MAIN_WAREHOUSE',
-      });
-      await inventoryRepository.save(inventory);
+      // ✅ Epic 1.6 - Inventory creation removed (now handled by external Inventory Service)
+      // In a real scenario, the Inventory Service would need to be running or mocked
+      // For this test, we skip inventory setup as the saga will handle stock verification
+      // via InventoryServiceClient (which will be mocked in unit tests)
+
+      // const inventory = inventoryRepository.create({
+      //   productId: product.id,
+      //   sku: product.sku,
+      //   currentStock: 50,
+      //   reservedStock: 0,
+      //   location: 'MAIN_WAREHOUSE',
+      // });
+      // await inventoryRepository.save(inventory);
 
       // 2. Create order which should trigger queue processing
       const orderResponse = await request(app.getHttpServer())

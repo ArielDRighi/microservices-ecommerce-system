@@ -25,7 +25,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { OrdersModule } from './modules/orders/orders.module';
-import { InventoryModule } from './modules/inventory/inventory.module';
+// import { InventoryModule } from './modules/inventory/inventory.module'; // ❌ REMOVED Epic 1.6 - Delegated to Inventory Service
 // import { PaymentsModule } from './modules/payments/payments.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EventsModule } from './modules/events/events.module';
@@ -94,7 +94,7 @@ import { QueueModule } from './queues/queue.module';
     UsersModule,
     ProductsModule,
     CategoriesModule,
-    InventoryModule,
+    // InventoryModule, // ❌ REMOVED Epic 1.6 - Delegated to Inventory Service (Go)
     OrdersModule,
     EventsModule,
     NotificationsModule,
