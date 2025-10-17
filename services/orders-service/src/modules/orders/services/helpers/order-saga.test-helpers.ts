@@ -73,63 +73,58 @@ export const createMockSagaState = (overrides: Partial<SagaStateEntity> = {}): S
 
 /**
  * Factory: Mock Inventory Response - Available Stock
+ * Returns CheckStockResponse structure for InventoryServiceClient
  */
-export const createMockInventoryAvailable = (productId = 'product-1') => ({
+export const createMockInventoryAvailable = (productId = 'product-1', quantity = 2) => ({
   productId,
-  physicalStock: 100,
-  reservedStock: 0,
-  availableStock: 100,
-  minimumStock: 5,
-  maximumStock: 200,
-  reorderPoint: 10,
-  location: 'MAIN_WAREHOUSE',
-  lastUpdated: new Date(),
-  status: 'IN_STOCK' as const,
+  available: true,
+  availableQuantity: 100,
+  requestedQuantity: quantity,
 });
 
 /**
  * Factory: Mock Inventory Response - Low Stock
+ * Returns CheckStockResponse structure for InventoryServiceClient
  */
-export const createMockInventoryLowStock = (productId = 'product-1') => ({
+export const createMockInventoryLowStock = (productId = 'product-1', quantity = 2) => ({
   productId,
-  physicalStock: 1,
-  reservedStock: 0,
-  availableStock: 1,
-  minimumStock: 5,
-  maximumStock: 200,
-  reorderPoint: 10,
-  location: 'MAIN_WAREHOUSE',
-  lastUpdated: new Date(),
-  status: 'LOW_STOCK' as const,
+  available: false,
+  availableQuantity: 1,
+  requestedQuantity: quantity,
 });
 
 /**
  * Factory: Mock Inventory Response - Out of Stock
+ * Returns CheckStockResponse structure for InventoryServiceClient
  */
-export const createMockInventoryOutOfStock = (productId = 'product-1') => ({
+export const createMockInventoryOutOfStock = (productId = 'product-1', quantity = 2) => ({
   productId,
-  physicalStock: 0,
-  reservedStock: 0,
-  availableStock: 0,
-  minimumStock: 5,
-  maximumStock: 200,
-  reorderPoint: 10,
-  location: 'MAIN_WAREHOUSE',
-  lastUpdated: new Date(),
-  status: 'OUT_OF_STOCK' as const,
+  available: false,
+  availableQuantity: 0,
+  requestedQuantity: quantity,
 });
 
 /**
  * Factory: Mock Stock Reservation
+ * Returns ReserveStockResponse structure for InventoryServiceClient
  */
-export const createMockStockReservation = (reservationId = 'res-123') => ({
+export const createMockStockReservation = (reservationId = 'res-123', orderId = 'order-123') => ({
   reservationId,
   productId: 'product-1',
   quantity: 2,
-  location: 'MAIN_WAREHOUSE',
+  orderId,
   expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-  status: 'ACTIVE' as const,
   createdAt: new Date(),
+});
+
+/**
+ * Factory: Mock Release Reservation Response
+ * Returns ReleaseReservationResponse structure for InventoryServiceClient
+ */
+export const createMockReleaseReservation = (reservationId = 'res-123') => ({
+  reservationId,
+  released: true,
+  message: 'Reservation released successfully',
 });
 
 /**

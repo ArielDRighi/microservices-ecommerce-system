@@ -29,7 +29,8 @@ export function createMockProduct(overrides: Partial<Product> = {}): Product {
     updatedAt: new Date(),
     deletedAt: undefined,
     orderItems: Promise.resolve([]),
-    inventory: Promise.resolve({} as Product['inventory']),
+    // ✅ Epic 1.6 - T1.6.1: Removed inventory relation (now external service)
+    // inventory: Promise.resolve({} as Product['inventory']),
     get isOnSale() {
       return (
         this.compareAtPrice !== null &&

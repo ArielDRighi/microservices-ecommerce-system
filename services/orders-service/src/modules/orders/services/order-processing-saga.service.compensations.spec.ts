@@ -5,7 +5,7 @@ import { OrderProcessingSagaService } from './order-processing-saga.service';
 import { SagaStateEntity } from '../../../database/entities/saga-state.entity';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../enums/order-status.enum';
-import { InventoryService } from '../../inventory/inventory.service';
+import { InventoryServiceClient } from '../../inventory-client/inventory-client.service';
 import { PaymentsService } from '../../payments/payments.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { NotificationStatus } from '../../notifications/enums';
@@ -24,7 +24,7 @@ describe('OrderProcessingSagaService - Compensations', () => {
   let service: OrderProcessingSagaService;
   let sagaStateRepository: Repository<SagaStateEntity>;
   let orderRepository: Repository<Order>;
-  let inventoryService: InventoryService;
+  let inventoryClient: InventoryServiceClient;
   let paymentsService: PaymentsService;
   let notificationsService: NotificationsService;
 
@@ -50,11 +50,13 @@ describe('OrderProcessingSagaService - Compensations', () => {
           },
         },
         {
-          provide: InventoryService,
+          provide: InventoryServiceClient,
           useValue: {
-            checkAvailability: jest.fn(),
+            checkStock: jest.fn(),
             reserveStock: jest.fn(),
+            confirmReservation: jest.fn(),
             releaseReservation: jest.fn(),
+            healthCheck: jest.fn(),
           },
         },
         {
@@ -79,7 +81,7 @@ describe('OrderProcessingSagaService - Compensations', () => {
       getRepositoryToken(SagaStateEntity),
     );
     orderRepository = module.get<Repository<Order>>(getRepositoryToken(Order));
-    inventoryService = module.get<InventoryService>(InventoryService);
+    inventoryClient = module.get<InventoryServiceClient>(InventoryServiceClient);
     paymentsService = module.get<PaymentsService>(PaymentsService);
     notificationsService = module.get<NotificationsService>(NotificationsService);
   });
@@ -110,11 +112,9 @@ describe('OrderProcessingSagaService - Compensations', () => {
       jest.spyOn(sagaStateRepository, 'save').mockResolvedValue(sagaWithPayment);
 
       // Mock successful initial steps
-      jest
-        .spyOn(inventoryService, 'checkAvailability')
-        .mockResolvedValue(createMockInventoryAvailable());
+      jest.spyOn(inventoryClient, 'checkStock').mockResolvedValue(createMockInventoryAvailable());
 
-      jest.spyOn(inventoryService, 'reserveStock').mockResolvedValue(createMockStockReservation());
+      jest.spyOn(inventoryClient, 'reserveStock').mockResolvedValue(createMockStockReservation());
 
       jest.spyOn(paymentsService, 'processPayment').mockResolvedValue(createMockPaymentSucceeded());
 
@@ -136,8 +136,8 @@ describe('OrderProcessingSagaService - Compensations', () => {
       jest.spyOn(paymentsService, 'refundPayment').mockResolvedValue(createMockPaymentRefund());
 
       jest
-        .spyOn(inventoryService, 'releaseReservation')
-        .mockResolvedValue(createMockInventoryAvailable());
+        .spyOn(inventoryClient, 'releaseReservation')
+        .mockResolvedValue({ reservationId: 'res-123', released: true });
 
       const metrics = await service.executeSaga('saga-123');
 
@@ -154,9 +154,7 @@ describe('OrderProcessingSagaService - Compensations', () => {
       jest.spyOn(sagaStateRepository, 'save').mockResolvedValue(mockSagaState);
 
       // Mock stock verification failure
-      jest
-        .spyOn(inventoryService, 'checkAvailability')
-        .mockResolvedValue(createMockInventoryOutOfStock());
+      jest.spyOn(inventoryClient, 'checkStock').mockResolvedValue(createMockInventoryOutOfStock());
 
       jest.spyOn(orderRepository, 'findOne').mockResolvedValue({
         ...mockOrder,
@@ -198,11 +196,9 @@ describe('OrderProcessingSagaService - Compensations', () => {
       jest.spyOn(sagaStateRepository, 'save').mockResolvedValue(sagaWithReservation);
 
       // Mock successful stock and reservation
-      jest
-        .spyOn(inventoryService, 'checkAvailability')
-        .mockResolvedValue(createMockInventoryAvailable());
+      jest.spyOn(inventoryClient, 'checkStock').mockResolvedValue(createMockInventoryAvailable());
 
-      jest.spyOn(inventoryService, 'reserveStock').mockResolvedValue(createMockStockReservation());
+      jest.spyOn(inventoryClient, 'reserveStock').mockResolvedValue(createMockStockReservation());
 
       // Mock payment failure
       jest.spyOn(paymentsService, 'processPayment').mockResolvedValue({
@@ -219,7 +215,7 @@ describe('OrderProcessingSagaService - Compensations', () => {
 
       // Mock release reservation failure
       jest
-        .spyOn(inventoryService, 'releaseReservation')
+        .spyOn(inventoryClient, 'releaseReservation')
         .mockRejectedValue(new Error('Inventory service down'));
 
       jest.spyOn(orderRepository, 'findOne').mockResolvedValue({

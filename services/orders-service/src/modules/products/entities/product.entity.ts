@@ -9,12 +9,13 @@ import {
   BeforeInsert,
   BeforeUpdate,
   OneToMany,
-  OneToOne,
+  // OneToOne, // ✅ Epic 1.6 - T1.6.1: Removed (no longer needed without Inventory relation)
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { OrderItem } from '../../orders/entities/order-item.entity';
-import { Inventory } from '../../inventory/entities/inventory.entity';
+// ✅ Epic 1.6 - T1.6.1: Removed Inventory module (now external service)
+// import { Inventory } from '../../inventory/entities/inventory.entity';
 import { Category } from '../../categories/entities/category.entity';
 
 @Entity('products')
@@ -174,8 +175,9 @@ export class Product {
   @OneToMany(() => OrderItem, (orderItem) => orderItem.product, { lazy: true })
   orderItems!: Promise<OrderItem[]>;
 
-  @OneToOne(() => Inventory, (inventory) => inventory.product, { lazy: true })
-  inventory!: Promise<Inventory>;
+  // ✅ Epic 1.6 - T1.6.1: Removed Inventory relation (now external service)
+  // @OneToOne(() => Inventory, (inventory) => inventory.product, { lazy: true })
+  // inventory!: Promise<Inventory>;
 
   @ManyToOne(() => Category, (category) => category.products, { nullable: true })
   @JoinColumn({ name: 'category_id' })
