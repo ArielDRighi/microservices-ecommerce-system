@@ -96,6 +96,7 @@ Cada ADR sigue esta estructura:
 - [ADR-027](027-testcontainers-vs-mocks-go-testing.md) - Estrategia de Testing con Testcontainers (Go)
 - [ADR-028](028-rest-synchronous-communication-strategy.md) - Comunicación REST Síncrona entre Microservicios
 - [ADR-029](029-message-broker-rabbitmq-vs-redis-pubsub.md) - Message Broker: RabbitMQ vs Redis Pub/Sub
+- [ADR-030](030-monorepo-structure.md) - Estructura de Monorepo para Ecosistema de Microservicios
 
 ## Proceso de Creación de ADRs
 
