@@ -89,17 +89,27 @@ Cliente → API Gateway → [Orders Service (NestJS)]
   - Coverage esperado: 75% unit + 20% integration + 5% e2e
 - **Referencia:** Ver ADR-027
 
-#### ⏳ T0.1.3: Spike - Estrategia de Comunicación Síncrona
+#### ✅ T0.1.3: Spike - Estrategia de Comunicación Síncrona
 
-- **Status:** ⏳ PENDIENTE
-- **Contexto:** Orders (NestJS) necesita llamar a Inventory (Go/Gin)
-- **Ya decidido:** REST (ambos servicios son RESTful)
-- **A definir:**
-  - ¿Cliente HTTP nativo de NestJS (@nestjs/axios) o librería custom?
-  - ¿Timeout strategy? (5s, 10s?)
-  - ¿Retry automático o manual?
-  - ¿Circuit breaker a nivel de cliente o gateway?
-- **Entregable:** ADR con decisiones de implementación
+- **Status:** ✅ COMPLETADA (2025-10-17)
+- **Contexto:** Orders (NestJS) necesita llamar a Inventory (Go/Gin) vía REST
+- **Decisiones tomadas:**
+  - ✅ **Cliente HTTP:** `@nestjs/axios` (integración NestJS, interceptors, DI)
+  - ✅ **Timeout strategy:** Dinámico (5s read, 10s write, 15s critical)
+  - ✅ **Retry:** `axios-retry` con exponential backoff (3 intentos)
+  - ✅ **Circuit breaker:** Cliente (Orders Service) con `opossum` para granularidad
+  - ✅ **Service discovery:** Estático (env vars) - pragmático para 2-3 servicios
+- **Entregables:**
+  - ✅ ADR-028: Estrategia de comunicación REST síncrona (análisis detallado)
+  - ✅ Stack definido: @nestjs/axios + axios-retry + opossum
+  - ✅ Timeouts por tipo de operación (read/write/critical)
+  - ✅ Manejo de errores documentado (retry vs fail-fast)
+- **Stack tecnológico:**
+  - `@nestjs/axios`: Cliente HTTP oficial
+  - `axios-retry`: Retry automático con exponential backoff
+  - `opossum`: Circuit breaker (50% error threshold, 30s reset)
+- **Observabilidad:** Métricas de latencia (P95/P99), circuit breaker state, retry count
+- **Referencia:** Ver ADR-028
 
 #### ⏳ T0.1.4: Spike - RabbitMQ vs Redis Pub/Sub para eventos asíncronos
 
@@ -795,28 +805,145 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 
 **Objetivo:** Comunicación entre servicios vía HTTP y eventos, con compensación distribuida y manejo robusto de fallos.
 
-### Epic 3.1: Comunicación Síncrona (HTTP)
+### Epic 3.1: Comunicación Síncrona (HTTP) 🎯 **IMPLEMENTA ADR-028**
 
-**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
+**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE  
+**Referencia:** ADR-028 (Estrategia de Comunicación REST Síncrona)  
+**Tiempo Estimado:** ~10 horas (1.5 días)
 
-#### ⏳ T3.1.1: Crear cliente HTTP en Orders Service
+**Contexto:** Implementar las decisiones del ADR-028 para comunicación REST entre Orders y Inventory con resiliencia completa.
+
+**Stack decidido en ADR-028:**
+
+- `@nestjs/axios@^3.0.0` - Cliente HTTP oficial
+- `axios-retry@^4.0.0` - Retry automático con exponential backoff
+- `opossum@^8.1.0` - Circuit breaker
+- Timeouts dinámicos: 5s (read), 10s (write), 15s (critical)
+
+---
+
+#### ⏳ T3.1.1: Setup Cliente HTTP en Orders Service (2h)
 
 - **Status:** ⏳ PENDIENTE
-- Service: `InventoryServiceClient`
-- Métodos: `checkAvailability()`, `reserveStock()`, `confirmReservation()`
-- Configuración de timeout y retry desde variables de entorno
+- **Prerequisito:** Inventory Service con endpoints REST (Epic 1.4)
+- **Tareas:**
+  - [ ] Instalar dependencias (`@nestjs/axios`, `axios-retry`, `opossum`)
+  - [ ] Crear `InventoryHttpModule` con configuración
+  - [ ] Configurar environment variables (`INVENTORY_SERVICE_URL`)
+  - [ ] Crear interfaces TypeScript (`CheckStockResponse`, `ReserveStockRequest`, `ReleaseStockRequest`)
+- **Entregable:** Módulo HTTP configurado y registrado en AppModule
+- **Referencia:** ADR-028 (sección "Implementación Propuesta")
 
-#### ⏳ T3.1.2: Actualizar Saga de Orders
+#### ⏳ T3.1.2: Implementar InventoryHttpClient con Resiliencia (3h)
 
 - **Status:** ⏳ PENDIENTE
-- **Step 1**: Verificar stock llamando a Inventory Service
-- **Step 2**: Reservar stock
-- **Step 3**: Procesar pago
-- **Step 4**: Confirmar reserva
-- **Compensación**: Liberar reserva si falla pago
-- Logging detallado de cada step
+- **Tareas:**
+  - [ ] Implementar `InventoryHttpClient` con métodos:
+    - `checkStock(productId: number): Promise<CheckStockResponse>`
+    - `reserveStock(request: ReserveStockRequest): Promise<void>`
+    - `releaseStock(request: ReleaseStockRequest): Promise<void>`
+    - `healthCheck(): Promise<boolean>`
+  - [ ] Configurar timeouts dinámicos (5s read, 10s write según ADR-028)
+  - [ ] Integrar `axios-retry` con exponential backoff (3 intentos: 1s, 2s, 4s)
+  - [ ] Implementar circuit breakers con `opossum`:
+    - `checkStockBreaker` (timeout: 5s, errorThreshold: 50%, resetTimeout: 30s)
+    - `reserveStockBreaker` (timeout: 10s, errorThreshold: 50%, resetTimeout: 30s)
+  - [ ] Añadir logging estructurado con Winston
+  - [ ] Configurar retry solo en errores retryables (503, 429, network errors)
+- **Entregable:** Cliente HTTP funcional con retry + circuit breaker + logging
+- **Referencia:** ADR-028 (código completo en sección "Cliente con Circuit Breaker")
 
-#### ⏳ T3.1.3: Implementar Circuit Breaker
+#### ⏳ T3.1.3: Tests del Cliente HTTP (2h)
+
+- **Status:** ⏳ PENDIENTE
+- **Tareas:**
+  - [ ] Unit tests con mocks (Jest):
+    - Test checkStock success
+    - Test checkStock con retry (simular 503 → 503 → 200)
+    - Test checkStock con circuit breaker abierto
+    - Test reserveStock con timeout
+  - [ ] Tests de circuit breaker:
+    - Simular 10+ fallos consecutivos para abrir breaker
+    - Verificar que breaker pasa a HALF_OPEN después de 30s
+    - Verificar que breaker cierra después de 1 request exitosa
+  - [ ] Tests de retry:
+    - Simular timeouts y verificar 3 intentos
+    - Verificar exponential backoff (1s, 2s, 4s)
+    - Verificar que 400/404 NO se retintentan
+  - [ ] Integration tests (opcional con Testcontainers)
+- **Coverage Target:** >80% en InventoryHttpClient
+- **Entregable:** Tests pasando con coverage >80%
+
+#### ⏳ T3.1.4: Integración con Create Order Use Case (2h)
+
+- **Status:** ⏳ PENDIENTE
+- **Tareas:**
+  - [ ] Inyectar `InventoryHttpClient` en `CreateOrderUseCase`
+  - [ ] Implementar flujo completo:
+    1. Verificar stock disponible (`checkStock`)
+    2. Crear orden en DB (Orders Service)
+    3. Reservar stock (`reserveStock` con idempotency key)
+    4. Confirmar orden
+  - [ ] Implementar compensación:
+    - Si reserva falla → cancelar orden
+    - Si orden falla después de reserva → liberar stock (`releaseStock`)
+  - [ ] Añadir idempotency keys (UUID v4) en requests
+  - [ ] Logging de cada paso del flujo
+- **Entregable:** Flujo completo Orders → Inventory funcionando end-to-end
+- **Referencia:** ADR-028 (sección "Manejo de Errores")
+
+#### ⏳ T3.1.5: Observabilidad y Métricas (1h)
+
+- **Status:** ⏳ PENDIENTE
+- **Tareas:**
+  - [ ] Añadir métricas Prometheus:
+    - `inventory_http_calls_total{method, endpoint, status}` (Counter)
+    - `inventory_http_call_duration_seconds{method, endpoint}` (Histogram con buckets: 0.1, 0.5, 1, 2, 5)
+    - `circuit_breaker_state{breaker_name}` (Gauge: 0=closed, 1=open, 2=half_open)
+  - [ ] Logging estructurado en cada llamada HTTP:
+    - Log nivel INFO: request exitosa con duración
+    - Log nivel WARN: retry attempt
+    - Log nivel ERROR: circuit breaker abierto, timeout
+  - [ ] Exponer métricas en `/metrics` endpoint
+  - [ ] Dashboard Grafana básico (opcional)
+- **Entregable:** Métricas funcionando y visibles en Prometheus
+- **Referencia:** ADR-028 (sección "Observabilidad y Monitoring")
+
+**✅ Definition of Done - Epic 3.1:**
+
+- [ ] InventoryHttpClient implementado con retry + circuit breaker
+- [ ] Tests pasando con coverage >80%
+- [ ] Flujo completo Orders → Inventory funciona end-to-end
+- [ ] Compensación funciona (liberar stock si orden falla)
+- [ ] Circuit breaker abre después de 50% errores (testeado manualmente)
+- [ ] Métricas Prometheus expuestas y funcionando
+- [ ] Documentación actualizada con ejemplos de uso
+- [ ] ADR-028 marcado como "IMPLEMENTED"
+
+---
+
+### Epic 3.2: Actualizar Saga de Orders con HTTP
+
+**Priority:** HIGH | **Status:** ⏳ PENDIENTE  
+**Prerequisito:** Epic 3.1 completado
+
+#### ⏳ T3.2.1: Refactorizar Saga Pattern
+
+- **Status:** ⏳ PENDIENTE
+- **Step 1**: Verificar stock llamando a Inventory Service (HTTP)
+- **Step 2**: Reservar stock (HTTP con idempotency key)
+- **Step 3**: Procesar pago (simulado)
+- **Step 4**: Confirmar reserva (HTTP)
+- **Compensación**: Liberar reserva si falla pago (HTTP)
+- Logging detallado de cada step con correlation IDs
+
+#### ⏳ T3.2.2: Tests E2E del Saga
+
+- **Status:** ⏳ PENDIENTE
+- Test happy path (todo exitoso)
+- Test compensación (pago falla → liberar stock)
+- Test idempotencia (retry no crea duplicados)
+- Test timeout (Inventory lento)
 
 - **Status:** ⏳ PENDIENTE
 - Usar `opossum` o similar en NestJS
