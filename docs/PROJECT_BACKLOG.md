@@ -381,9 +381,9 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 ---
 
-### Epic 1.5: Documentación Inicial **[60% COMPLETADA]**
+### ✅ Epic 1.5: Documentación Inicial **[COMPLETADA]**
 
-**Priority:** HIGH
+**Priority:** HIGH | **Status:** ✅ DONE
 
 #### ✅ T1.5.1: Crear INFRASTRUCTURE_REFERENCE.md
 
@@ -393,6 +393,8 @@ Cliente → API Gateway → [Orders Service (NestJS)]
   - Bases de datos
   - Credenciales
   - Contenedores Docker
+  - RabbitMQ (agregado en Epic 1.4)
+  - Event architecture (ADR-029)
   - Troubleshooting
 
 #### ✅ T1.5.2: Crear QUICK_REFERENCE.md
@@ -408,18 +410,26 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 - `services/orders-service/README.md`
 - `services/inventory-service/README.md`
 
-#### ⏳ T1.5.4: README.md principal
+#### ✅ T1.5.4: README.md principal
 
-- **Status:** ⏳ PENDIENTE (próxima tarea)
-- Debe consolidar toda la información
-- Diagrama de arquitectura
+- **Status:** ✅ COMPLETADA
+- README.md completamente reescrito para Proyecto 3
+- Eliminado contenido obsoleto del Proyecto 2 (backup creado)
+- Estado del proyecto identificado (Fase 1 ✅, Fase 2 ⚙️)
+- Diagrama de arquitectura actualizado con estados por fase
+- Servicios documentados con estados claros
+- Stack tecnológico completo con versiones y estados
+- Estructura del monorepo documentada
+- Testing strategy con PoC Testcontainers
+- FAQ para entrevistas técnicas
+- Enlaces a documentación técnica (ADRs, guides)
 
 **✅ Definition of Done - Epic 1.5:**
 
-- [ ] Todos los README creados y actualizados
-- [ ] Documentación técnica referencia puertos, bases de datos, credenciales
-- [ ] Guía de troubleshooting incluida
-- [ ] Quick reference con comandos esenciales documentada
+- [x] Todos los README creados y actualizados
+- [x] Documentación técnica referencia puertos, bases de datos, credenciales
+- [x] Guía de troubleshooting incluida
+- [x] Quick reference con comandos esenciales documentada
 
 ---
 
