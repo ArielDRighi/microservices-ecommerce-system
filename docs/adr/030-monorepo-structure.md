@@ -2,12 +2,12 @@
 
 ## 📋 Metadata
 
-| Campo | Valor |
-|-------|-------|
-| **Estado** | ✅ ACEPTADA |
-| **Fecha** | 2025-10-17 |
-| **Contexto** | Epic 1.1 - Estructura del Monorepo |
-| **Decisores** | Equipo de Arquitectura |
+| Campo             | Valor                                                 |
+| ----------------- | ----------------------------------------------------- |
+| **Estado**        | ✅ ACEPTADA                                           |
+| **Fecha**         | 2025-10-17                                            |
+| **Contexto**      | Epic 1.1 - Estructura del Monorepo                    |
+| **Decisores**     | Equipo de Arquitectura                                |
 | **Consecuencias** | Define organización del código para 3+ microservicios |
 
 ---
@@ -28,6 +28,7 @@ Estamos evolucionando el [Sistema Procesador de Órdenes Asíncrono](https://git
 **¿Cómo organizar el código de múltiples microservicios en un único repositorio de manera escalable y mantenible?**
 
 Necesitamos decidir entre:
+
 1. **Monorepo**: Todos los servicios en un solo repositorio
 2. **Multi-repo**: Un repositorio por servicio
 3. **Híbrido**: Algunos servicios agrupados, otros separados
@@ -38,15 +39,15 @@ Necesitamos decidir entre:
 
 ### Criterios Técnicos
 
-| Criterio | Peso | Descripción |
-|----------|------|-------------|
-| **Atomic Commits** | 🔴 CRÍTICO | Cambiar contratos API entre servicios en un solo commit |
-| **Refactoring Simplificado** | 🟠 ALTO | Refactorizar código compartido sin sync entre repos |
-| **Documentación Centralizada** | 🟠 ALTO | ADRs, arquitectura, backlog en un solo lugar |
-| **CI/CD Unificado** | 🟡 MEDIO | Un pipeline para todos los servicios |
-| **Facilidad de Clonación** | 🟡 MEDIO | Setup inicial con un solo `git clone` |
-| **Independencia de Deployments** | 🟢 BAJO | Deploy servicios por separado (no prioridad en portfolio) |
-| **Escalabilidad del Repo** | 🟢 BAJO | Proyecto de 3-5 servicios (no >50 servicios) |
+| Criterio                         | Peso       | Descripción                                               |
+| -------------------------------- | ---------- | --------------------------------------------------------- |
+| **Atomic Commits**               | 🔴 CRÍTICO | Cambiar contratos API entre servicios en un solo commit   |
+| **Refactoring Simplificado**     | 🟠 ALTO    | Refactorizar código compartido sin sync entre repos       |
+| **Documentación Centralizada**   | 🟠 ALTO    | ADRs, arquitectura, backlog en un solo lugar              |
+| **CI/CD Unificado**              | 🟡 MEDIO   | Un pipeline para todos los servicios                      |
+| **Facilidad de Clonación**       | 🟡 MEDIO   | Setup inicial con un solo `git clone`                     |
+| **Independencia de Deployments** | 🟢 BAJO    | Deploy servicios por separado (no prioridad en portfolio) |
+| **Escalabilidad del Repo**       | 🟢 BAJO    | Proyecto de 3-5 servicios (no >50 servicios)              |
 
 ### Casos de Uso Específicos
 
@@ -55,6 +56,7 @@ Necesitamos decidir entre:
 **Escenario**: Inventory añade campo `expiresAt` al endpoint `/reserve`, Orders debe consumirlo.
 
 **Monorepo**:
+
 ```bash
 git checkout -b feature/add-expiration
 # 1. Actualizar Inventory Service (Go)
@@ -66,6 +68,7 @@ git push
 ```
 
 **Multi-repo**:
+
 ```bash
 # Repo: inventory-service
 git commit -m "feat: add expiresAt field"
@@ -93,6 +96,7 @@ git push
 **Escenario**: Crear ADR-029 sobre RabbitMQ que afecta a Orders (consumer) e Inventory (publisher).
 
 **Monorepo**:
+
 ```bash
 # docs/adr/029-message-broker.md
 # Un solo lugar, visible para todos los servicios
@@ -100,6 +104,7 @@ git push
 ```
 
 **Multi-repo**:
+
 ```bash
 # ¿Dónde va ADR-029?
 # Opción A: Repo separado "architecture-docs"
@@ -119,6 +124,7 @@ git push
 **Escenario**: CI debe ejecutar tests de Orders + Inventory + Gateway al crear PR.
 
 **Monorepo**:
+
 ```yaml
 # .github/workflows/ci.yml
 jobs:
@@ -127,13 +133,13 @@ jobs:
     steps:
       - checkout
       - cd services/orders-service && npm test
-  
+
   test-inventory:
     runs-on: ubuntu-latest
     steps:
       - checkout
       - cd services/inventory-service && go test ./...
-  
+
   test-gateway:
     runs-on: ubuntu-latest
     steps:
@@ -143,6 +149,7 @@ jobs:
 ```
 
 **Multi-repo**:
+
 ```bash
 # 3 repos = 3 workflows separados
 # ❌ No hay forma de validar que cambios en ambos servicios funcionan juntos
@@ -160,6 +167,7 @@ jobs:
 **Descripción**: Todos los servicios, shared code, docs y scripts en un solo repositorio.
 
 **Estructura Propuesta**:
+
 ```
 microservices-ecommerce-system/
 ├── services/
@@ -179,6 +187,7 @@ microservices-ecommerce-system/
 ```
 
 **Pros**:
+
 - ✅ **Atomic commits**: Cambiar múltiples servicios en un solo commit
 - ✅ **Refactoring simplificado**: Actualizar shared types sin publicar a npm
 - ✅ **Documentación centralizada**: ADRs, arquitectura, backlog en un solo lugar
@@ -189,6 +198,7 @@ microservices-ecommerce-system/
 - ✅ **Búsqueda global**: `git grep` busca en todos los servicios
 
 **Contras**:
+
 - ❌ **Repositorio más grande**: ~500 MB vs ~100 MB por servicio individual
   - **Mitigación**: No es problema para proyecto de portfolio (no >10 GB)
 - ❌ **CI más lento**: Tests de 3 servicios en cada PR
@@ -197,12 +207,14 @@ microservices-ecommerce-system/
   - **Mitigación**: No aplica (proyecto individual, no equipo grande)
 
 **Ejemplos en la Industria**:
+
 - **Google**: Monorepo gigante con Bazel (2B+ líneas de código)
 - **Facebook/Meta**: Monorepo con Mercurial
 - **Nx Monorepo**: Framework especializado (Angular, React, NestJS)
 - **Vercel Turborepo**: Monorepo con caching inteligente
 
 **Herramientas**:
+
 - Nx (si proyecto crece a >10 servicios)
 - Turborepo (si se necesita cache distribuido)
 - Git sparse-checkout (si repo crece mucho)
@@ -214,6 +226,7 @@ microservices-ecommerce-system/
 **Descripción**: Un repositorio por servicio (orders-service, inventory-service, api-gateway, shared-types).
 
 **Estructura**:
+
 ```
 repos/
 ├── orders-service/          # Repo 1
@@ -224,6 +237,7 @@ repos/
 ```
 
 **Pros**:
+
 - ✅ **Deployments independientes**: Deploy Orders sin tocar Inventory
   - **Contraargumento**: En Docker Compose, ya son independientes (servicios separados)
 - ✅ **Permisos granulares**: Equipo A solo accede a Orders
@@ -232,6 +246,7 @@ repos/
   - **Contraargumento**: GitHub Actions cache + paralelización hacen monorepo igual de rápido
 
 **Contras**:
+
 - ❌ **Coordinación manual**: Cambiar contrato API requiere 3 commits en 3 repos
 - ❌ **Shared code complejo**: Publicar `shared-types` a npm registry
 - ❌ **Documentación fragmentada**: ADRs en repo separado, desarrolladores no lo ven
@@ -241,6 +256,7 @@ repos/
 - ❌ **Code review fragmentado**: Cambio en 2 servicios = 2 PRs separados
 
 **Cuándo Usar Multi-Repo**:
+
 - Equipos grandes (>50 personas) con ownership claro por servicio
 - Servicios con ciclos de vida MUY independientes (años sin interactuar)
 - Requisitos de seguridad estrictos (equipos no deben ver código de otros)
@@ -254,6 +270,7 @@ repos/
 **Descripción**: Agrupar servicios relacionados en repos, separar documentación.
 
 **Ejemplo**:
+
 ```
 repos/
 ├── backend-services/        # Orders + Inventory + Gateway (monorepo)
@@ -262,9 +279,11 @@ repos/
 ```
 
 **Pros**:
+
 - ✅ Balance entre monorepo (servicios backend) y multi-repo (frontend separado)
 
 **Contras**:
+
 - ❌ **Documentación todavía fragmentada**: ADRs en repo separado
 - ❌ **Complejidad innecesaria**: Frontend no existe aún
 - ❌ **Peor de ambos mundos**: No tiene ventajas claras de monorepo ni multi-repo
@@ -282,21 +301,25 @@ repos/
 **Justificación**:
 
 1. **Atomic commits** (peso CRÍTICO)
+
    - Cambiar contratos API entre servicios en un solo commit
    - Refactorizar código compartido sin publicar a npm
    - Ejemplo: Añadir `expiresAt` a reservas (Inventory + Orders en 1 PR)
 
 2. **Documentación centralizada** (peso ALTO)
+
    - 29 ADRs en `docs/adr/`, visibles para todos
    - Arquitectura, backlog, guías en un solo lugar
    - Desarrolladores ven docs al trabajar en servicio
 
 3. **CI/CD unificado** (peso MEDIO)
+
    - Un pipeline valida todo el ecosistema
    - GitHub Actions con jobs paralelos (5 min total)
    - Status check consolidado en PRs
 
 4. **Onboarding simplificado** (peso MEDIO)
+
    - Un solo `git clone`
    - Un solo README principal
    - Docker Compose levanta toda la infraestructura
@@ -403,13 +426,13 @@ microservices-ecommerce-system/           # Raíz del monorepo
 
 ### Convenciones de Naming
 
-| Elemento | Convención | Ejemplo |
-|----------|------------|---------|
-| **Servicios** | kebab-case + `-service` | `orders-service`, `inventory-service` |
-| **Carpetas shared** | lowercase singular | `types`, `proto` |
-| **Docs** | UPPERCASE.md para principales | `ARCHITECTURE.md`, `README.md` |
-| **Scripts** | kebab-case.sh | `deploy-staging.sh`, `init-db.sql` |
-| **Workflows** | kebab-case.yml | `ci.yml`, `deploy-production.yml` |
+| Elemento            | Convención                    | Ejemplo                               |
+| ------------------- | ----------------------------- | ------------------------------------- |
+| **Servicios**       | kebab-case + `-service`       | `orders-service`, `inventory-service` |
+| **Carpetas shared** | lowercase singular            | `types`, `proto`                      |
+| **Docs**            | UPPERCASE.md para principales | `ARCHITECTURE.md`, `README.md`        |
+| **Scripts**         | kebab-case.sh                 | `deploy-staging.sh`, `init-db.sql`    |
+| **Workflows**       | kebab-case.yml                | `ci.yml`, `deploy-production.yml`     |
 
 ---
 
@@ -476,7 +499,7 @@ jobs:
           cd services/orders-service
           npm install
           npm test
-  
+
   test-inventory:
     runs-on: ubuntu-latest
     steps:
@@ -485,7 +508,7 @@ jobs:
         run: |
           cd services/inventory-service
           go test ./...
-  
+
   test-gateway:
     runs-on: ubuntu-latest
     steps:
@@ -495,7 +518,7 @@ jobs:
           cd services/api-gateway
           npm install
           npm test
-  
+
   integration:
     needs: [test-orders, test-inventory, test-gateway]
     runs-on: ubuntu-latest
@@ -538,16 +561,16 @@ jobs:
 
 ## 📊 Comparación Cuantitativa
 
-| Métrica | Monorepo | Multi-Repo (5 repos) |
-|---------|----------|----------------------|
-| **Tiempo de onboarding** | 5 min (1 clone) | 25 min (5 clones + setup) |
-| **Cambios cross-service** | 1 commit | 3-5 commits + coordinación |
-| **CI/CD complejidad** | 1 workflow | 5 workflows + orchestration |
-| **Búsqueda de código** | `git grep` global | Buscar en 5 repos manualmente |
-| **Actualizar shared code** | Commit directo | Publicar npm + update 3 servicios |
-| **Documentación** | Centralizada | Fragmentada en 5 lugares |
-| **Tamaño del repo** | ~500 MB | ~100 MB cada uno (500 MB total igual) |
-| **Tiempo de CI** | 5 min (paralelo) | 3 min x 5 = 15 min total (secuencial) |
+| Métrica                    | Monorepo          | Multi-Repo (5 repos)                  |
+| -------------------------- | ----------------- | ------------------------------------- |
+| **Tiempo de onboarding**   | 5 min (1 clone)   | 25 min (5 clones + setup)             |
+| **Cambios cross-service**  | 1 commit          | 3-5 commits + coordinación            |
+| **CI/CD complejidad**      | 1 workflow        | 5 workflows + orchestration           |
+| **Búsqueda de código**     | `git grep` global | Buscar en 5 repos manualmente         |
+| **Actualizar shared code** | Commit directo    | Publicar npm + update 3 servicios     |
+| **Documentación**          | Centralizada      | Fragmentada en 5 lugares              |
+| **Tamaño del repo**        | ~500 MB           | ~100 MB cada uno (500 MB total igual) |
+| **Tiempo de CI**           | 5 min (paralelo)  | 3 min x 5 = 15 min total (secuencial) |
 
 **Conclusión**: Monorepo es superior en 7/8 métricas para proyecto de 3-5 servicios.
 
@@ -564,8 +587,8 @@ jobs:
 
 ## 📝 Changelog
 
-| Fecha | Cambio | Autor |
-|-------|--------|-------|
+| Fecha      | Cambio                                | Autor               |
+| ---------- | ------------------------------------- | ------------------- |
 | 2025-10-17 | ADR-030 creado - Decisión de monorepo | Equipo Arquitectura |
 
 ---

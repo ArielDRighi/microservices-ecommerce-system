@@ -210,14 +210,14 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 #### ✅ T1.1.4: Crear README.md principal del ecosistema
 
-- **Status:** ⏳ PENDIENTE (próxima tarea)
+- **Status:** ✅ COMPLETADA
 - Debe incluir diagrama de arquitectura en Mermaid
 - Quick Start unificado
 - Estructura del monorepo explicada
 
 #### ✅ T1.1.5: Documentar decisión en ADR-026-monorepo-structure.md
 
-- **Status:** ⏳ PENDIENTE
+- **Status:** ✅ COMPLETADA
 - Justificar elección de monorepo sobre multi-repo
 - Pros, contras y alternativas consideradas
 
@@ -695,6 +695,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Contexto:** Implementar comunicación asíncrona entre Inventory Service (Go) y Orders Service (NestJS) mediante eventos publicados a RabbitMQ. Este Epic implementa las decisiones documentadas en ADR-029.
 
 **Stack Tecnológico (definido en ADR-029):**
+
 - **Message Broker:** RabbitMQ 3.13-management-alpine
 - **Go Publisher:** `github.com/rabbitmq/amqp091-go` v1.9.0
 - **NestJS Consumer:** `@nestjs/microservices` + `amqplib`
@@ -702,6 +703,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - **Testing:** Testcontainers para integración tests
 
 **Eventos a Implementar:**
+
 - `inventory.reserved`: Inventory → Orders (reserva creada)
 - `inventory.confirmed`: Inventory → Orders (stock decrementado)
 - `inventory.released`: Inventory → Orders (reserva cancelada)
@@ -716,6 +718,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Descripción:** Configurar topology de RabbitMQ (exchanges, queues, bindings, DLQ).
 
 **Checklist:**
+
 - [ ] Crear script `scripts/setup-rabbitmq.sh` para inicialización
 - [ ] Declarar exchange `inventory.events` (type: topic, durable)
 - [ ] Declarar exchange `orders.events` (type: topic, durable)
@@ -727,6 +730,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - [ ] Documentar configuración en README
 
 **Entregables:**
+
 - Script de setup ejecutable
 - Documentación de topology
 - Screenshot de Management UI con exchanges/queues
@@ -742,6 +746,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Descripción:** Crear tipos TypeScript compartidos para todos los eventos con validación.
 
 **Checklist:**
+
 - [ ] Crear `shared/types/events/inventory.events.ts`
   - `InventoryReservedEvent`: cuando se crea una reserva
   - `InventoryConfirmedEvent`: cuando se confirma y decrementa stock
@@ -761,6 +766,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - [ ] Documentar ejemplos JSON en `docs/api-testing/08-EVENTS-SCHEMA.md`
 
 **Entregables:**
+
 - Tipos TypeScript compartidos
 - Validación con schemas
 - Documentación con ejemplos JSON
@@ -776,6 +782,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Descripción:** Crear módulo de eventos en Go que publica a RabbitMQ con garantías de entrega.
 
 **Checklist:**
+
 - [ ] Instalar librería: `go get github.com/rabbitmq/amqp091-go@v1.9.0`
 - [ ] Crear `internal/infrastructure/messaging/rabbitmq_publisher.go`
 - [ ] Implementar connection pooling y reconnection logic
@@ -794,6 +801,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - [ ] Tests de integración con Testcontainers
 
 **Archivos a crear:**
+
 - `internal/infrastructure/messaging/rabbitmq_publisher.go`
 - `internal/infrastructure/messaging/rabbitmq_publisher_test.go`
 - `tests/integration/rabbitmq_publisher_integration_test.go`
@@ -809,6 +817,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Descripción:** Crear módulo RabbitMQ consumer en NestJS con ACK manual e idempotencia.
 
 **Checklist:**
+
 - [ ] Instalar dependencias:
   ```bash
   npm install @nestjs/microservices amqplib amqp-connection-manager
@@ -833,6 +842,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - [ ] Tests de integración con Testcontainers
 
 **Archivos a crear:**
+
 - `src/messaging/rabbitmq.module.ts`
 - `src/messaging/inventory-events.consumer.ts`
 - `src/messaging/inventory-events.consumer.spec.ts`
@@ -850,6 +860,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Descripción:** Validar flujo completo: Inventory publica → RabbitMQ → Orders consume.
 
 **Checklist:**
+
 - [ ] Test E2E: Reserva de inventario exitosa
   - POST `/inventory/reserve` → Inventory crea reserva → publica evento
   - Consumer en Orders actualiza orden a "reserved"
@@ -870,6 +881,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - [ ] Documentar tests en `docs/api-testing/08-EVENTS-TESTING.md`
 
 **Herramientas:**
+
 - Testcontainers: RabbitMQ + PostgreSQL + Redis
 - Supertest para llamadas REST API
 - Jest para assertions
@@ -885,6 +897,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 **Descripción:** Añadir métricas de RabbitMQ y dashboards de monitoreo.
 
 **Checklist:**
+
 - [ ] Métricas de Publisher (Go/Prometheus):
   - `inventory_events_published_total{event_type, status}` (counter)
   - `inventory_events_publish_duration_seconds{event_type}` (histogram)
@@ -909,6 +922,7 @@ CREATE INDEX idx_inventory_product ON inventory_items(product_id);
 - [ ] Documentar métricas en `docs/MONITORING.md`
 
 **Entregables:**
+
 - Métricas implementadas en ambos servicios
 - Grafana dashboard JSON exportable
 - Alertas configuradas en Prometheus

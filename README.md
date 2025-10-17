@@ -69,6 +69,7 @@ cd services/api-gateway && npm run start:dev
 ```
 
 **Endpoints principales:**
+
 - 🌐 **API Gateway**: http://localhost:8080
 - 📦 **Orders API**: http://localhost:3000/api/docs (Swagger)
 - 📊 **Inventory API**: http://localhost:8081/health
@@ -110,11 +111,11 @@ graph TB
     Browser -->|HTTP REST| APIGateway
     APIGateway -->|Proxy /orders/*| Orders
     APIGateway -->|Proxy /inventory/*| Inventory
-    
+
     Orders -->|HTTP GET/POST<br/>Check Stock / Reserve| Inventory
     Inventory -->|Publish Events<br/>inventory.reserved<br/>inventory.confirmed| RabbitMQ
     Orders -->|Consume Events<br/>Update Order Status| RabbitMQ
-    
+
     Orders -->|Read/Write<br/>Orders, Users, Categories| PostgreSQL
     Inventory -->|Read/Write<br/>Products, Reservations| PostgreSQL
     Orders -->|Bull Queues<br/>Async Jobs| Redis
@@ -132,6 +133,7 @@ graph TB
 ### Comunicación entre Servicios
 
 #### 🔵 Síncrona (REST)
+
 - **Orders → Inventory**: Check stock, Reserve, Release
 - **API Gateway → Orders/Inventory**: Proxy HTTP requests
 - **Implementación**: `@nestjs/axios` + `axios-retry` + `opossum` (circuit breaker)
@@ -139,6 +141,7 @@ graph TB
 - **Referencia**: [ADR-028: REST Synchronous Communication](docs/adr/028-rest-synchronous-communication-strategy.md)
 
 #### 🟠 Asíncrona (RabbitMQ)
+
 - **Inventory → Orders**: `InventoryReserved`, `InventoryConfirmed`, `InventoryReleased`
 - **Orders → Inventory**: `OrderCancelled`, `OrderCompleted`
 - **Garantías**: At-least-once delivery, Dead Letter Queue, Idempotency
@@ -151,6 +154,7 @@ graph TB
 ### Problema
 
 Sistemas de e-commerce tradicionales con arquitectura monolítica enfrentan:
+
 - ❌ **Acoplamiento**: Cambios en inventario requieren redeploy completo
 - ❌ **Escalabilidad limitada**: No se puede escalar inventario independiente de órdenes
 - ❌ **Tecnologías fijas**: Stack único (ej: solo Node.js o solo Java)
@@ -159,6 +163,7 @@ Sistemas de e-commerce tradicionales con arquitectura monolítica enfrentan:
 ### Solución: Arquitectura de Microservicios
 
 Este proyecto demuestra:
+
 - ✅ **Desacoplamiento**: Servicios independientes con contratos API claros
 - ✅ **Escalabilidad horizontal**: Escalar Orders e Inventory por separado
 - ✅ **Tecnología apropiada**: Go para performance (Inventory), NestJS para DX (Orders)
@@ -174,18 +179,21 @@ Este proyecto demuestra:
 **Descripción**: Gestiona órdenes de compra, usuarios, categorías y procesamiento asíncrono.
 
 **Stack**:
+
 - Framework: NestJS 10.x
 - ORM: TypeORM
 - Queue: Bull + Redis
 - Testing: Jest + Supertest + Testcontainers
 
 **Responsabilidades**:
+
 - CRUD de órdenes, usuarios, categorías
 - Procesamiento asíncrono con Bull queues
 - Saga Pattern para transacciones distribuidas
 - Consumidor de eventos de Inventory (RabbitMQ)
 
 **Endpoints principales**:
+
 - `POST /orders` - Crear orden (trigger Saga)
 - `GET /orders/:id` - Consultar estado de orden
 - `POST /orders/:id/cancel` - Cancelar orden
@@ -200,12 +208,14 @@ Este proyecto demuestra:
 **Descripción**: Gestiona inventario de productos y reservas con locking optimista.
 
 **Stack**:
+
 - Framework: Gin (Go)
 - ORM: GORM
 - Cache: Redis
 - Testing: Testcontainers + go-sqlmock
 
 **Responsabilidades**:
+
 - CRUD de productos (inventory items)
 - Reservas de stock con locking optimista (version column)
 - Confirmación y liberación de reservas
@@ -213,6 +223,7 @@ Este proyecto demuestra:
 - Cache con Redis (Cache-Aside pattern)
 
 **Endpoints principales**:
+
 - `GET /inventory` - Listar productos
 - `GET /inventory/:id` - Detalle de producto
 - `POST /inventory/reserve` - Reservar stock
@@ -228,6 +239,7 @@ Este proyecto demuestra:
 **Descripción**: Punto de entrada único para clientes, proxy a microservicios.
 
 **Stack**:
+
 - Framework: Express.js
 - Proxy: http-proxy-middleware
 - Auth: JWT (jsonwebtoken)
@@ -235,6 +247,7 @@ Este proyecto demuestra:
 - Circuit Breaker: opossum
 
 **Responsabilidades**:
+
 - Routing a servicios (`/orders/*` → Orders, `/inventory/*` → Inventory)
 - Autenticación JWT centralizada
 - Rate limiting (100 req/min por IP)
@@ -242,6 +255,7 @@ Este proyecto demuestra:
 - Logging y métricas (Prometheus)
 
 **Endpoints**:
+
 - `POST /auth/login` - Autenticación (genera JWT)
 - `/orders/*` - Proxy a Orders Service (puerto 3000)
 - `/inventory/*` - Proxy a Inventory Service (puerto 8081)
@@ -256,53 +270,53 @@ Este proyecto demuestra:
 
 ### Backend Services
 
-| Tecnología | Uso | Versión |
-|------------|-----|---------|
-| **NestJS** | Orders Service framework | 10.x |
-| **Go (Golang)** | Inventory Service | 1.21+ |
-| **Express.js** | API Gateway | 4.x |
-| **TypeScript** | Lenguaje principal (Orders + Gateway) | 5.x |
+| Tecnología      | Uso                                   | Versión |
+| --------------- | ------------------------------------- | ------- |
+| **NestJS**      | Orders Service framework              | 10.x    |
+| **Go (Golang)** | Inventory Service                     | 1.21+   |
+| **Express.js**  | API Gateway                           | 4.x     |
+| **TypeScript**  | Lenguaje principal (Orders + Gateway) | 5.x     |
 
 ### Databases & Storage
 
-| Tecnología | Uso | Versión |
-|------------|-----|---------|
-| **PostgreSQL** | Base de datos relacional principal | 16.x |
-| **Redis** | Cache + Bull queues | 7.x |
+| Tecnología     | Uso                                | Versión |
+| -------------- | ---------------------------------- | ------- |
+| **PostgreSQL** | Base de datos relacional principal | 16.x    |
+| **Redis**      | Cache + Bull queues                | 7.x     |
 
 ### Message Broker
 
-| Tecnología | Uso | Versión |
-|------------|-----|---------|
-| **RabbitMQ** | Eventos asíncronos entre servicios | 3.13 |
+| Tecnología   | Uso                                | Versión |
+| ------------ | ---------------------------------- | ------- |
+| **RabbitMQ** | Eventos asíncronos entre servicios | 3.13    |
 
 ### DevOps & Infrastructure
 
-| Tecnología | Uso |
-|------------|-----|
-| **Docker** | Containerización de servicios |
-| **Docker Compose** | Orquestación local |
-| **GitHub Actions** | CI/CD pipeline |
+| Tecnología         | Uso                             |
+| ------------------ | ------------------------------- |
+| **Docker**         | Containerización de servicios   |
+| **Docker Compose** | Orquestación local              |
+| **GitHub Actions** | CI/CD pipeline                  |
 | **Testcontainers** | Integration tests (Go + NestJS) |
 
 ### Monitoring & Observability
 
-| Tecnología | Uso |
-|------------|-----|
-| **Prometheus** | Métricas de servicios |
-| **Grafana** | Dashboards de monitoreo |
-| **Winston** | Logging estructurado |
-| **Bull Board** | Dashboard de queues (NestJS) |
-| **RabbitMQ Management** | Dashboard de RabbitMQ |
+| Tecnología              | Uso                          |
+| ----------------------- | ---------------------------- |
+| **Prometheus**          | Métricas de servicios        |
+| **Grafana**             | Dashboards de monitoreo      |
+| **Winston**             | Logging estructurado         |
+| **Bull Board**          | Dashboard de queues (NestJS) |
+| **RabbitMQ Management** | Dashboard de RabbitMQ        |
 
 ### Testing
 
-| Tecnología | Uso | Coverage |
-|------------|-----|----------|
-| **Jest** | Unit + E2E tests (NestJS) | >70% |
-| **Supertest** | API testing (NestJS) | - |
-| **Testcontainers** | Integration tests | - |
-| **go-sqlmock** | Unit tests (Go) | >75% |
+| Tecnología         | Uso                       | Coverage |
+| ------------------ | ------------------------- | -------- |
+| **Jest**           | Unit + E2E tests (NestJS) | >70%     |
+| **Supertest**      | API testing (NestJS)      | -        |
+| **Testcontainers** | Integration tests         | -        |
+| **go-sqlmock**     | Unit tests (Go)           | >75%     |
 
 ---
 
@@ -385,12 +399,14 @@ microservices-ecommerce-system/
 ### Decisiones de Estructura
 
 **¿Por qué Monorepo?**
+
 - ✅ **Atomic commits**: Cambios en múltiples servicios en un solo commit
 - ✅ **Refactoring simplificado**: Cambiar contratos API sin sync entre repos
 - ✅ **Documentación centralizada**: ADRs, arquitectura, backlog en un solo lugar
 - ✅ **CI/CD unificado**: Un pipeline para todo el ecosistema
 
 **Alternativas consideradas**:
+
 - ❌ **Multi-repo**: Complicaría sync de cambios entre Orders e Inventory
 - ❌ **Monolito modular**: No demostraría microservicios reales
 
@@ -415,15 +431,15 @@ microservices-ecommerce-system/
 
 Este proyecto es la **evolución** del [Sistema Procesador de Órdenes Asíncrono](https://github.com/ArielDRighi/ecommerce-async-resilient-system) (Proyecto 2), ahora transformado en una arquitectura de microservicios:
 
-| Aspecto | Proyecto 2 (Monolito) | Proyecto 3 (Microservicios) |
-|---------|----------------------|----------------------------|
-| **Arquitectura** | Monolito NestJS | 3 microservicios (NestJS + Go + Express) |
-| **Lenguajes** | Solo TypeScript | TypeScript + Go (poliglota) |
-| **Base de Datos** | PostgreSQL compartida | PostgreSQL con esquemas separados |
-| **Comunicación** | Interna (módulos) | REST + RabbitMQ (inter-service) |
-| **Inventario** | Lógica interna simulada | Servicio independiente en Go con concurrencia real |
-| **Testing** | Jest + Supertest | Jest + Supertest + Testcontainers (Go + NestJS) |
-| **Deployment** | Single container | Multi-container (Docker Compose) |
+| Aspecto           | Proyecto 2 (Monolito)   | Proyecto 3 (Microservicios)                        |
+| ----------------- | ----------------------- | -------------------------------------------------- |
+| **Arquitectura**  | Monolito NestJS         | 3 microservicios (NestJS + Go + Express)           |
+| **Lenguajes**     | Solo TypeScript         | TypeScript + Go (poliglota)                        |
+| **Base de Datos** | PostgreSQL compartida   | PostgreSQL con esquemas separados                  |
+| **Comunicación**  | Interna (módulos)       | REST + RabbitMQ (inter-service)                    |
+| **Inventario**    | Lógica interna simulada | Servicio independiente en Go con concurrencia real |
+| **Testing**       | Jest + Supertest        | Jest + Supertest + Testcontainers (Go + NestJS)    |
+| **Deployment**    | Single container        | Multi-container (Docker Compose)                   |
 
 Cuando un cliente crea una orden en un e-commerce, múltiples operaciones deben ejecutarse:
 
@@ -1162,11 +1178,11 @@ El sistema expone métricas en formato Prometheus para scraping:
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: 'ecommerce-api'
+  - job_name: "ecommerce-api"
     scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:3002']
-    metrics_path: '/api/v1/metrics'
+      - targets: ["localhost:3002"]
+    metrics_path: "/api/v1/metrics"
 ```
 
 #### Ejemplo de Uso con Grafana
@@ -1556,11 +1572,11 @@ cd services/orders-service && npm run migration:run && npm run seed && cd ../..
 
 ### Cobertura por Servicio
 
-| Servicio | Framework | Coverage | Estrategia |
-|----------|-----------|----------|------------|
-| **Orders** | Jest + Supertest | >70% | Unit + Integration + E2E |
-| **Inventory** | go-sqlmock + Testcontainers | >75% | Unit + Integration |
-| **API Gateway** | Jest + Supertest | >65% | Unit + Integration |
+| Servicio        | Framework                   | Coverage | Estrategia               |
+| --------------- | --------------------------- | -------- | ------------------------ |
+| **Orders**      | Jest + Supertest            | >70%     | Unit + Integration + E2E |
+| **Inventory**   | go-sqlmock + Testcontainers | >75%     | Unit + Integration       |
+| **API Gateway** | Jest + Supertest            | >65%     | Unit + Integration       |
 
 ### Ejecutar Tests
 
@@ -1588,14 +1604,14 @@ npm test                # Unit + integration tests
 
 ## 📚 Documentación Completa
 
-| Documento | Descripción |
-|-----------|-------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrama de arquitectura detallado |
+| Documento                                     | Descripción                        |
+| --------------------------------------------- | ---------------------------------- |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)       | Diagrama de arquitectura detallado |
 | [DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | Esquemas de PostgreSQL, relaciones |
-| [PROJECT_BACKLOG.md](docs/PROJECT_BACKLOG.md) | Backlog completo (8-10 semanas) |
-| [PROJECT_SETUP.md](docs/PROJECT_SETUP.md) | Guía de setup detallada |
-| [ADRs (29)](docs/adr/README.md) | Architecture Decision Records |
-| [API Testing Guides](docs/api-testing/) | Guías por módulo |
+| [PROJECT_BACKLOG.md](docs/PROJECT_BACKLOG.md) | Backlog completo (8-10 semanas)    |
+| [PROJECT_SETUP.md](docs/PROJECT_SETUP.md)     | Guía de setup detallada            |
+| [ADRs (29)](docs/adr/README.md)               | Architecture Decision Records      |
+| [API Testing Guides](docs/api-testing/)       | Guías por módulo                   |
 
 ---
 
@@ -1642,4 +1658,3 @@ Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](LICENSE) para más d
 <p align="center">
   <strong>Proyecto 3 de 3</strong> del Portfolio Profesional | <strong>Última actualización:</strong> 17 de Octubre, 2025
 </p>
-
