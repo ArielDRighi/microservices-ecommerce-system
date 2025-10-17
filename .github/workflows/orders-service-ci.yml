@@ -122,9 +122,6 @@ jobs:
     e2e-tests:
         name: E2E Tests (Disabled)
         runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ./services/orders-service
 
         steps:
             - name: Skip E2E tests (Epic 1.3)
