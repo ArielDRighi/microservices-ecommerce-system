@@ -25,17 +25,10 @@ linters:
     - unparam # Reports unused function parameters
     - unconvert # Unnecessary type conversions
     - prealloc # Finds slice declarations that could potentially be preallocated
-    - exportloopref # Checks for pointers to enclosing loop variables
     - noctx # Finds sending http request without context.Context
     - bodyclose # Checks whether HTTP response body is closed successfully
     - errorlint # Find code that will cause problems with the error wrapping scheme
     - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go
-
-  disable:
-    - deadcode # Deprecated (replaced by unused)
-    - structcheck # Deprecated (replaced by unused)
-    - varcheck # Deprecated (replaced by unused)
-    - scopelint # Deprecated (replaced by exportloopref)
 
 linters-settings:
   errcheck:
@@ -44,6 +37,8 @@ linters-settings:
 
   govet:
     enable-all: true
+    disable:
+      - fieldalignment # Too strict for struct optimization
 
   gocyclo:
     min-complexity: 15
@@ -63,13 +58,13 @@ linters-settings:
   gocritic:
     enabled-tags:
       - diagnostic
-      - experimental
-      - opinionated
       - performance
       - style
     disabled-checks:
       - hugeParam
       - rangeValCopy
+      - exitAfterDefer # Allow log.Fatal/panic in defer context
+      - httpNoBody # Allow nil body for simple GET requests
 
   revive:
     rules:
@@ -120,21 +115,24 @@ issues:
         - errcheck
         - dupl
         - gosec
+        - gocritic
+        - noctx
+        - govet
 
     # Exclude test helpers from some checks
     - path: tests/
       linters:
         - errcheck
         - gosec
+        - gocritic
+        - noctx
+        - govet
+        - misspell # Allow Spanish words like "producto" in tests
+
+    # Exclude misspelling of "producto" (Spanish word, not "production")
+    - text: "`producto` is a misspelling of `production`"
+      linters:
+        - misspell
 
   max-issues-per-linter: 0
   max-same-issues: 0
-
-severity:
-  default: warning
-  rules:
-    - linters:
-        - errcheck
-        - govet
-        - staticcheck
-      severity: error

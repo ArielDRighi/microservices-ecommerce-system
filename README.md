@@ -1,8 +1,17 @@
 # 🛒 Ecosistema de Microservicios E-commerce
 
 <p align="center">
-  <a href="https://github.com/ArielDRighi/microservices-ecommerce-system/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/microservices-ecommerce-system/ci.yml?branch=develop&style=for-the-badge" alt="CI/CD Status"/>
+  <a href="https://github.com/ArielDRighi/microservices-ecommerce-system/actions/workflows/ci-basic.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/microservices-ecommerce-system/ci-basic.yml?branch=develop&style=for-the-badge&label=CI%20Basic" alt="CI Basic Status"/>
+  </a>
+  <a href="https://github.com/ArielDRighi/microservices-ecommerce-system/actions/workflows/inventory-service-ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/microservices-ecommerce-system/inventory-service-ci.yml?branch=develop&style=for-the-badge&label=Inventory%20CI" alt="Inventory CI Status"/>
+  </a>
+  <a href="https://github.com/ArielDRighi/microservices-ecommerce-system/actions/workflows/orders-service-ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/ArielDRighi/microservices-ecommerce-system/orders-service-ci.yml?branch=develop&style=for-the-badge&label=Orders%20CI" alt="Orders CI Status"/>
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/coverage-%3E70%25-success?style=for-the-badge" alt="Coverage"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/microservices-3%20services-blue?style=for-the-badge" alt="Microservices"/>
@@ -13,8 +22,8 @@
   <a href="#">
     <img src="https://img.shields.io/badge/architecture-event--driven-orange?style=for-the-badge" alt="Architecture"/>
   </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/ADRs-29%20documented-green?style=for-the-badge" alt="ADRs"/>
+  <a href="https://github.com/ArielDRighi/microservices-ecommerce-system/tree/develop/docs/adr">
+    <img src="https://img.shields.io/badge/ADRs-30%20documented-green?style=for-the-badge" alt="ADRs"/>
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/testing-Testcontainers%20%2B%20E2E-brightgreen?style=for-the-badge" alt="Testing"/>

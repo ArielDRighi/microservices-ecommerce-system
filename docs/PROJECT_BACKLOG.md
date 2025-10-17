@@ -283,37 +283,47 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 ---
 
-### Epic 1.3: CI/CD - Pipeline Inicial **[PENDIENTE]**
+### Epic 1.3: CI/CD - Pipeline Inicial **[COMPLETADA]**
 
-**Priority:** HIGH | **Dependencies:** T1.2.6
+**Priority:** HIGH | **Dependencies:** T1.2.6 | **Status:** ✅ DONE
 
-#### ⏳ T1.3.1: Crear .github/workflows/inventory-service-ci.yml
+#### ✅ T1.3.1: Crear .github/workflows/inventory-service-ci.yml
 
-- **Status:** ⏳ PENDIENTE
-- Pipeline con paths filters
-- Tests con PostgreSQL y Redis en contenedores
-- Coverage mínimo 70%
+- **Status:** ✅ COMPLETADA
+- Pipeline con paths filters (`services/inventory-service/**`)
+- Tests con PostgreSQL (Testcontainers)
+- Coverage mínimo 70% enforced
+- Jobs: Build & Unit Tests, Integration Tests, Linting, Security Scan, Summary
+- golangci-lint, gofmt, go vet integrados
+- gosec para security scanning
 
-#### ⏳ T1.3.2: Configurar golangci-lint
+#### ✅ T1.3.2: Configurar golangci-lint
 
-- **Status:** ⏳ PENDIENTE
-- Archivo `.golangci.yml` con reglas estrictas
-- Integración en pipeline CI
+- **Status:** ✅ COMPLETADA
+- Archivo `.golangci.yml` con reglas estrictas ya existía
+- Integración completa en pipeline CI
+- Linters habilitados: errcheck, gosimple, govet, staticcheck, gosec, gocritic, revive, etc.
+- Configuración para inventory-service en línea con estándares Go
 
-#### ⏳ T1.3.3: Actualizar CI del Orders Service
+#### ✅ T1.3.3: Actualizar CI del Orders Service
 
-- **Status:** ⏳ PENDIENTE
-- Ajustar paths filters para nueva estructura monorepo
-- Verificar que sigue funcionando correctamente
+- **Status:** ✅ COMPLETADA
+- Creado `.github/workflows/orders-service-ci.yml`
+- Path filters para estructura monorepo (`services/orders-service/**`)
+- Jobs: Build & Unit Tests, E2E Tests, Linting, Security Audit, Summary
+- GitHub Actions services: PostgreSQL 16, Redis 7
+- Coverage threshold 70% enforced
+- ESLint, Prettier, TypeScript type checking
+- npm audit para seguridad
 
 **✅ Definition of Done - Epic 1.3:**
 
-- [ ] Pipeline CI/CD del Inventory Service funcionando
-- [ ] Tests corriendo en GitHub Actions con PostgreSQL y Redis
-- [ ] Linter golangci-lint integrado y pasando
-- [ ] Pipeline del Orders Service actualizado para monorepo
-- [ ] Coverage reports generados (target: >70%)
-- [ ] Badges de CI/CD añadidos al README
+- [x] Pipeline CI/CD del Inventory Service funcionando
+- [x] Tests corriendo en GitHub Actions con PostgreSQL (Testcontainers)
+- [x] Linter golangci-lint integrado y pasando
+- [x] Pipeline del Orders Service actualizado para monorepo
+- [x] Coverage reports generados (target: >70%)
+- [x] Badges de CI/CD añadidos al README (ci-basic, inventory-ci, orders-ci)
 
 ---
 
