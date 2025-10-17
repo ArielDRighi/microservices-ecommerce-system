@@ -30,13 +30,6 @@ linters:
     - errorlint # Find code that will cause problems with the error wrapping scheme
     - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go
 
-  disable:
-    - deadcode # Deprecated (replaced by unused)
-    - structcheck # Deprecated (replaced by unused)
-    - varcheck # Deprecated (replaced by unused)
-    - scopelint # Deprecated (replaced by exportloopref)
-    - exportloopref # Deprecated since Go 1.22 (replaced by copyloopvar)
-
 linters-settings:
   errcheck:
     check-type-assertions: true
