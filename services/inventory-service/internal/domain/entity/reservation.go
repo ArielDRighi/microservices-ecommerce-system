@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"github.com/google/uuid"
 )
 
@@ -47,11 +48,11 @@ func NewReservation(inventoryItemID, orderID uuid.UUID, quantity int) (*Reservat
 // Returns an error if the quantity is invalid (negative or zero).
 func NewReservationWithDuration(inventoryItemID, orderID uuid.UUID, quantity int, duration time.Duration) (*Reservation, error) {
 	if quantity <= 0 {
-		return nil, ErrInvalidQuantity
+		return nil, errors.ErrInvalidQuantity
 	}
 
 	if duration <= 0 {
-		return nil, ErrInvalidDuration
+		return nil, errors.ErrInvalidDuration
 	}
 
 	now := time.Now()
@@ -112,9 +113,9 @@ func (r *Reservation) CanBeReleased() bool {
 func (r *Reservation) Confirm() error {
 	if !r.CanBeConfirmed() {
 		if r.IsExpired() {
-			return ErrReservationExpired
+			return errors.ErrReservationExpired
 		}
-		return ErrReservationNotPending
+		return errors.ErrReservationNotPending
 	}
 
 	r.Status = ReservationConfirmed
@@ -127,7 +128,7 @@ func (r *Reservation) Confirm() error {
 // Returns an error if the reservation is not in pending status.
 func (r *Reservation) Release() error {
 	if !r.CanBeReleased() {
-		return ErrReservationNotPending
+		return errors.ErrReservationNotPending
 	}
 
 	r.Status = ReservationReleased
@@ -140,11 +141,11 @@ func (r *Reservation) Release() error {
 // Returns an error if the reservation is not pending or not actually expired.
 func (r *Reservation) MarkAsExpired() error {
 	if !r.IsPending() {
-		return ErrReservationNotPending
+		return errors.ErrReservationNotPending
 	}
 
 	if !r.IsExpired() {
-		return ErrReservationNotExpired
+		return errors.ErrReservationNotExpired
 	}
 
 	r.Status = ReservationExpired
@@ -157,14 +158,14 @@ func (r *Reservation) MarkAsExpired() error {
 // Returns an error if the reservation cannot be extended.
 func (r *Reservation) Extend(duration time.Duration) error {
 	if duration <= 0 {
-		return ErrInvalidDuration
+		return errors.ErrInvalidDuration
 	}
 
 	if !r.IsActive() {
 		if r.IsExpired() {
-			return ErrReservationExpired
+			return errors.ErrReservationExpired
 		}
-		return ErrReservationNotPending
+		return errors.ErrReservationNotPending
 	}
 
 	r.ExpiresAt = r.ExpiresAt.Add(duration)
@@ -180,11 +181,3 @@ func (r *Reservation) TimeUntilExpiry() time.Duration {
 	}
 	return time.Until(r.ExpiresAt)
 }
-
-// Reservation-specific domain errors
-var (
-	ErrInvalidDuration       = &DomainError{Code: "INVALID_DURATION", Message: "duration must be positive"}
-	ErrReservationExpired    = &DomainError{Code: "RESERVATION_EXPIRED", Message: "reservation has expired"}
-	ErrReservationNotPending = &DomainError{Code: "RESERVATION_NOT_PENDING", Message: "reservation is not in pending status"}
-	ErrReservationNotExpired = &DomainError{Code: "RESERVATION_NOT_EXPIRED", Message: "reservation has not expired yet"}
-)

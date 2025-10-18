@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestNewStockQuantity(t *testing.T) {
 		sq, err := NewStockQuantity(-10)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrNegativeQuantity, err)
+		assert.Equal(t, errors.ErrNegativeQuantity, err)
 		assert.Equal(t, 0, sq.Value()) // Zero value
 	})
 }
@@ -99,7 +100,7 @@ func TestStockQuantity_Add(t *testing.T) {
 		result, err := sq.Add(-20)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrNegativeQuantity, err)
+		assert.Equal(t, errors.ErrNegativeQuantity, err)
 		assert.Equal(t, 0, result.Value()) // Zero value
 	})
 
@@ -139,7 +140,7 @@ func TestStockQuantity_Subtract(t *testing.T) {
 		result, err := sq.Subtract(40)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrNegativeQuantity, err)
+		assert.Equal(t, errors.ErrNegativeQuantity, err)
 		assert.Equal(t, 0, result.Value())
 	})
 

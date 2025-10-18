@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestNewReservation(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, reservation)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 
 	t.Run("should reject negative quantity", func(t *testing.T) {
@@ -43,7 +44,7 @@ func TestNewReservation(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, reservation)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 }
 
@@ -67,7 +68,7 @@ func TestNewReservationWithDuration(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, reservation)
-		assert.Equal(t, ErrInvalidDuration, err)
+		assert.Equal(t, errors.ErrInvalidDuration, err)
 	})
 
 	t.Run("should reject negative duration", func(t *testing.T) {
@@ -75,7 +76,7 @@ func TestNewReservationWithDuration(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, reservation)
-		assert.Equal(t, ErrInvalidDuration, err)
+		assert.Equal(t, errors.ErrInvalidDuration, err)
 	})
 }
 
@@ -250,7 +251,7 @@ func TestReservation_Confirm(t *testing.T) {
 		err := reservation.Confirm()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationExpired, err)
+		assert.Equal(t, errors.ErrReservationExpired, err)
 		assert.Equal(t, ReservationPending, reservation.Status) // Unchanged
 	})
 
@@ -261,7 +262,7 @@ func TestReservation_Confirm(t *testing.T) {
 		err := reservation.Confirm()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotPending, err)
+		assert.Equal(t, errors.ErrReservationNotPending, err)
 	})
 
 	t.Run("should reject confirming released reservation", func(t *testing.T) {
@@ -271,7 +272,7 @@ func TestReservation_Confirm(t *testing.T) {
 		err := reservation.Confirm()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotPending, err)
+		assert.Equal(t, errors.ErrReservationNotPending, err)
 	})
 }
 
@@ -308,7 +309,7 @@ func TestReservation_Release(t *testing.T) {
 		err := reservation.Release()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotPending, err)
+		assert.Equal(t, errors.ErrReservationNotPending, err)
 		assert.Equal(t, ReservationConfirmed, reservation.Status) // Unchanged
 	})
 
@@ -319,7 +320,7 @@ func TestReservation_Release(t *testing.T) {
 		err := reservation.Release()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotPending, err)
+		assert.Equal(t, errors.ErrReservationNotPending, err)
 	})
 }
 
@@ -346,7 +347,7 @@ func TestReservation_MarkAsExpired(t *testing.T) {
 		err := reservation.MarkAsExpired()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotExpired, err)
+		assert.Equal(t, errors.ErrReservationNotExpired, err)
 		assert.Equal(t, ReservationPending, reservation.Status) // Unchanged
 	})
 
@@ -358,7 +359,7 @@ func TestReservation_MarkAsExpired(t *testing.T) {
 		err := reservation.MarkAsExpired()
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotPending, err)
+		assert.Equal(t, errors.ErrReservationNotPending, err)
 	})
 }
 
@@ -388,7 +389,7 @@ func TestReservation_Extend(t *testing.T) {
 		err := reservation.Extend(10 * time.Minute)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationExpired, err)
+		assert.Equal(t, errors.ErrReservationExpired, err)
 		assert.Equal(t, originalExpiry, reservation.ExpiresAt) // Unchanged
 	})
 
@@ -398,7 +399,7 @@ func TestReservation_Extend(t *testing.T) {
 		err := reservation.Extend(0)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidDuration, err)
+		assert.Equal(t, errors.ErrInvalidDuration, err)
 	})
 
 	t.Run("should reject extending with negative duration", func(t *testing.T) {
@@ -407,7 +408,7 @@ func TestReservation_Extend(t *testing.T) {
 		err := reservation.Extend(-5 * time.Minute)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidDuration, err)
+		assert.Equal(t, errors.ErrInvalidDuration, err)
 	})
 
 	t.Run("should reject extending confirmed reservation", func(t *testing.T) {
@@ -417,7 +418,7 @@ func TestReservation_Extend(t *testing.T) {
 		err := reservation.Extend(10 * time.Minute)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrReservationNotPending, err)
+		assert.Equal(t, errors.ErrReservationNotPending, err)
 	})
 }
 

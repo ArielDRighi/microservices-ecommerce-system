@@ -1,6 +1,10 @@
 package valueobject
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
+)
 
 // StockQuantity represents a valid stock quantity value.
 // It enforces the invariant that stock quantities must be non-negative.
@@ -12,7 +16,7 @@ type StockQuantity struct {
 // Returns an error if the quantity is negative.
 func NewStockQuantity(value int) (StockQuantity, error) {
 	if value < 0 {
-		return StockQuantity{}, ErrNegativeQuantity
+		return StockQuantity{}, errors.ErrNegativeQuantity
 	}
 	return StockQuantity{value: value}, nil
 }
@@ -84,22 +88,4 @@ func (sq StockQuantity) Equals(other StockQuantity) bool {
 // String returns the string representation of the quantity.
 func (sq StockQuantity) String() string {
 	return fmt.Sprintf("%d", sq.value)
-}
-
-// Domain error for StockQuantity
-var (
-	ErrNegativeQuantity = &DomainError{
-		Code:    "NEGATIVE_QUANTITY",
-		Message: "stock quantity cannot be negative",
-	}
-)
-
-// DomainError represents a domain-level error for value objects
-type DomainError struct {
-	Code    string
-	Message string
-}
-
-func (e *DomainError) Error() string {
-	return e.Message
 }

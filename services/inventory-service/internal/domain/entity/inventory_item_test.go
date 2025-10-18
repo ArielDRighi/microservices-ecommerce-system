@@ -3,6 +3,7 @@ package entity
 import (
 	"testing"
 
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +30,7 @@ func TestNewInventoryItem(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, item)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 
 	t.Run("should accept zero initial quantity", func(t *testing.T) {
@@ -119,7 +120,7 @@ func TestInventoryItem_Reserve(t *testing.T) {
 		err := item.Reserve(25)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInsufficientStock, err)
+		assert.Equal(t, errors.ErrInsufficientStock, err)
 		assert.Equal(t, 30, item.Reserved) // Unchanged
 	})
 
@@ -129,7 +130,7 @@ func TestInventoryItem_Reserve(t *testing.T) {
 		err := item.Reserve(0)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 
 	t.Run("should reject negative quantity", func(t *testing.T) {
@@ -138,7 +139,7 @@ func TestInventoryItem_Reserve(t *testing.T) {
 		err := item.Reserve(-10)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 }
 
@@ -176,7 +177,7 @@ func TestInventoryItem_ReleaseReservation(t *testing.T) {
 		err := item.ReleaseReservation(30)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidReservationRelease, err)
+		assert.Equal(t, errors.ErrInvalidReservationRelease, err)
 		assert.Equal(t, 20, item.Reserved) // Unchanged
 	})
 
@@ -186,7 +187,7 @@ func TestInventoryItem_ReleaseReservation(t *testing.T) {
 		err := item.ReleaseReservation(0)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 
 	t.Run("should reject negative quantity", func(t *testing.T) {
@@ -195,7 +196,7 @@ func TestInventoryItem_ReleaseReservation(t *testing.T) {
 		err := item.ReleaseReservation(-10)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 }
 
@@ -235,7 +236,7 @@ func TestInventoryItem_ConfirmReservation(t *testing.T) {
 		err := item.ConfirmReservation(30)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidReservationConfirm, err)
+		assert.Equal(t, errors.ErrInvalidReservationConfirm, err)
 		assert.Equal(t, 100, item.Quantity) // Unchanged
 		assert.Equal(t, 20, item.Reserved)  // Unchanged
 	})
@@ -259,7 +260,7 @@ func TestInventoryItem_ConfirmReservation(t *testing.T) {
 		err := item.ConfirmReservation(0)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 }
 
@@ -296,7 +297,7 @@ func TestInventoryItem_AddStock(t *testing.T) {
 		err := item.AddStock(0)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 		assert.Equal(t, 100, item.Quantity) // Unchanged
 	})
 
@@ -306,7 +307,7 @@ func TestInventoryItem_AddStock(t *testing.T) {
 		err := item.AddStock(-20)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 }
 
@@ -344,7 +345,7 @@ func TestInventoryItem_DecrementStock(t *testing.T) {
 		err := item.DecrementStock(30)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInsufficientStock, err)
+		assert.Equal(t, errors.ErrInsufficientStock, err)
 		assert.Equal(t, 100, item.Quantity) // Unchanged
 	})
 
@@ -354,7 +355,7 @@ func TestInventoryItem_DecrementStock(t *testing.T) {
 		err := item.DecrementStock(0)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 
 	t.Run("should reject negative quantity", func(t *testing.T) {
@@ -363,7 +364,7 @@ func TestInventoryItem_DecrementStock(t *testing.T) {
 		err := item.DecrementStock(-10)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidQuantity, err)
+		assert.Equal(t, errors.ErrInvalidQuantity, err)
 	})
 }
 

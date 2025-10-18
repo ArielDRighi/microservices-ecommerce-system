@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"github.com/google/uuid"
 )
 
@@ -23,7 +24,7 @@ type InventoryItem struct {
 // Returns an error if the initial quantity is negative.
 func NewInventoryItem(productID uuid.UUID, initialQuantity int) (*InventoryItem, error) {
 	if initialQuantity < 0 {
-		return nil, ErrInvalidQuantity
+		return nil, errors.ErrInvalidQuantity
 	}
 
 	now := time.Now()
@@ -57,11 +58,11 @@ func (i *InventoryItem) CanReserve(quantity int) bool {
 // Updates Reserved field and Version for optimistic locking.
 func (i *InventoryItem) Reserve(quantity int) error {
 	if quantity <= 0 {
-		return ErrInvalidQuantity
+		return errors.ErrInvalidQuantity
 	}
 
 	if !i.CanReserve(quantity) {
-		return ErrInsufficientStock
+		return errors.ErrInsufficientStock
 	}
 
 	i.Reserved += quantity
@@ -77,11 +78,11 @@ func (i *InventoryItem) Reserve(quantity int) error {
 // - trying to release more than currently reserved
 func (i *InventoryItem) ReleaseReservation(quantity int) error {
 	if quantity <= 0 {
-		return ErrInvalidQuantity
+		return errors.ErrInvalidQuantity
 	}
 
 	if i.Reserved < quantity {
-		return ErrInvalidReservationRelease
+		return errors.ErrInvalidReservationRelease
 	}
 
 	i.Reserved -= quantity
@@ -99,15 +100,15 @@ func (i *InventoryItem) ReleaseReservation(quantity int) error {
 // - resulting Quantity would be negative
 func (i *InventoryItem) ConfirmReservation(quantity int) error {
 	if quantity <= 0 {
-		return ErrInvalidQuantity
+		return errors.ErrInvalidQuantity
 	}
 
 	if i.Reserved < quantity {
-		return ErrInvalidReservationConfirm
+		return errors.ErrInvalidReservationConfirm
 	}
 
 	if i.Quantity < quantity {
-		return ErrInsufficientStock
+		return errors.ErrInsufficientStock
 	}
 
 	i.Reserved -= quantity
@@ -122,7 +123,7 @@ func (i *InventoryItem) ConfirmReservation(quantity int) error {
 // Returns an error if quantity is negative or zero.
 func (i *InventoryItem) AddStock(quantity int) error {
 	if quantity <= 0 {
-		return ErrInvalidQuantity
+		return errors.ErrInvalidQuantity
 	}
 
 	i.Quantity += quantity
@@ -138,11 +139,11 @@ func (i *InventoryItem) AddStock(quantity int) error {
 // - insufficient available stock
 func (i *InventoryItem) DecrementStock(quantity int) error {
 	if quantity <= 0 {
-		return ErrInvalidQuantity
+		return errors.ErrInvalidQuantity
 	}
 
 	if !i.CanReserve(quantity) {
-		return ErrInsufficientStock
+		return errors.ErrInsufficientStock
 	}
 
 	i.Quantity -= quantity
@@ -155,22 +156,4 @@ func (i *InventoryItem) DecrementStock(quantity int) error {
 // Helper method for quick stock checks.
 func (i *InventoryItem) IsStockAvailable(minQuantity int) bool {
 	return i.Available() >= minQuantity
-}
-
-// Domain errors
-var (
-	ErrInvalidQuantity           = &DomainError{Code: "INVALID_QUANTITY", Message: "quantity must be positive"}
-	ErrInsufficientStock         = &DomainError{Code: "INSUFFICIENT_STOCK", Message: "not enough stock available"}
-	ErrInvalidReservationRelease = &DomainError{Code: "INVALID_RESERVATION_RELEASE", Message: "cannot release more than reserved quantity"}
-	ErrInvalidReservationConfirm = &DomainError{Code: "INVALID_RESERVATION_CONFIRM", Message: "cannot confirm more than reserved quantity"}
-)
-
-// DomainError represents a domain-level error
-type DomainError struct {
-	Code    string
-	Message string
-}
-
-func (e *DomainError) Error() string {
-	return e.Message
 }
