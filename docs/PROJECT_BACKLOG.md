@@ -595,14 +595,14 @@ type InventoryRepository interface {
     Save(ctx context.Context, item *InventoryItem) error
     Update(ctx context.Context, item *InventoryItem) error // Con optimistic locking
     Delete(ctx context.Context, id uuid.UUID) error
-    
+
     // Queries (6 métodos)
     FindAll(ctx context.Context, limit, offset int) ([]*InventoryItem, error)
     FindByProductIDs(ctx context.Context, productIDs []uuid.UUID) ([]*InventoryItem, error)
     FindLowStock(ctx context.Context, threshold int) ([]*InventoryItem, error)
     Count(ctx context.Context) (int64, error)
     ExistsByProductID(ctx context.Context, productID uuid.UUID) (bool, error)
-    
+
     // Utilities (1 método)
     IncrementVersion(ctx context.Context, id uuid.UUID) error
 }
@@ -619,6 +619,7 @@ type ReservationRepository interface {
 **Commit:** `364d2ed` | **Coverage:** 95.7%
 
 **Errores implementados (19 total):**
+
 - **Inventory (8):** `ErrInvalidQuantity`, `ErrInsufficientStock`, `ErrInvalidReservationRelease`, `ErrInvalidReservationConfirm`, `ErrProductNotFound`, `ErrInventoryItemNotFound`, `ErrInventoryItemAlreadyExists`, `ErrOptimisticLockFailure`
 - **Reservation (6):** `ErrInvalidDuration`, `ErrReservationExpired`, `ErrReservationNotPending`, `ErrReservationNotExpired`, `ErrReservationNotFound`, `ErrReservationAlreadyExists`
 - **Value Object (1):** `ErrNegativeQuantity`
@@ -631,6 +632,7 @@ type ReservationRepository interface {
 ---
 
 **📊 Métricas Finales Epic 2.1:**
+
 - **Total Commits:** 5 (628f6dd, bab8e95, 143067f, af9592d, 364d2ed)
 - **Total LOC Código:** 901 líneas
 - **Total LOC Tests:** 1,388 líneas
