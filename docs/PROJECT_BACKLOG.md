@@ -528,9 +528,11 @@ Cliente → API Gateway → [Orders Service (NestJS)]
 
 ### Epic 2.1: Domain Layer - Entidades y Lógica de Negocio
 
-**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
+**Priority:** CRITICAL | **Status:** ✅ COMPLETADA | **Branch:** `feature/epic-2.1-inventory-domain-layer`
 
-#### ⏳ T2.1.1: Crear entidad InventoryItem
+#### ✅ T2.1.1: Crear entidad InventoryItem
+
+**Commit:** `628f6dd` | **Coverage:** 95.9%
 
 ```go
 type InventoryItem struct {
@@ -545,7 +547,13 @@ type InventoryItem struct {
 }
 ```
 
-#### ⏳ T2.1.2: Crear entidad Reservation
+**Métodos implementados:** NewInventoryItem, Available, CanReserve, Reserve, ReleaseReservation, ConfirmReservation, AddStock, DecrementStock (8 métodos de negocio)
+
+**Tests:** 37 test cases | **LOC:** 178 líneas código + 421 líneas tests
+
+#### ✅ T2.1.2: Crear entidad Reservation
+
+**Commit:** `bab8e95` | **Coverage:** 97.9%
 
 ```go
 type Reservation struct {
@@ -556,40 +564,91 @@ type Reservation struct {
     Status          ReservationStatus
     ExpiresAt       time.Time
     CreatedAt       time.Time
+    UpdatedAt       time.Time
 }
 ```
 
-#### ⏳ T2.1.3: Implementar Value Objects
+**State Machine:** pending → confirmed | released | expired
 
-- `StockQuantity`: Validaciones de cantidad (no negativo)
-- `ReservationStatus`: Enum (pending, confirmed, released, expired)
+**Métodos implementados:** NewReservation, NewReservationWithDuration, IsExpired, IsActive, Confirm, Release, MarkAsExpired, Extend, TimeUntilExpiry (9 métodos)
 
-#### ⏳ T2.1.4: Definir interfaces de repositorios
+**Tests:** 48 test cases | **LOC:** 204 líneas código + 531 líneas tests
+
+#### ✅ T2.1.3: Implementar Value Objects
+
+**Commit:** `143067f` | **Coverage:** 95.2%
+
+- ✅ `StockQuantity`: Validaciones de cantidad (no negativo), inmutabilidad, operaciones Add/Subtract
+- ✅ `ReservationStatus`: Enum (pending, confirmed, released, expired)
+
+**Tests:** 30 test cases | **LOC:** 114 líneas código + 197 líneas tests
+
+#### ✅ T2.1.4: Definir interfaces de repositorios
+
+**Commit:** `af9592d`
 
 ```go
 type InventoryRepository interface {
+    // CRUD (5 métodos)
+    FindByID(ctx context.Context, id uuid.UUID) (*InventoryItem, error)
     FindByProductID(ctx context.Context, productID uuid.UUID) (*InventoryItem, error)
     Save(ctx context.Context, item *InventoryItem) error
-    Update(ctx context.Context, item *InventoryItem) error
-    DecrementStock(ctx context.Context, productID uuid.UUID, qty int, version int) error
+    Update(ctx context.Context, item *InventoryItem) error // Con optimistic locking
+    Delete(ctx context.Context, id uuid.UUID) error
+    
+    // Queries (6 métodos)
+    FindAll(ctx context.Context, limit, offset int) ([]*InventoryItem, error)
+    FindByProductIDs(ctx context.Context, productIDs []uuid.UUID) ([]*InventoryItem, error)
+    FindLowStock(ctx context.Context, threshold int) ([]*InventoryItem, error)
+    Count(ctx context.Context) (int64, error)
+    ExistsByProductID(ctx context.Context, productID uuid.UUID) (bool, error)
+    
+    // Utilities (1 método)
+    IncrementVersion(ctx context.Context, id uuid.UUID) error
+}
+
+type ReservationRepository interface {
+    // 15 métodos: CRUD + status queries + expiration queries + active queries
 }
 ```
 
-#### ⏳ T2.1.5: Implementar errores de dominio
+**LOC:** 141 líneas (65 + 76)
 
-- `ErrInsufficientStock`
-- `ErrProductNotFound`
-- `ErrOptimisticLockFailure`
-- `ErrReservationExpired`
+#### ✅ T2.1.5: Implementar errores de dominio
+
+**Commit:** `364d2ed` | **Coverage:** 95.7%
+
+**Errores implementados (19 total):**
+- **Inventory (8):** `ErrInvalidQuantity`, `ErrInsufficientStock`, `ErrInvalidReservationRelease`, `ErrInvalidReservationConfirm`, `ErrProductNotFound`, `ErrInventoryItemNotFound`, `ErrInventoryItemAlreadyExists`, `ErrOptimisticLockFailure`
+- **Reservation (6):** `ErrInvalidDuration`, `ErrReservationExpired`, `ErrReservationNotPending`, `ErrReservationNotExpired`, `ErrReservationNotFound`, `ErrReservationAlreadyExists`
+- **Value Object (1):** `ErrNegativeQuantity`
+- **Generic (4):** `ErrNotFound`, `ErrAlreadyExists`, `ErrInvalidInput`, `ErrConcurrentModification`
+
+**Sistema de categorización:** 5 categorías (VALIDATION, NOT_FOUND, CONFLICT, BUSINESS_RULE, EXPIRED)
+
+**Tests:** 50+ test cases | **LOC:** 264 líneas código + 239 líneas tests
+
+---
+
+**📊 Métricas Finales Epic 2.1:**
+- **Total Commits:** 5 (628f6dd, bab8e95, 143067f, af9592d, 364d2ed)
+- **Total LOC Código:** 901 líneas
+- **Total LOC Tests:** 1,388 líneas
+- **Cobertura Promedio:** 96.1% (superando objetivo 80%)
+- **Total Test Cases:** 165+
+- **Arquitectura:** Clean Architecture + DDD
 
 **✅ Definition of Done - Epic 2.1:**
 
-- [ ] Todas las entidades de dominio creadas y documentadas
-- [ ] Value Objects con validaciones implementadas y testeadas
-- [ ] Interfaces de repositorios definidas claramente
-- [ ] Errores de dominio implementados con mensajes descriptivos
-- [ ] Tests unitarios de entidades con coverage >80%
-- [ ] Código siguiendo principios de Clean Architecture
+- [x] Todas las entidades de dominio creadas y documentadas
+- [x] Value Objects con validaciones implementadas y testeadas
+- [x] Interfaces de repositorios definidas claramente (29 métodos totales)
+- [x] Errores de dominio implementados con mensajes descriptivos (19 errores)
+- [x] Tests unitarios de entidades con coverage >80% (96.1% promedio)
+- [x] Código siguiendo principios de Clean Architecture
+- [x] Optimistic locking implementado
+- [x] State machine para reservaciones
+- [x] Inmutabilidad en Value Objects
 
 ---
 
