@@ -13,6 +13,7 @@ Migrations follow the naming convention: `{version}_{description}.{direction}.sq
 ## Available Migrations
 
 ### 001 - Create inventory_items table
+
 - **File**: `001_create_inventory_items_table.up.sql`
 - **Rollback**: `001_create_inventory_items_table.down.sql`
 - **Description**: Creates the `inventory_items` table with optimistic locking support
@@ -34,6 +35,7 @@ Migrations follow the naming convention: `{version}_{description}.{direction}.sq
   - `idx_inventory_stock_levels`: Composite index on `(quantity, reserved)` for low stock queries
 
 ### 002 - Create reservations table
+
 - **File**: `002_create_reservations_table.up.sql`
 - **Rollback**: `002_create_reservations_table.down.sql`
 - **Description**: Creates the `reservations` table for temporary stock reservations
@@ -62,6 +64,7 @@ Migrations follow the naming convention: `{version}_{description}.{direction}.sq
 ### Option 1: Using golang-migrate CLI
 
 Install golang-migrate:
+
 ```bash
 # macOS
 brew install golang-migrate
@@ -75,6 +78,7 @@ choco install migrate
 ```
 
 Run migrations:
+
 ```bash
 # Apply all pending migrations
 migrate -path ./migrations -database "postgresql://user:password@localhost:5432/inventory_db?sslmode=disable" up
@@ -89,6 +93,7 @@ migrate -path ./migrations -database "postgresql://user:password@localhost:5432/
 ### Option 2: Using psql (PostgreSQL CLI)
 
 Apply migrations manually:
+
 ```bash
 # Apply migration
 psql -U user -d inventory_db -f migrations/001_create_inventory_items_table.up.sql
@@ -102,6 +107,7 @@ psql -U user -d inventory_db -f migrations/001_create_inventory_items_table.down
 ### Option 3: Using GORM AutoMigrate (Development Only)
 
 In your application code:
+
 ```go
 import (
     "github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/persistence/model"
@@ -141,6 +147,7 @@ psql -U user -d inventory_db -c "\di"
 ## Troubleshooting
 
 ### Migration version mismatch
+
 ```bash
 # Check current version
 migrate -path ./migrations -database "..." version
@@ -150,7 +157,9 @@ migrate -path ./migrations -database "..." force 1
 ```
 
 ### Dirty database state
+
 If a migration fails midway:
+
 ```bash
 # Fix manually, then force version
 migrate -path ./migrations -database "..." force <version>
@@ -159,6 +168,7 @@ migrate -path ./migrations -database "..." force <version>
 ## CI/CD Integration
 
 Example GitHub Actions workflow:
+
 ```yaml
 - name: Run database migrations
   run: |
