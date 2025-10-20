@@ -15,3 +15,6 @@ export * from './payment-processed.handler';
 
 // Inventory event handlers
 export * from './inventory-reserved.handler';
+export * from './inventory-confirmed.handler';
+export * from './inventory-released.handler';
+export * from './inventory-failed.handler';
