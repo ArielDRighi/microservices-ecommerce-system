@@ -10,12 +10,12 @@ El servicio de inventario (Go) expone métricas de publicación de eventos en el
 
 #### Métricas Principales:
 
-| Métrica | Tipo | Labels | Descripción |
-|---------|------|--------|-------------|
-| `inventory_events_published_total` | Counter | `event_type`, `routing_key`, `status` | Total de eventos publicados (success/failed) |
-| `inventory_events_publish_duration_seconds` | Histogram | `event_type`, `routing_key` | Duración de operaciones de publicación |
-| `inventory_events_publish_errors_total` | Counter | `event_type`, `routing_key`, `error_type` | Total de errores al publicar |
-| `inventory_events_publish_retries_total` | Counter | `event_type`, `routing_key`, `attempt` | Total de intentos de retry |
+| Métrica                                     | Tipo      | Labels                                    | Descripción                                  |
+| ------------------------------------------- | --------- | ----------------------------------------- | -------------------------------------------- |
+| `inventory_events_published_total`          | Counter   | `event_type`, `routing_key`, `status`     | Total de eventos publicados (success/failed) |
+| `inventory_events_publish_duration_seconds` | Histogram | `event_type`, `routing_key`               | Duración de operaciones de publicación       |
+| `inventory_events_publish_errors_total`     | Counter   | `event_type`, `routing_key`, `error_type` | Total de errores al publicar                 |
+| `inventory_events_publish_retries_total`    | Counter   | `event_type`, `routing_key`, `attempt`    | Total de intentos de retry                   |
 
 #### Ejemplos de Queries (PromQL):
 
@@ -41,14 +41,14 @@ El servicio de órdenes (NestJS) expone métricas de consumo de eventos en el en
 
 #### Métricas Principales:
 
-| Métrica | Tipo | Labels | Descripción |
-|---------|------|--------|-------------|
-| `orders_events_consumed_total` | Counter | `event_type`, `routing_key`, `status` | Total de eventos consumidos (success/failed) |
-| `orders_events_processing_duration_seconds` | Histogram | `event_type`, `routing_key` | Duración de procesamiento de eventos |
-| `orders_events_dlq_total` | Counter | `event_type`, `routing_key`, `reason` | Total de eventos enviados a DLQ |
-| `orders_events_idempotent_skips_total` | Counter | `event_type`, `routing_key` | Total de eventos duplicados skippeados |
-| `orders_events_processing_errors_total` | Counter | `event_type`, `routing_key`, `error_type` | Total de errores de procesamiento |
-| `orders_events_handler_executions_total` | Counter | `event_type`, `handler_name`, `status` | Total de ejecuciones de handlers |
+| Métrica                                     | Tipo      | Labels                                    | Descripción                                  |
+| ------------------------------------------- | --------- | ----------------------------------------- | -------------------------------------------- |
+| `orders_events_consumed_total`              | Counter   | `event_type`, `routing_key`, `status`     | Total de eventos consumidos (success/failed) |
+| `orders_events_processing_duration_seconds` | Histogram | `event_type`, `routing_key`               | Duración de procesamiento de eventos         |
+| `orders_events_dlq_total`                   | Counter   | `event_type`, `routing_key`, `reason`     | Total de eventos enviados a DLQ              |
+| `orders_events_idempotent_skips_total`      | Counter   | `event_type`, `routing_key`               | Total de eventos duplicados skippeados       |
+| `orders_events_processing_errors_total`     | Counter   | `event_type`, `routing_key`, `error_type` | Total de errores de procesamiento            |
+| `orders_events_handler_executions_total`    | Counter   | `event_type`, `handler_name`, `status`    | Total de ejecuciones de handlers             |
 
 #### Ejemplos de Queries (PromQL):
 
@@ -66,8 +66,8 @@ sum(orders_events_dlq_total)
 rate(orders_events_idempotent_skips_total[5m])
 
 # Success rate de handlers
-rate(orders_events_handler_executions_total{status="success"}[5m]) 
-/ 
+rate(orders_events_handler_executions_total{status="success"}[5m])
+/
 rate(orders_events_handler_executions_total[5m])
 ```
 
@@ -79,13 +79,13 @@ RabbitMQ expone métricas nativas en el puerto 15692 mediante el plugin `rabbitm
 
 #### Métricas Relevantes:
 
-| Métrica | Descripción |
-|---------|-------------|
-| `rabbitmq_queue_messages{queue="orders.inventory_events"}` | Mensajes listos para consumir |
-| `rabbitmq_queue_messages_unacked{queue="orders.inventory_events"}` | Mensajes no confirmados |
-| `rabbitmq_queue_messages_ready{queue="orders.inventory_events"}` | Mensajes en cola |
-| `rabbitmq_connections` | Número de conexiones activas |
-| `rabbitmq_channels` | Número de canales activos |
+| Métrica                                                            | Descripción                   |
+| ------------------------------------------------------------------ | ----------------------------- |
+| `rabbitmq_queue_messages{queue="orders.inventory_events"}`         | Mensajes listos para consumir |
+| `rabbitmq_queue_messages_unacked{queue="orders.inventory_events"}` | Mensajes no confirmados       |
+| `rabbitmq_queue_messages_ready{queue="orders.inventory_events"}`   | Mensajes en cola              |
+| `rabbitmq_connections`                                             | Número de conexiones activas  |
+| `rabbitmq_channels`                                                | Número de canales activos     |
 
 #### Ejemplos de Queries:
 
@@ -107,6 +107,7 @@ sum(rabbitmq_connections)
 El dashboard `RabbitMQ - Messaging Overview` proporciona visualización completa del sistema de mensajería.
 
 ### Ubicación
+
 - **Archivo**: `monitoring/grafana/dashboards/rabbitmq-messaging-overview.json`
 - **UID**: `rabbitmq-messaging`
 - **URL**: http://localhost:3000/d/rabbitmq-messaging
@@ -114,16 +115,19 @@ El dashboard `RabbitMQ - Messaging Overview` proporciona visualización completa
 ### Paneles Incluidos
 
 #### 1. Event Publish Rate (Go Publisher)
+
 - **Tipo**: Time Series Graph
 - **Query**: `rate(inventory_events_published_total{status="success"}[5m])`
 - **Descripción**: Tasa de publicación de eventos por tipo y routing key
 
 #### 2. Event Consumption Rate (NestJS Consumer)
+
 - **Tipo**: Time Series Graph
 - **Query**: `rate(orders_events_consumed_total{status="success"}[5m])`
 - **Descripción**: Tasa de consumo de eventos por tipo
 
 #### 3. Publish Duration (P95, P99)
+
 - **Tipo**: Time Series Graph
 - **Queries**:
   - P95: `histogram_quantile(0.95, rate(inventory_events_publish_duration_seconds_bucket[5m]))`
@@ -131,6 +135,7 @@ El dashboard `RabbitMQ - Messaging Overview` proporciona visualización completa
 - **Descripción**: Latencia de publicación en percentiles
 
 #### 4. Processing Duration (P95, P99)
+
 - **Tipo**: Time Series Graph
 - **Queries**:
   - P95: `histogram_quantile(0.95, rate(orders_events_processing_duration_seconds_bucket[5m]))`
@@ -138,19 +143,22 @@ El dashboard `RabbitMQ - Messaging Overview` proporciona visualización completa
 - **Descripción**: Latencia de procesamiento en percentiles
 
 #### 5. Dead Letter Queue Messages
+
 - **Tipo**: Stat Panel
 - **Query**: `sum(orders_events_dlq_total)`
-- **Thresholds**: 
+- **Thresholds**:
   - Verde: < 10
   - Amarillo: 10-50
   - Rojo: > 50
 
 #### 6. Idempotent Skips
+
 - **Tipo**: Stat Panel
 - **Query**: `sum(orders_events_idempotent_skips_total)`
 - **Descripción**: Total de eventos duplicados skippeados
 
 #### 7. Publish Errors
+
 - **Tipo**: Stat Panel
 - **Query**: `sum(rate(inventory_events_publish_errors_total[5m]))`
 - **Thresholds**:
@@ -159,11 +167,13 @@ El dashboard `RabbitMQ - Messaging Overview` proporciona visualización completa
   - Rojo: > 0.05
 
 #### 8. Processing Errors
+
 - **Tipo**: Stat Panel
 - **Query**: `sum(rate(orders_events_processing_errors_total[5m]))`
 - **Thresholds**: Similar a Publish Errors
 
 #### 9. RabbitMQ Queue Length
+
 - **Tipo**: Time Series Graph
 - **Queries**:
   - Ready: `rabbitmq_queue_messages{queue="orders.inventory_events"}`
@@ -171,11 +181,13 @@ El dashboard `RabbitMQ - Messaging Overview` proporciona visualización completa
 - **Alert**: Dispara alerta si > 1000 mensajes por 5+ minutos
 
 #### 10. Handler Execution Success Rate
+
 - **Tipo**: Time Series Graph
 - **Query**: Success rate formula
 - **Descripción**: Porcentaje de ejecuciones exitosas de handlers
 
 #### 11. Publish Retry Rate
+
 - **Tipo**: Time Series Graph
 - **Query**: `rate(inventory_events_publish_retries_total[5m])`
 - **Descripción**: Tasa de reintentos de publicación
@@ -200,36 +212,42 @@ Las alertas están configuradas en `monitoring/prometheus/alerts/rabbitmq-alerts
 ### Alertas Críticas
 
 #### 1. RabbitMQCriticalDLQMessages
+
 - **Condición**: `sum(orders_events_dlq_total) > 50`
 - **Duración**: 2 minutos
 - **Severidad**: Critical
 - **Descripción**: Más de 50 mensajes en DLQ, investigación inmediata requerida
 
 #### 2. RabbitMQCriticalQueueLength
+
 - **Condición**: `rabbitmq_queue_messages{queue="orders.inventory_events"} > 5000`
 - **Duración**: 2 minutos
 - **Severidad**: Critical
 - **Descripción**: Cola con más de 5000 mensajes, consumer severamente atrasado
 
 #### 3. RabbitMQConsumerLag
+
 - **Condición**: Publish rate > Consume rate
 - **Duración**: 5 minutos
 - **Severidad**: Critical
 - **Descripción**: Consumer no está procesando a la velocidad de publicación
 
 #### 4. RabbitMQHighPublishErrorRate
+
 - **Condición**: Error rate > 5%
 - **Duración**: 5 minutos
 - **Severidad**: Critical
 - **Descripción**: Más del 5% de publicaciones están fallando
 
 #### 5. RabbitMQHighProcessingErrorRate
+
 - **Condición**: Error rate > 5%
 - **Duración**: 5 minutos
 - **Severidad**: Critical
 - **Descripción**: Más del 5% de eventos fallan al procesarse
 
 #### 6. RabbitMQDown
+
 - **Condición**: `up{job="rabbitmq"} == 0`
 - **Duración**: 1 minuto
 - **Severidad**: Critical
@@ -238,26 +256,31 @@ Las alertas están configuradas en `monitoring/prometheus/alerts/rabbitmq-alerts
 ### Alertas de Advertencia
 
 #### 1. RabbitMQHighDLQMessages
+
 - **Condición**: `sum(orders_events_dlq_total) > 10`
 - **Duración**: 5 minutos
 - **Severidad**: Warning
 
 #### 2. RabbitMQHighQueueLength
+
 - **Condición**: Queue length > 1000
 - **Duración**: 5 minutos
 - **Severidad**: Warning
 
 #### 3. RabbitMQPublishErrors
+
 - **Condición**: Cualquier error de publicación
 - **Duración**: 10 minutos
 - **Severidad**: Warning
 
 #### 4. RabbitMQHighPublishLatency
+
 - **Condición**: P99 > 1 segundo
 - **Duración**: 5 minutos
 - **Severidad**: Warning
 
 #### 5. RabbitMQHighProcessingLatency
+
 - **Condición**: P99 > 5 segundos
 - **Duración**: 5 minutos
 - **Severidad**: Warning
@@ -284,32 +307,32 @@ El plugin `rabbitmq_prometheus` está habilitado via `scripts/rabbitmq-plugins.c
 
 ### Endpoints de Métricas
 
-| Servicio | Endpoint | Puerto |
-|----------|----------|--------|
-| Inventory Service (Go) | http://localhost:8080/metrics | 8080 |
-| Orders Service (NestJS) | http://localhost:3001/metrics | 3001 |
-| RabbitMQ | http://localhost:15692/metrics | 15692 |
+| Servicio                | Endpoint                       | Puerto |
+| ----------------------- | ------------------------------ | ------ |
+| Inventory Service (Go)  | http://localhost:8080/metrics  | 8080   |
+| Orders Service (NestJS) | http://localhost:3001/metrics  | 3001   |
+| RabbitMQ                | http://localhost:15692/metrics | 15692  |
 
 ### Scrape Configuration (Prometheus)
 
 ```yaml
 scrape_configs:
-  - job_name: 'inventory-service'
+  - job_name: "inventory-service"
     static_configs:
-      - targets: ['inventory-service:8080']
-    metrics_path: '/metrics'
+      - targets: ["inventory-service:8080"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
 
-  - job_name: 'orders-service'
+  - job_name: "orders-service"
     static_configs:
-      - targets: ['orders-service:3001']
-    metrics_path: '/metrics'
+      - targets: ["orders-service:3001"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
 
-  - job_name: 'rabbitmq'
+  - job_name: "rabbitmq"
     static_configs:
-      - targets: ['rabbitmq:15692']
-    metrics_path: '/metrics'
+      - targets: ["rabbitmq:15692"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
 ```
 
@@ -320,22 +343,26 @@ scrape_configs:
 ### Problema: Alta tasa de mensajes en DLQ
 
 **Síntomas:**
+
 - Alerta `RabbitMQHighDLQMessages` o `RabbitMQCriticalDLQMessages`
 - Dashboard muestra DLQ > 10 mensajes
 
 **Investigación:**
 
 1. **Revisar razón de DLQ:**
+
    ```promql
    sum by (reason) (orders_events_dlq_total)
    ```
 
 2. **Razones comunes:**
+
    - `invalid_schema`: Eventos no cumplen esquema Zod → Revisar publisher
    - `max_retries_exceeded`: Handler falla repetidamente → Revisar logs de handler
    - `no_handler`: Evento sin handler → Implementar handler faltante
 
 3. **Revisar logs del consumer:**
+
    ```bash
    docker logs microservices-orders-service | grep "DLQ\|ERROR"
    ```
@@ -349,6 +376,7 @@ scrape_configs:
 ### Problema: Consumer Lag
 
 **Síntomas:**
+
 - Alerta `RabbitMQConsumerLag`
 - Queue length creciendo
 - Publish rate > Consume rate
@@ -356,16 +384,19 @@ scrape_configs:
 **Investigación:**
 
 1. **Verificar processing latency:**
+
    ```promql
    histogram_quantile(0.99, rate(orders_events_processing_duration_seconds_bucket[5m]))
    ```
 
 2. **Verificar CPU/Memory del consumer:**
+
    ```bash
    docker stats microservices-orders-service
    ```
 
 3. **Posibles causas:**
+
    - Handler lento → Optimizar código
    - Bajo prefetch → Incrementar en consumer
    - Pocos consumers → Escalar horizontalmente
@@ -380,22 +411,26 @@ scrape_configs:
 ### Problema: High Publish Error Rate
 
 **Síntomas:**
+
 - Alerta `RabbitMQHighPublishErrorRate`
 - `inventory_events_publish_errors_total` incrementando
 
 **Investigación:**
 
 1. **Verificar tipo de error:**
+
    ```promql
    sum by (error_type) (inventory_events_publish_errors_total)
    ```
 
 2. **Revisar conectividad a RabbitMQ:**
+
    ```bash
    docker logs microservices-rabbitmq
    ```
 
 3. **Posibles causas:**
+
    - RabbitMQ down/unavailable
    - Network issues
    - Channel cerrado inesperadamente
@@ -411,15 +446,15 @@ scrape_configs:
 
 ### Targets de Métricas
 
-| Métrica | Target | Crítico |
-|---------|--------|---------|
-| Publish Success Rate | > 99.9% | < 95% |
-| Consume Success Rate | > 99.5% | < 95% |
-| P99 Publish Latency | < 500ms | > 1s |
-| P99 Processing Latency | < 2s | > 5s |
-| DLQ Messages | < 10 | > 50 |
-| Queue Length | < 100 | > 1000 |
-| Consumer Lag | 0 | > 5min |
+| Métrica                | Target  | Crítico |
+| ---------------------- | ------- | ------- |
+| Publish Success Rate   | > 99.9% | < 95%   |
+| Consume Success Rate   | > 99.5% | < 95%   |
+| P99 Publish Latency    | < 500ms | > 1s    |
+| P99 Processing Latency | < 2s    | > 5s    |
+| DLQ Messages           | < 10    | > 50    |
+| Queue Length           | < 100   | > 1000  |
+| Consumer Lag           | 0       | > 5min  |
 
 ---
 

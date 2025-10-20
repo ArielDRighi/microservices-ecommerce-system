@@ -82,7 +82,10 @@ export class RabbitMQMetricsService {
    * Record event processing duration
    */
   recordProcessingDuration(eventType: string, routingKey: string, durationSeconds: number): void {
-    this.processingDuration.observe({ event_type: eventType, routing_key: routingKey }, durationSeconds);
+    this.processingDuration.observe(
+      { event_type: eventType, routing_key: routingKey },
+      durationSeconds,
+    );
   }
 
   /**
@@ -103,13 +106,21 @@ export class RabbitMQMetricsService {
    * Record processing error
    */
   recordProcessingError(eventType: string, routingKey: string, errorType: string): void {
-    this.processingErrorsTotal.inc({ event_type: eventType, routing_key: routingKey, error_type: errorType });
+    this.processingErrorsTotal.inc({
+      event_type: eventType,
+      routing_key: routingKey,
+      error_type: errorType,
+    });
   }
 
   /**
    * Record handler execution
    */
-  recordHandlerExecution(eventType: string, handlerName: string, status: 'success' | 'failed'): void {
+  recordHandlerExecution(
+    eventType: string,
+    handlerName: string,
+    status: 'success' | 'failed',
+  ): void {
     this.handlerExecutionsTotal.inc({ event_type: eventType, handler_name: handlerName, status });
   }
 }

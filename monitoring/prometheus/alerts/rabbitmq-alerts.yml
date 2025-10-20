@@ -5,7 +5,7 @@ groups:
       # ============================================================================
       # DEAD LETTER QUEUE ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHighDLQMessages
         expr: sum(orders_events_dlq_total) > 10
         for: 5m
@@ -16,7 +16,7 @@ groups:
         annotations:
           summary: "High number of messages in Dead Letter Queue"
           description: "Dead Letter Queue has {{ $value }} messages. Investigate failed event processing."
-          
+
       - alert: RabbitMQCriticalDLQMessages
         expr: sum(orders_events_dlq_total) > 50
         for: 2m
@@ -31,7 +31,7 @@ groups:
       # ============================================================================
       # QUEUE LENGTH ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHighQueueLength
         expr: rabbitmq_queue_messages{queue="orders.inventory_events"} > 1000
         for: 5m
@@ -42,7 +42,7 @@ groups:
         annotations:
           summary: "RabbitMQ queue has high message count"
           description: "Queue {{ $labels.queue }} has {{ $value }} messages. Consumer may be lagging."
-          
+
       - alert: RabbitMQCriticalQueueLength
         expr: rabbitmq_queue_messages{queue="orders.inventory_events"} > 5000
         for: 2m
@@ -57,7 +57,7 @@ groups:
       # ============================================================================
       # CONSUMER LAG ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQConsumerLag
         expr: |
           (
@@ -77,7 +77,7 @@ groups:
       # ============================================================================
       # PUBLISH ERROR RATE ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHighPublishErrorRate
         expr: |
           (
@@ -93,7 +93,7 @@ groups:
         annotations:
           summary: "High publish error rate detected"
           description: "Publish error rate is {{ $value | humanizePercentage }}. More than 5% of publish attempts are failing."
-          
+
       - alert: RabbitMQPublishErrors
         expr: sum(rate(inventory_events_publish_errors_total[5m])) > 0
         for: 10m
@@ -108,7 +108,7 @@ groups:
       # ============================================================================
       # PROCESSING ERROR RATE ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHighProcessingErrorRate
         expr: |
           (
@@ -124,7 +124,7 @@ groups:
         annotations:
           summary: "High event processing error rate"
           description: "Processing error rate is {{ $value | humanizePercentage }}. More than 5% of events are failing to process."
-          
+
       - alert: RabbitMQProcessingErrors
         expr: sum(rate(orders_events_processing_errors_total[5m])) > 0
         for: 10m
@@ -139,7 +139,7 @@ groups:
       # ============================================================================
       # HANDLER FAILURE ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHandlerFailures
         expr: sum(rate(orders_events_handler_executions_total{status="failed"}[5m])) > 0
         for: 5m
@@ -150,7 +150,7 @@ groups:
         annotations:
           summary: "Event handler failures detected"
           description: "Event handlers are failing at {{ $value }} failures/sec."
-          
+
       - alert: RabbitMQHandlerSuccessRateLow
         expr: |
           (
@@ -170,7 +170,7 @@ groups:
       # ============================================================================
       # RETRY ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHighRetryRate
         expr: sum(rate(inventory_events_publish_retries_total[5m])) > 1
         for: 10m
@@ -185,7 +185,7 @@ groups:
       # ============================================================================
       # LATENCY ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQHighPublishLatency
         expr: histogram_quantile(0.99, rate(inventory_events_publish_duration_seconds_bucket[5m])) > 1
         for: 5m
@@ -196,7 +196,7 @@ groups:
         annotations:
           summary: "High publish latency (P99)"
           description: "P99 publish latency is {{ $value }}s. Expected <1s."
-          
+
       - alert: RabbitMQHighProcessingLatency
         expr: histogram_quantile(0.99, rate(orders_events_processing_duration_seconds_bucket[5m])) > 5
         for: 5m
@@ -211,7 +211,7 @@ groups:
       # ============================================================================
       # RABBITMQ AVAILABILITY ALERTS
       # ============================================================================
-      
+
       - alert: RabbitMQDown
         expr: up{job="rabbitmq"} == 0
         for: 1m
@@ -221,7 +221,7 @@ groups:
         annotations:
           summary: "RabbitMQ is down"
           description: "RabbitMQ instance is not reachable. All event-driven communication is halted."
-          
+
       - alert: RabbitMQNoConnections
         expr: sum(rabbitmq_connections) == 0
         for: 5m
