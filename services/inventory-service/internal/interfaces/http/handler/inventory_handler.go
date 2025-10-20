@@ -156,6 +156,41 @@ func (h *InventoryHandler) ReserveStock(c *gin.Context) {
 	})
 }
 
+// ConfirmReservation handles POST /api/inventory/confirm/:reservationId
+// It confirms a stock reservation and decrements actual stock
+func (h *InventoryHandler) ConfirmReservation(c *gin.Context) {
+	// Parse reservation ID from URL parameter
+	reservationIDStr := c.Param("reservationId")
+	reservationID, err := uuid.Parse(reservationIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_reservation_id",
+			"message": "Invalid reservation ID format. Expected UUID.",
+		})
+		return
+	}
+
+	// Execute use case
+	input := usecase.ConfirmReservationInput{
+		ReservationID: reservationID,
+	}
+
+	output, err := h.confirmReservation.Execute(c.Request.Context(), input)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{
+		"reservation_id":     output.ReservationID.String(),
+		"order_id":           output.OrderID.String(),
+		"quantity_confirmed": output.QuantityConfirmed,
+		"final_stock":        output.FinalStock,
+		"reserved_stock":     output.ReservedStock,
+	})
+}
+
 // handleError maps domain errors to appropriate HTTP responses
 func (h *InventoryHandler) handleError(c *gin.Context, err error) {
 	var statusCode int
@@ -167,6 +202,10 @@ func (h *InventoryHandler) handleError(c *gin.Context, err error) {
 		statusCode = http.StatusNotFound
 		errorCode = "product_not_found"
 		message = "Product not found in inventory"
+	case goerrors.Is(err, errors.ErrReservationNotFound):
+		statusCode = http.StatusNotFound
+		errorCode = "reservation_not_found"
+		message = "Reservation not found"
 	case goerrors.Is(err, errors.ErrInvalidQuantity):
 		statusCode = http.StatusBadRequest
 		errorCode = "invalid_quantity"
@@ -175,6 +214,14 @@ func (h *InventoryHandler) handleError(c *gin.Context, err error) {
 		statusCode = http.StatusConflict
 		errorCode = "insufficient_stock"
 		message = "Insufficient stock available"
+	case goerrors.Is(err, errors.ErrReservationNotPending):
+		statusCode = http.StatusConflict
+		errorCode = "reservation_not_pending"
+		message = "Reservation must be in pending status to confirm"
+	case goerrors.Is(err, errors.ErrReservationExpired):
+		statusCode = http.StatusGone
+		errorCode = "reservation_expired"
+		message = "Reservation has expired and cannot be confirmed"
 	default:
 		statusCode = http.StatusInternalServerError
 		errorCode = "internal_error"

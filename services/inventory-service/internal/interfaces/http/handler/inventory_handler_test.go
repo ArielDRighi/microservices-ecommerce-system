@@ -44,6 +44,19 @@ func (m *MockReserveStockUseCase) Execute(ctx interface{}, input usecase.Reserve
 	return args.Get(0).(*usecase.ReserveStockOutput), args.Error(1)
 }
 
+// MockConfirmReservationUseCase is a mock of ConfirmReservationUseCase
+type MockConfirmReservationUseCase struct {
+	mock.Mock
+}
+
+func (m *MockConfirmReservationUseCase) Execute(ctx interface{}, input usecase.ConfirmReservationInput) (*usecase.ConfirmReservationOutput, error) {
+	args := m.Called(ctx, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*usecase.ConfirmReservationOutput), args.Error(1)
+}
+
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.New()
@@ -375,4 +388,157 @@ func TestReserveStock_ProductNotFound(t *testing.T) {
 	assert.Equal(t, "product_not_found", response["error"])
 
 	mockReserveUseCase.AssertExpectations(t)
+}
+
+// ============================================================================
+// POST /api/inventory/confirm
+// ============================================================================
+
+func TestConfirmReservation_Success(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockConfirmUseCase := new(MockConfirmReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, mockConfirmUseCase, nil)
+
+	reservationID := uuid.New()
+	inventoryItemID := uuid.New()
+	orderID := uuid.New()
+
+	expectedOutput := &usecase.ConfirmReservationOutput{
+		ReservationID:     reservationID,
+		InventoryItemID:   inventoryItemID,
+		OrderID:           orderID,
+		QuantityConfirmed: 5,
+		FinalStock:        90,
+		ReservedStock:     0,
+	}
+
+	mockConfirmUseCase.On("Execute", mock.Anything, mock.MatchedBy(func(input usecase.ConfirmReservationInput) bool {
+		return input.ReservationID == reservationID
+	})).Return(expectedOutput, nil)
+
+	router.POST("/api/inventory/confirm/:reservationId", h.ConfirmReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/inventory/confirm/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, reservationID.String(), response["reservation_id"])
+	assert.Equal(t, orderID.String(), response["order_id"])
+	assert.Equal(t, float64(5), response["quantity_confirmed"])
+	assert.Equal(t, float64(90), response["final_stock"])
+	assert.Equal(t, float64(0), response["reserved_stock"])
+
+	mockConfirmUseCase.AssertExpectations(t)
+}
+
+func TestConfirmReservation_InvalidReservationID(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	h := handler.NewInventoryHandler(nil, nil, nil, nil)
+	router.POST("/api/inventory/confirm/:reservationId", h.ConfirmReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodPost, "/api/inventory/confirm/invalid-uuid", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "invalid_reservation_id", response["error"])
+}
+
+func TestConfirmReservation_ReservationNotFound(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockConfirmUseCase := new(MockConfirmReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, mockConfirmUseCase, nil)
+
+	reservationID := uuid.New()
+
+	mockConfirmUseCase.On("Execute", mock.Anything, mock.Anything).Return(nil, errors.ErrReservationNotFound)
+
+	router.POST("/api/inventory/confirm/:reservationId", h.ConfirmReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/inventory/confirm/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "reservation_not_found", response["error"])
+
+	mockConfirmUseCase.AssertExpectations(t)
+}
+
+func TestConfirmReservation_ReservationNotPending(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockConfirmUseCase := new(MockConfirmReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, mockConfirmUseCase, nil)
+
+	reservationID := uuid.New()
+
+	mockConfirmUseCase.On("Execute", mock.Anything, mock.Anything).Return(nil, errors.ErrReservationNotPending)
+
+	router.POST("/api/inventory/confirm/:reservationId", h.ConfirmReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/inventory/confirm/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusConflict, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "reservation_not_pending", response["error"])
+
+	mockConfirmUseCase.AssertExpectations(t)
+}
+
+func TestConfirmReservation_ReservationExpired(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockConfirmUseCase := new(MockConfirmReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, mockConfirmUseCase, nil)
+
+	reservationID := uuid.New()
+
+	mockConfirmUseCase.On("Execute", mock.Anything, mock.Anything).Return(nil, errors.ErrReservationExpired)
+
+	router.POST("/api/inventory/confirm/:reservationId", h.ConfirmReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/inventory/confirm/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusGone, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "reservation_expired", response["error"])
+
+	mockConfirmUseCase.AssertExpectations(t)
 }
