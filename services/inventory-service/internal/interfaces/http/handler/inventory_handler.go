@@ -3,6 +3,7 @@ package handler
 import (
 	goerrors "errors"
 	"net/http"
+	"time"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/application/usecase"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
@@ -86,6 +87,72 @@ func (h *InventoryHandler) GetByProductID(c *gin.Context) {
 		"available_quantity": output.AvailableQuantity,
 		"total_stock":        output.TotalStock,
 		"reserved_quantity":  output.ReservedQuantity,
+	})
+}
+
+// ReserveStockRequest represents the request body for reserving stock
+type ReserveStockRequest struct {
+	ProductID string `json:"product_id" binding:"required"`
+	OrderID   string `json:"order_id" binding:"required"`
+	Quantity  int    `json:"quantity" binding:"required,min=1"`
+}
+
+// ReserveStock handles POST /api/inventory/reserve
+// It creates a temporary stock reservation for an order
+func (h *InventoryHandler) ReserveStock(c *gin.Context) {
+	var req ReserveStockRequest
+
+	// Parse and validate JSON body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_request",
+			"message": "Invalid request body: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse product_id
+	productID, err := uuid.Parse(req.ProductID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_product_id",
+			"message": "Invalid product ID format. Expected UUID.",
+		})
+		return
+	}
+
+	// Parse order_id
+	orderID, err := uuid.Parse(req.OrderID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_order_id",
+			"message": "Invalid order ID format. Expected UUID.",
+		})
+		return
+	}
+
+	// Execute use case
+	input := usecase.ReserveStockInput{
+		ProductID: productID,
+		OrderID:   orderID,
+		Quantity:  req.Quantity,
+		Duration:  nil, // Use default 15 minutes
+	}
+
+	output, err := h.reserveStock.Execute(c.Request.Context(), input)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	// Return success response with 201 Created
+	c.JSON(http.StatusCreated, gin.H{
+		"reservation_id":  output.ReservationID.String(),
+		"product_id":      output.ProductID.String(),
+		"order_id":        output.OrderID.String(),
+		"quantity":        output.Quantity,
+		"expires_at":      output.ExpiresAt.Format(time.RFC3339),
+		"remaining_stock": output.RemainingStock,
 	})
 }
 
