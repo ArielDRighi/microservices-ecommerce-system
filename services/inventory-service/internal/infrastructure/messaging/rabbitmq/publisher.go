@@ -22,9 +22,10 @@ type PublisherConfig struct {
 
 // Publisher implements the events.Publisher interface for RabbitMQ
 type Publisher struct {
-	config PublisherConfig
-	conn   *amqp.Connection
-	ch     *amqp.Channel
+	config  PublisherConfig
+	conn    *amqp.Connection
+	ch      *amqp.Channel
+	metrics *Metrics
 }
 
 // NewPublisher creates a new RabbitMQ publisher
@@ -70,9 +71,10 @@ func NewPublisher(config PublisherConfig) (*Publisher, error) {
 	}
 
 	publisher := &Publisher{
-		config: config,
-		conn:   conn,
-		ch:     ch,
+		config:  config,
+		conn:    conn,
+		ch:      ch,
+		metrics: NewMetrics(),
 	}
 
 	return publisher, nil
@@ -100,9 +102,20 @@ func (p *Publisher) PublishStockFailed(ctx context.Context, event events.StockFa
 
 // publish is the internal method that handles the actual publishing with retry logic
 func (p *Publisher) publish(ctx context.Context, routingKey string, event interface{}) error {
+	startTime := time.Now()
+	eventType := getEventType(event)
+
+	// Defer duration recording
+	defer func() {
+		duration := time.Since(startTime).Seconds()
+		p.metrics.PublishDuration.WithLabelValues(eventType, routingKey).Observe(duration)
+	}()
+
 	// Marshal event to JSON
 	body, err := json.Marshal(event)
 	if err != nil {
+		p.metrics.PublishErrorsTotal.WithLabelValues(eventType, routingKey, "marshal_error").Inc()
+		p.metrics.EventsPublishedTotal.WithLabelValues(eventType, routingKey, "failed").Inc()
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
@@ -120,8 +133,15 @@ func (p *Publisher) publish(ctx context.Context, routingKey string, event interf
 		// Check context cancellation before each attempt
 		select {
 		case <-ctx.Done():
+			p.metrics.PublishErrorsTotal.WithLabelValues(eventType, routingKey, "context_cancelled").Inc()
+			p.metrics.EventsPublishedTotal.WithLabelValues(eventType, routingKey, "failed").Inc()
 			return fmt.Errorf("publish cancelled: %w", ctx.Err())
 		default:
+		}
+
+		// Record retry attempt if not first attempt
+		if attempt > 0 {
+			p.metrics.PublishRetriesTotal.WithLabelValues(eventType, routingKey, fmt.Sprintf("%d", attempt)).Inc()
 		}
 
 		// Attempt to publish
@@ -135,7 +155,9 @@ func (p *Publisher) publish(ctx context.Context, routingKey string, event interf
 		)
 
 		if err == nil {
-			return nil // Success
+			// Success - record metrics
+			p.metrics.EventsPublishedTotal.WithLabelValues(eventType, routingKey, "success").Inc()
+			return nil
 		}
 
 		lastErr = err
@@ -147,12 +169,33 @@ func (p *Publisher) publish(ctx context.Context, routingKey string, event interf
 			case <-time.After(p.config.RetryDelay):
 				// Continue to next attempt
 			case <-ctx.Done():
+				p.metrics.PublishErrorsTotal.WithLabelValues(eventType, routingKey, "context_cancelled").Inc()
+				p.metrics.EventsPublishedTotal.WithLabelValues(eventType, routingKey, "failed").Inc()
 				return fmt.Errorf("publish cancelled during retry: %w", ctx.Err())
 			}
 		}
 	}
 
+	// All retries failed - record final error
+	p.metrics.PublishErrorsTotal.WithLabelValues(eventType, routingKey, "max_retries_exceeded").Inc()
+	p.metrics.EventsPublishedTotal.WithLabelValues(eventType, routingKey, "failed").Inc()
 	return fmt.Errorf("failed to publish after %d attempts: %w", p.config.MaxRetries+1, lastErr)
+}
+
+// getEventType extracts the event type name from the event struct
+func getEventType(event interface{}) string {
+	switch event.(type) {
+	case events.StockReservedEvent:
+		return "stock_reserved"
+	case events.StockConfirmedEvent:
+		return "stock_confirmed"
+	case events.StockReleasedEvent:
+		return "stock_released"
+	case events.StockFailedEvent:
+		return "stock_failed"
+	default:
+		return "unknown"
+	}
 }
 
 // Close closes the publisher and releases resources

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RabbitMQConsumerService } from './rabbitmq-consumer.service';
+import { RabbitMQMetricsService } from '../metrics/rabbitmq-metrics.service';
 import * as amqp from 'amqplib';
 
 // Mock amqplib
@@ -12,8 +13,19 @@ describe('RabbitMQConsumerService', () => {
   let mockConnection: any;
   let mockChannel: any;
   let mockHandler: any;
+  let mockMetricsService: any;
 
   beforeEach(async () => {
+    // Create mock metrics service
+    mockMetricsService = {
+      recordEventConsumed: jest.fn(),
+      recordProcessingDuration: jest.fn(),
+      recordDLQ: jest.fn(),
+      recordIdempotentSkip: jest.fn(),
+      recordProcessingError: jest.fn(),
+      recordHandlerExecution: jest.fn(),
+    };
+
     // Create mock channel
     mockChannel = {
       assertExchange: jest.fn().mockResolvedValue(undefined),
@@ -55,6 +67,10 @@ describe('RabbitMQConsumerService', () => {
         {
           provide: 'INVENTORY_HANDLERS',
           useValue: [mockHandler],
+        },
+        {
+          provide: RabbitMQMetricsService,
+          useValue: mockMetricsService,
         },
       ],
     }).compile();

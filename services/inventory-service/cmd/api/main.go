@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -36,6 +37,9 @@ func main() {
 		})
 	})
 
+	// 3.1. Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	// 4. Ruta de bienvenida
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -58,6 +62,7 @@ func main() {
 	go func() {
 		log.Printf("🚀 Starting Inventory Service on port %s", port)
 		log.Printf("📊 Health check: http://localhost:%s/health", port)
+		log.Printf("📈 Metrics endpoint: http://localhost:%s/metrics", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Server failed to start: %v", err)
 		}

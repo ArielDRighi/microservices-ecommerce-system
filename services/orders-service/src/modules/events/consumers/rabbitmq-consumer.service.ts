@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { safeValidateInventoryEvent, InventoryEvent } from '@microservices-ecommerce/shared-types';
 import { BaseEventHandler } from '../handlers/base.event-handler';
 import { DomainEvent } from '../interfaces/event.interface';
+import { RabbitMQMetricsService } from '../metrics/rabbitmq-metrics.service';
 
 const MAX_RETRIES = 3;
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -44,6 +45,7 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     @Inject('INVENTORY_HANDLERS')
     private readonly handlers: BaseEventHandler<DomainEvent>[],
+    private readonly metricsService: RabbitMQMetricsService,
   ) {
     // Start cleanup interval for idempotency cache (will be set in onModuleInit)
   }
@@ -187,11 +189,14 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
    * Handle incoming message
    */
   private async handleMessage(msg: amqp.Message): Promise<void> {
+    const startTime = Date.now();
     const content = msg.content.toString();
     const routingKey = msg.fields.routingKey;
     const messageId = msg.properties.messageId || 'unknown';
 
     this.logger.debug(`Received message: ${routingKey} [${messageId}]`);
+
+    let eventType = 'unknown';
 
     try {
       // Parse JSON
@@ -205,16 +210,28 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
           `Invalid event schema: ${validation.error.message}`,
           validation.error.errors,
         );
+
+        // Record metrics
+        this.metricsService.recordProcessingError('unknown', routingKey, 'invalid_schema');
+        this.metricsService.recordDLQ('unknown', routingKey, 'invalid_schema');
+        this.metricsService.recordEventConsumed('unknown', routingKey, 'failed');
+
         // Invalid schema -> permanent error -> nack without requeue
         this.channel?.nack(msg, false, false);
         return;
       }
 
       const event = validation.data;
+      eventType = event.eventType;
 
       // Check idempotency
       if (this.isEventProcessed(event.eventId)) {
         this.logger.debug(`Event ${event.eventId} already processed (duplicate)`);
+
+        // Record idempotent skip metric
+        this.metricsService.recordIdempotentSkip(eventType, routingKey);
+        this.metricsService.recordEventConsumed(eventType, routingKey, 'success');
+
         this.channel?.ack(msg);
         return;
       }
@@ -224,6 +241,11 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
 
       if (!handler) {
         this.logger.warn(`No handler found for event type: ${event.eventType}`);
+
+        // Record metrics
+        this.metricsService.recordProcessingError(eventType, routingKey, 'no_handler');
+        this.metricsService.recordEventConsumed(eventType, routingKey, 'failed');
+
         // No handler -> ack to avoid blocking queue
         this.channel?.ack(msg);
         return;
@@ -235,11 +257,19 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
       // Execute handler
       await handler.execute(domainEvent);
 
+      // Record handler execution success
+      this.metricsService.recordHandlerExecution(eventType, handler.constructor.name, 'success');
+
       // Mark as processed
       this.markEventAsProcessed(event.eventId);
 
       // Acknowledge message
       this.channel?.ack(msg);
+
+      // Record successful consumption
+      const duration = (Date.now() - startTime) / 1000; // Convert to seconds
+      this.metricsService.recordProcessingDuration(eventType, routingKey, duration);
+      this.metricsService.recordEventConsumed(eventType, routingKey, 'success');
 
       this.logger.debug(`Successfully processed event: ${event.eventId}`);
     } catch (error) {
@@ -251,12 +281,22 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
 
       if (retryCount >= MAX_RETRIES) {
         this.logger.warn(`Max retries (${MAX_RETRIES}) exceeded for message ${messageId}`);
+
+        // Record DLQ metric
+        this.metricsService.recordDLQ(eventType, routingKey, 'max_retries_exceeded');
+        this.metricsService.recordProcessingError(eventType, routingKey, 'max_retries_exceeded');
+        this.metricsService.recordEventConsumed(eventType, routingKey, 'failed');
+
         // Max retries exceeded -> nack without requeue (goes to DLQ)
         this.channel?.nack(msg, false, false);
       } else {
         this.logger.debug(
           `Retrying message ${messageId} (attempt ${retryCount + 1}/${MAX_RETRIES})`,
         );
+
+        // Record retry error
+        this.metricsService.recordProcessingError(eventType, routingKey, 'transient_error');
+
         // Transient error -> nack with requeue
         this.channel?.nack(msg, false, true);
       }

@@ -6,6 +6,7 @@ import { OutboxEvent } from './entities/outbox-event.entity';
 import { EventPublisher } from './publishers/event.publisher';
 import { OutboxProcessor } from './processors/outbox.processor';
 import { RabbitMQConsumerService } from './consumers/rabbitmq-consumer.service';
+import { RabbitMQMetricsService } from './metrics/rabbitmq-metrics.service';
 import {
   OrderCreatedHandler,
   OrderConfirmedHandler,
@@ -44,6 +45,9 @@ import {
 
     // RabbitMQ Consumer
     RabbitMQConsumerService,
+
+    // Metrics
+    RabbitMQMetricsService,
 
     // Event Handlers
     OrderCreatedHandler,
