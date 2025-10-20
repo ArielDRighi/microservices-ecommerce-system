@@ -11,7 +11,7 @@ import (
 // ReservationModel is the GORM model for reservations table.
 // It maps to the domain entity Reservation for persistence.
 type ReservationModel struct {
-	ID              uuid.UUID `gorm:"type:uuid;primary_key"`
+	ID              uuid.UUID `gorm:"type:uuid;primaryKey"`
 	InventoryItemID uuid.UUID `gorm:"type:uuid;not null;index:idx_reservations_inventory_item"`
 	OrderID         uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_reservations_order"`
 	Quantity        int       `gorm:"not null;check:quantity > 0"`

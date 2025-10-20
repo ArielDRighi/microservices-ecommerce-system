@@ -5,7 +5,6 @@
 
 -- Drop indexes first
 DROP INDEX IF EXISTS idx_inventory_stock_levels;
-DROP INDEX IF EXISTS idx_inventory_product_lookup;
 DROP INDEX IF EXISTS idx_inventory_product;
 
 -- Drop table

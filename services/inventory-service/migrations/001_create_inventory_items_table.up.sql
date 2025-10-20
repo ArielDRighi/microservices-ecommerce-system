@@ -21,9 +21,6 @@ CREATE TABLE IF NOT EXISTS inventory_items (
 -- Unique index on product_id to ensure one inventory item per product
 CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_product ON inventory_items(product_id);
 
--- Index on product_id for faster lookups
-CREATE INDEX IF NOT EXISTS idx_inventory_product_lookup ON inventory_items(product_id);
-
 -- Index on quantity and reserved for low stock queries
 CREATE INDEX IF NOT EXISTS idx_inventory_stock_levels ON inventory_items(quantity, reserved);
 

@@ -11,8 +11,8 @@ import (
 // InventoryItemModel is the GORM model for inventory_items table.
 // It maps to the domain entity InventoryItem for persistence.
 type InventoryItemModel struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key"`
-	ProductID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_inventory_product;index"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ProductID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_inventory_product"`
 	Quantity  int       `gorm:"not null;check:quantity >= 0"`
 	Reserved  int       `gorm:"not null;default:0;check:reserved >= 0"`
 	Version   int       `gorm:"not null;default:1"`

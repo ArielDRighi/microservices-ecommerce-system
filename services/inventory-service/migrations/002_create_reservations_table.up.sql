@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     
     -- Constraints
     CONSTRAINT chk_reservation_quantity_positive CHECK (quantity > 0),
-    CONSTRAINT chk_reservation_status CHECK (status IN ('pending', 'confirmed', 'released', 'expired'))
+    CONSTRAINT chk_reservation_status CHECK (status IN ('pending', 'confirmed', 'released', 'expired')),
+    CONSTRAINT fk_reservations_inventory_item FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE
 );
 
 -- Unique index on order_id to ensure one reservation per order

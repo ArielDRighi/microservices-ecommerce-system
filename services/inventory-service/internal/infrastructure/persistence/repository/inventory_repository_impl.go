@@ -9,7 +9,9 @@ import (
 	domainErrors "github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/persistence/model"
 	"github.com/google/uuid"
+	"github.com/jackc/pgconn"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // InventoryRepositoryImpl is the GORM implementation of InventoryRepository
@@ -60,12 +62,9 @@ func (r *InventoryRepositoryImpl) Save(ctx context.Context, item *entity.Invento
 
 	result := r.db.WithContext(ctx).Create(itemModel)
 	if result.Error != nil {
-		// Check for unique constraint violation on product_id
-		// PostgreSQL returns error containing "duplicate key" or "violates unique constraint"
-		errMsg := result.Error.Error()
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) ||
-			(len(errMsg) >= 13 && errMsg[:13] == "ERROR: duplic") ||
-			(len(errMsg) >= 13 && errMsg[:13] == "duplicate key") {
+		// Check for unique constraint violation on product_id (PostgreSQL error code 23505)
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) && pgErr.Code == "23505" {
 			return domainErrors.ErrInventoryItemAlreadyExists
 		}
 		return fmt.Errorf("failed to save inventory item: %w", result.Error)
@@ -231,7 +230,7 @@ func (r *InventoryRepositoryImpl) IncrementVersion(ctx context.Context, id uuid.
 	// Use transaction to ensure atomicity
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Lock the row for update
-		result := tx.Clauses().Where("id = ?", id).First(&itemModel)
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&itemModel)
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				return domainErrors.ErrInventoryItemNotFound

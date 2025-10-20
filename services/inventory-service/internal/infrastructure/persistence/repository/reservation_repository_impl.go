@@ -10,6 +10,7 @@ import (
 	domainErrors "github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/persistence/model"
 	"github.com/google/uuid"
+	"github.com/jackc/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -61,11 +62,9 @@ func (r *ReservationRepositoryImpl) Save(ctx context.Context, reservation *entit
 
 	result := r.db.WithContext(ctx).Create(reservationModel)
 	if result.Error != nil {
-		// Check for unique constraint violation on order_id
-		errMsg := result.Error.Error()
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) ||
-			(len(errMsg) >= 13 && errMsg[:13] == "ERROR: duplic") ||
-			(len(errMsg) >= 13 && errMsg[:13] == "duplicate key") {
+		// Check for unique constraint violation on order_id (PostgreSQL error code 23505)
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) && pgErr.Code == "23505" {
 			return domainErrors.ErrReservationAlreadyExists
 		}
 		return fmt.Errorf("failed to save reservation: %w", result.Error)

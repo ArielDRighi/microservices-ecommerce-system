@@ -32,7 +32,6 @@ const (
 	cacheKeyByID        = "inventory:item:id:%s"
 	cacheKeyByProductID = "inventory:item:product:%s"
 	cacheKeyLowStock    = "inventory:lowstock:%d:%d"
-	cachePatternAll     = "inventory:*"
 )
 
 // FindByID implements cache-aside pattern for FindByID
@@ -207,8 +206,18 @@ func (r *CachedInventoryRepository) Delete(ctx context.Context, id uuid.UUID) er
 
 // IncrementVersion bypasses cache (version management is not cached)
 func (r *CachedInventoryRepository) IncrementVersion(ctx context.Context, id uuid.UUID) (int, error) {
-	// Invalidate cache since version changed
-	r.cache.Delete(ctx, fmt.Sprintf(cacheKeyByID, id.String()))
+	// Fetch item to get ProductID for complete cache invalidation
+	item, err := r.repo.FindByID(ctx, id)
+	if err == nil && item != nil {
+		// Invalidate both ID and ProductID cache keys
+		r.cache.Delete(ctx,
+			fmt.Sprintf(cacheKeyByID, id.String()),
+			fmt.Sprintf(cacheKeyByProductID, item.ProductID.String()),
+		)
+	} else {
+		// If item not found, still try to delete by ID
+		r.cache.Delete(ctx, fmt.Sprintf(cacheKeyByID, id.String()))
+	}
 
 	return r.repo.IncrementVersion(ctx, id)
 }
