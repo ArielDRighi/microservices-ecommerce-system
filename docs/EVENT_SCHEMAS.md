@@ -28,6 +28,7 @@ This document provides the complete specification of event schemas used in the m
 All events follow a standardized structure based on a common `BaseEvent` schema. This ensures consistency across all microservices and simplifies event processing.
 
 **Key Features:**
+
 - ✅ Type-safe with TypeScript
 - ✅ Runtime validation with Zod
 - ✅ Discriminated unions for pattern matching
@@ -74,19 +75,19 @@ Emitted when stock is successfully reserved for an order.
 ```typescript
 type StockReservedEvent = {
   eventId: string;
-  eventType: 'inventory.stock.reserved';
+  eventType: "inventory.stock.reserved";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'inventory-service';
+  source: "inventory-service";
   payload: {
-    reservationId: string;    // UUID
+    reservationId: string; // UUID
     productId: string;
-    quantity: number;         // Positive integer
-    orderId: string;          // UUID
-    userId: string;           // UUID
-    expiresAt: string;        // ISO 8601 datetime
-    reservedAt: string;       // ISO 8601 datetime
+    quantity: number; // Positive integer
+    orderId: string; // UUID
+    userId: string; // UUID
+    expiresAt: string; // ISO 8601 datetime
+    reservedAt: string; // ISO 8601 datetime
   };
 };
 ```
@@ -126,18 +127,18 @@ Emitted when a stock reservation is confirmed (order payment successful).
 ```typescript
 type StockConfirmedEvent = {
   eventId: string;
-  eventType: 'inventory.stock.confirmed';
+  eventType: "inventory.stock.confirmed";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'inventory-service';
+  source: "inventory-service";
   payload: {
-    reservationId: string;    // UUID
+    reservationId: string; // UUID
     productId: string;
-    quantity: number;         // Positive integer
-    orderId: string;          // UUID
-    userId: string;           // UUID
-    confirmedAt: string;      // ISO 8601 datetime
+    quantity: number; // Positive integer
+    orderId: string; // UUID
+    userId: string; // UUID
+    confirmedAt: string; // ISO 8601 datetime
   };
 };
 ```
@@ -176,19 +177,19 @@ Emitted when a stock reservation is released (order cancelled or expired).
 ```typescript
 type StockReleasedEvent = {
   eventId: string;
-  eventType: 'inventory.stock.released';
+  eventType: "inventory.stock.released";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'inventory-service';
+  source: "inventory-service";
   payload: {
-    reservationId: string;    // UUID
+    reservationId: string; // UUID
     productId: string;
-    quantity: number;         // Positive integer
-    orderId: string;          // UUID
-    userId: string;           // UUID
-    reason: 'order_cancelled' | 'reservation_expired' | 'manual_release';
-    releasedAt: string;       // ISO 8601 datetime
+    quantity: number; // Positive integer
+    orderId: string; // UUID
+    userId: string; // UUID
+    reason: "order_cancelled" | "reservation_expired" | "manual_release";
+    releasedAt: string; // ISO 8601 datetime
   };
 };
 ```
@@ -228,21 +229,21 @@ Emitted when a stock operation fails (insufficient stock, system error, etc.).
 ```typescript
 type StockFailedEvent = {
   eventId: string;
-  eventType: 'inventory.stock.failed';
+  eventType: "inventory.stock.failed";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'inventory-service';
+  source: "inventory-service";
   payload: {
-    operationType: 'reserve' | 'confirm' | 'release';
+    operationType: "reserve" | "confirm" | "release";
     productId: string;
-    quantity?: number;        // Positive integer (optional)
-    orderId: string;          // UUID
-    userId: string;           // UUID
-    reservationId?: string;   // UUID (optional)
+    quantity?: number; // Positive integer (optional)
+    orderId: string; // UUID
+    userId: string; // UUID
+    reservationId?: string; // UUID (optional)
     errorCode: string;
     errorMessage: string;
-    failedAt: string;         // ISO 8601 datetime
+    failedAt: string; // ISO 8601 datetime
   };
 };
 ```
@@ -292,24 +293,24 @@ Emitted when a new order is created (triggers stock reservation).
 ```typescript
 type OrderCreatedEvent = {
   eventId: string;
-  eventType: 'order.created';
+  eventType: "order.created";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'orders-service';
+  source: "orders-service";
   payload: {
-    orderId: string;          // UUID
-    userId: string;           // UUID
+    orderId: string; // UUID
+    userId: string; // UUID
     items: Array<{
       productId: string;
-      quantity: number;       // Positive integer
-      price: number;          // Positive
-      subtotal: number;       // Positive
+      quantity: number; // Positive integer
+      price: number; // Positive
+      subtotal: number; // Positive
     }>;
-    totalAmount: number;      // Positive
-    currency: string;         // Default: "USD"
-    status: 'pending';
-    createdAt: string;        // ISO 8601 datetime
+    totalAmount: number; // Positive
+    currency: string; // Default: "USD"
+    status: "pending";
+    createdAt: string; // ISO 8601 datetime
     metadata?: {
       ipAddress?: string;
       userAgent?: string;
@@ -365,24 +366,23 @@ Emitted when an order is cancelled (triggers stock release).
 ```typescript
 type OrderCancelledEvent = {
   eventId: string;
-  eventType: 'order.cancelled';
+  eventType: "order.cancelled";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'orders-service';
+  source: "orders-service";
   payload: {
-    orderId: string;          // UUID
-    userId: string;           // UUID
+    orderId: string; // UUID
+    userId: string; // UUID
     items: Array<{
       productId: string;
       quantity: number;
       price: number;
       subtotal: number;
     }>;
-    reason: 'user_requested' | 'payment_failed' | 'stock_unavailable' | 
-            'timeout' | 'fraud_detected' | 'system_error';
-    cancelledBy: 'user' | 'system' | 'admin';
-    cancelledAt: string;      // ISO 8601 datetime
+    reason: "user_requested" | "payment_failed" | "stock_unavailable" | "timeout" | "fraud_detected" | "system_error";
+    cancelledBy: "user" | "system" | "admin";
+    cancelledAt: string; // ISO 8601 datetime
     refundRequired: boolean;
   };
 };
@@ -430,26 +430,25 @@ Emitted when order processing fails.
 ```typescript
 type OrderFailedEvent = {
   eventId: string;
-  eventType: 'order.failed';
+  eventType: "order.failed";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'orders-service';
+  source: "orders-service";
   payload: {
-    orderId: string;          // UUID
-    userId: string;           // UUID
+    orderId: string; // UUID
+    userId: string; // UUID
     items: Array<{
       productId: string;
       quantity: number;
       price: number;
       subtotal: number;
     }>;
-    failureStage: 'validation' | 'stock_reservation' | 'payment' | 
-                  'confirmation' | 'unknown';
+    failureStage: "validation" | "stock_reservation" | "payment" | "confirmation" | "unknown";
     errorCode: string;
     errorMessage: string;
     retryable: boolean;
-    failedAt: string;         // ISO 8601 datetime
+    failedAt: string; // ISO 8601 datetime
   };
 };
 ```
@@ -472,7 +471,7 @@ type OrderFailedEvent = {
         "productId": "prod-12345",
         "quantity": 10,
         "price": 29.99,
-        "subtotal": 299.90
+        "subtotal": 299.9
       }
     ],
     "failureStage": "stock_reservation",
@@ -497,23 +496,23 @@ Emitted when an order is successfully confirmed (payment processed).
 ```typescript
 type OrderConfirmedEvent = {
   eventId: string;
-  eventType: 'order.confirmed';
+  eventType: "order.confirmed";
   timestamp: string;
   version: string;
   correlationId?: string;
-  source: 'orders-service';
+  source: "orders-service";
   payload: {
-    orderId: string;          // UUID
-    userId: string;           // UUID
+    orderId: string; // UUID
+    userId: string; // UUID
     items: Array<{
       productId: string;
       quantity: number;
       price: number;
       subtotal: number;
     }>;
-    totalAmount: number;      // Positive
-    currency: string;         // Default: "USD"
-    confirmedAt: string;      // ISO 8601 datetime
+    totalAmount: number; // Positive
+    currency: string; // Default: "USD"
+    confirmedAt: string; // ISO 8601 datetime
   };
 };
 ```
@@ -555,7 +554,7 @@ type OrderConfirmedEvent = {
 All schemas include Zod validation for runtime type checking:
 
 ```typescript
-import { validateInventoryEvent, safeValidateInventoryEvent } from '@microservices-ecommerce/shared-types';
+import { validateInventoryEvent, safeValidateInventoryEvent } from "@microservices-ecommerce/shared-types";
 
 // Throws error if invalid
 const event = validateInventoryEvent(rawData);
@@ -563,25 +562,28 @@ const event = validateInventoryEvent(rawData);
 // Returns result object
 const result = safeValidateInventoryEvent(rawData);
 if (result.success) {
-  console.log('Valid event:', result.data);
+  console.log("Valid event:", result.data);
 } else {
-  console.error('Validation errors:', result.error);
+  console.error("Validation errors:", result.error);
 }
 ```
 
 ### Validation Rules
 
 **All Events:**
+
 - `eventId` must be a valid UUID
 - `timestamp` must be ISO 8601 datetime
 - `source` must match the emitting service
 
 **Inventory Events:**
+
 - `quantity` must be a positive integer
 - `reservationId`, `orderId`, `userId` must be valid UUIDs
 - `expiresAt` and timestamps must be ISO 8601 datetime
 
 **Order Events:**
+
 - `totalAmount` and `price` must be positive numbers
 - `items` array must have at least one item
 - `quantity` must be a positive integer
@@ -597,17 +599,17 @@ import {
   StockReservedEvent,
   validateInventoryEvent,
   INVENTORY_ROUTING_KEYS,
-} from '@microservices-ecommerce/shared-types';
+} from "@microservices-ecommerce/shared-types";
 
 @Injectable()
 export class InventoryEventConsumer {
   async handleStockReserved(rawMessage: unknown) {
     // Validate event
     const event = validateInventoryEvent(rawMessage) as StockReservedEvent;
-    
+
     // Type-safe access
     console.log(`Reservation ${event.payload.reservationId} for order ${event.payload.orderId}`);
-    
+
     // Process event...
   }
 }
@@ -641,7 +643,7 @@ func (p *Publisher) PublishStockReserved(ctx context.Context, event StockReserve
     if err != nil {
         return err
     }
-    
+
     return p.channel.PublishWithContext(
         ctx,
         "inventory.events",              // exchange

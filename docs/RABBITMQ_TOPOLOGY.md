@@ -58,15 +58,17 @@ See [ADR-029: Message Broker - RabbitMQ vs Redis PubSub](../adr/029-message-brok
 **Publisher:** Inventory Service (Go)  
 **Consumer:** Orders Service (NestJS)  
 **Exchange:** `inventory.events` (topic)  
-**Queue:** `orders.inventory_events`  
+**Queue:** `orders.inventory_events`
 
 **Routing Keys:**
+
 - `inventory.stock.reserved` - Stock successfully reserved
 - `inventory.stock.confirmed` - Reservation confirmed
 - `inventory.stock.released` - Reservation released/cancelled
 - `inventory.stock.failed` - Stock operation failed
 
 **Event Flow:**
+
 ```
 Inventory Service (Publisher)
     ↓ publishes event
@@ -82,14 +84,16 @@ Orders Service (Consumer)
 **Publisher:** Orders Service (NestJS)  
 **Consumer:** Inventory Service (Go)  
 **Exchange:** `orders.events` (topic)  
-**Queue:** `inventory.order_events`  
+**Queue:** `inventory.order_events`
 
 **Routing Keys:**
+
 - `order.created` - New order created (trigger stock reservation)
 - `order.cancelled` - Order cancelled (release reservation)
 - `order.failed` - Order processing failed
 
 **Event Flow:**
+
 ```
 Orders Service (Publisher)
     ↓ publishes event
@@ -104,20 +108,20 @@ Inventory Service (Consumer)
 
 ### orders.inventory_events Queue
 
-| Exchange          | Queue                      | Routing Key                   |
-|-------------------|----------------------------|-------------------------------|
-| inventory.events  | orders.inventory_events    | inventory.stock.reserved      |
-| inventory.events  | orders.inventory_events    | inventory.stock.confirmed     |
-| inventory.events  | orders.inventory_events    | inventory.stock.released      |
-| inventory.events  | orders.inventory_events    | inventory.stock.failed        |
+| Exchange         | Queue                   | Routing Key               |
+| ---------------- | ----------------------- | ------------------------- |
+| inventory.events | orders.inventory_events | inventory.stock.reserved  |
+| inventory.events | orders.inventory_events | inventory.stock.confirmed |
+| inventory.events | orders.inventory_events | inventory.stock.released  |
+| inventory.events | orders.inventory_events | inventory.stock.failed    |
 
 ### inventory.order_events Queue
 
-| Exchange      | Queue                   | Routing Key      |
-|---------------|-------------------------|------------------|
-| orders.events | inventory.order_events  | order.created    |
-| orders.events | inventory.order_events  | order.cancelled  |
-| orders.events | inventory.order_events  | order.failed     |
+| Exchange      | Queue                  | Routing Key     |
+| ------------- | ---------------------- | --------------- |
+| orders.events | inventory.order_events | order.created   |
+| orders.events | inventory.order_events | order.cancelled |
+| orders.events | inventory.order_events | order.failed    |
 
 ## Queue Properties
 
@@ -138,6 +142,7 @@ Inventory Service (Consumer)
 ```
 
 **Properties Explanation:**
+
 - `durable: true` - Queue survives broker restart
 - `x-queue-type: classic` - Classic queue type (better for this use case)
 - `x-dead-letter-exchange` - DLX for failed messages
@@ -158,6 +163,7 @@ Inventory Service (Consumer)
 ```
 
 **Properties Explanation:**
+
 - `x-message-ttl: 604800000` - Messages expire after 7 days
 
 ## Setup Script
@@ -169,6 +175,7 @@ The topology is created using the automated setup script:
 ```
 
 **Environment Variables (optional):**
+
 ```bash
 export RABBITMQ_HOST=localhost
 export RABBITMQ_PORT=15672
@@ -178,6 +185,7 @@ export RABBITMQ_VHOST=/
 ```
 
 **Default Values:**
+
 - Host: `localhost`
 - Management Port: `15672`
 - User: `microservices`
@@ -202,6 +210,7 @@ chmod +x scripts/setup-rabbitmq.sh
 ```
 
 **Expected Output:**
+
 ```
 ==========================================
   RabbitMQ Topology Setup
@@ -235,17 +244,19 @@ Open the RabbitMQ Management UI:
 
 **URL:** http://localhost:15672  
 **Username:** microservices  
-**Password:** microservices_pass_2024  
+**Password:** microservices_pass_2024
 
 **Check:**
 
 1. **Exchanges Tab:**
+
    - ✓ `inventory.events` (type: topic, durable)
    - ✓ `orders.events` (type: topic, durable)
    - ✓ `orders.inventory_events.dlx` (type: direct, durable)
    - ✓ `inventory.order_events.dlx` (type: direct, durable)
 
 2. **Queues Tab:**
+
    - ✓ `orders.inventory_events` (Features: D, DLX)
    - ✓ `inventory.order_events` (Features: D, DLX)
    - ✓ `orders.inventory_events.dlq` (Features: D, TTL: 7d)
@@ -258,18 +269,21 @@ Open the RabbitMQ Management UI:
 ### 4. Manual Verification with curl
 
 **List Exchanges:**
+
 ```bash
 curl -u microservices:microservices_pass_2024 \
   http://localhost:15672/api/exchanges/%2F
 ```
 
 **List Queues:**
+
 ```bash
 curl -u microservices:microservices_pass_2024 \
   http://localhost:15672/api/queues/%2F
 ```
 
 **List Bindings:**
+
 ```bash
 curl -u microservices:microservices_pass_2024 \
   http://localhost:15672/api/bindings/%2F
@@ -310,14 +324,17 @@ curl -u microservices:microservices_pass_2024 \
 Messages are sent to DLQ when:
 
 1. **Consumer Rejection:**
+
    - Consumer sends NACK with `requeue=false`
    - Example: Invalid event schema, business logic error
 
 2. **Consumer Exception:**
+
    - Unhandled exception in consumer
    - Automatic NACK by client library
 
 3. **Message TTL Expiration:**
+
    - Message not consumed within TTL (if configured)
 
 4. **Max Delivery Attempts:**
@@ -326,6 +343,7 @@ Messages are sent to DLQ when:
 ### DLQ Monitoring
 
 **Check DLQ Messages:**
+
 ```bash
 curl -u microservices:microservices_pass_2024 \
   http://localhost:15672/api/queues/%2F/orders.inventory_events.dlq
@@ -364,20 +382,24 @@ set_queue_policy "ha-orders-queues" "^orders\\."
 ```
 
 **HA Policy:**
+
 - `ha-mode: exactly` - Replicate to exactly 2 nodes
 - `ha-sync-mode: automatic` - Automatic synchronization
 
 ### Performance Tuning
 
 **Queue Length Limits:**
+
 - Current: 10,000 messages
 - Increase for high-volume scenarios: 50,000 - 100,000
 
 **Prefetch Count:**
+
 - Inventory Service (Go): 10 messages
 - Orders Service (NestJS): 10 messages
 
 **Connection Pooling:**
+
 - Inventory Service: 5 connections
 - Orders Service: 5 connections
 
