@@ -78,9 +78,11 @@ services:
     volumes:
       - microservices_rabbitmq_data:/var/lib/rabbitmq
       - microservices_rabbitmq_logs:/var/log/rabbitmq
+      - ./scripts/rabbitmq-plugins.conf:/etc/rabbitmq/enabled_plugins:ro
     ports:
       - "5672:5672" # Puerto AMQP para mensajería
       - "15672:15672" # Puerto Management UI
+      - "15692:15692" # Puerto Prometheus metrics
     networks:
       - microservices-network
     healthcheck:

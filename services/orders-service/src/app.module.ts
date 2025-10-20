@@ -5,6 +5,7 @@ import { BullModule } from '@nestjs/bull';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -50,6 +51,14 @@ import { QueueModule } from './queues/queue.module';
 
     // Winston Logger Module (Global)
     LoggerModule,
+
+    // Prometheus Metrics Module
+    PrometheusModule.register({
+      defaultMetrics: {
+        enabled: true,
+      },
+      path: '/metrics',
+    }),
 
     // Rate Limiting (Throttler) - Higher limits in test environment
     ThrottlerModule.forRootAsync({

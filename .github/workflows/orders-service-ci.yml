@@ -75,6 +75,14 @@ jobs:
                   npm ci --ignore-scripts
                   echo "✅ Dependencies installed"
 
+            - name: Build shared types package
+              run: |
+                  echo "📦 Building shared types package..."
+                  cd ../../shared/types
+                  npm ci --ignore-scripts
+                  npm run build
+                  echo "✅ Shared types built successfully"
+
             - name: Run linting
               run: |
                   echo "🔍 Running ESLint..."
@@ -156,6 +164,14 @@ jobs:
                   echo "📦 Installing dependencies..."
                   npm ci --ignore-scripts
                   echo "✅ Dependencies installed"
+
+            - name: Build shared types package
+              run: |
+                  echo "📦 Building shared types package..."
+                  cd ../../shared/types
+                  npm ci --ignore-scripts
+                  npm run build
+                  echo "✅ Shared types built successfully"
 
             - name: Run ESLint
               run: |
@@ -240,7 +256,7 @@ jobs:
                   fi
 
             - name: Post summary to PR (DISABLED - Permission issues)
-              if: false  # Requires write permissions not available
+              if: false # Requires write permissions not available
               uses: actions/github-script@v7
               with:
                   script: |

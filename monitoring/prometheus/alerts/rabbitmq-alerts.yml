@@ -1,0 +1,233 @@
+groups:
+  - name: rabbitmq_messaging_alerts
+    interval: 30s
+    rules:
+      # ============================================================================
+      # DEAD LETTER QUEUE ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHighDLQMessages
+        expr: sum(orders_events_dlq_total) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "High number of messages in Dead Letter Queue"
+          description: "Dead Letter Queue has {{ $value }} messages. Investigate failed event processing."
+
+      - alert: RabbitMQCriticalDLQMessages
+        expr: sum(orders_events_dlq_total) > 50
+        for: 2m
+        labels:
+          severity: critical
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "Critical number of messages in Dead Letter Queue"
+          description: "Dead Letter Queue has {{ $value }} messages. Immediate investigation required."
+
+      # ============================================================================
+      # QUEUE LENGTH ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHighQueueLength
+        expr: rabbitmq_queue_messages{queue="orders.inventory_events"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: rabbitmq
+          queue: orders.inventory_events
+        annotations:
+          summary: "RabbitMQ queue has high message count"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages. Consumer may be lagging."
+
+      - alert: RabbitMQCriticalQueueLength
+        expr: rabbitmq_queue_messages{queue="orders.inventory_events"} > 5000
+        for: 2m
+        labels:
+          severity: critical
+          component: rabbitmq
+          queue: orders.inventory_events
+        annotations:
+          summary: "RabbitMQ queue has critical message count"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages. Consumer is severely lagging."
+
+      # ============================================================================
+      # CONSUMER LAG ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQConsumerLag
+        expr: |
+          (
+            rate(inventory_events_published_total{status="success"}[5m]) 
+            - 
+            rate(orders_events_consumed_total{status="success"}[5m])
+          ) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "Consumer is lagging behind publisher"
+          description: "Consumer lag detected. Publish rate exceeds consumption rate by {{ $value }} events/sec for 5+ minutes."
+
+      # ============================================================================
+      # PUBLISH ERROR RATE ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHighPublishErrorRate
+        expr: |
+          (
+            sum(rate(inventory_events_publish_errors_total[5m]))
+            /
+            sum(rate(inventory_events_published_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: rabbitmq
+          service: inventory-service
+        annotations:
+          summary: "High publish error rate detected"
+          description: "Publish error rate is {{ $value | humanizePercentage }}. More than 5% of publish attempts are failing."
+
+      - alert: RabbitMQPublishErrors
+        expr: sum(rate(inventory_events_publish_errors_total[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: inventory-service
+        annotations:
+          summary: "Publish errors detected"
+          description: "Publisher is experiencing {{ $value }} errors/sec."
+
+      # ============================================================================
+      # PROCESSING ERROR RATE ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHighProcessingErrorRate
+        expr: |
+          (
+            sum(rate(orders_events_processing_errors_total[5m]))
+            /
+            sum(rate(orders_events_consumed_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "High event processing error rate"
+          description: "Processing error rate is {{ $value | humanizePercentage }}. More than 5% of events are failing to process."
+
+      - alert: RabbitMQProcessingErrors
+        expr: sum(rate(orders_events_processing_errors_total[5m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "Event processing errors detected"
+          description: "Consumer is experiencing {{ $value }} processing errors/sec."
+
+      # ============================================================================
+      # HANDLER FAILURE ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHandlerFailures
+        expr: sum(rate(orders_events_handler_executions_total{status="failed"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "Event handler failures detected"
+          description: "Event handlers are failing at {{ $value }} failures/sec."
+
+      - alert: RabbitMQHandlerSuccessRateLow
+        expr: |
+          (
+            sum(rate(orders_events_handler_executions_total{status="success"}[5m]))
+            /
+            sum(rate(orders_events_handler_executions_total[5m]))
+          ) < 0.95
+        for: 10m
+        labels:
+          severity: critical
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "Event handler success rate below 95%"
+          description: "Handler success rate is {{ $value | humanizePercentage }}. Expected >95%."
+
+      # ============================================================================
+      # RETRY ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHighRetryRate
+        expr: sum(rate(inventory_events_publish_retries_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: inventory-service
+        annotations:
+          summary: "High publish retry rate"
+          description: "Publisher is retrying at {{ $value }} retries/sec. Check RabbitMQ connectivity."
+
+      # ============================================================================
+      # LATENCY ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQHighPublishLatency
+        expr: histogram_quantile(0.99, rate(inventory_events_publish_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: inventory-service
+        annotations:
+          summary: "High publish latency (P99)"
+          description: "P99 publish latency is {{ $value }}s. Expected <1s."
+
+      - alert: RabbitMQHighProcessingLatency
+        expr: histogram_quantile(0.99, rate(orders_events_processing_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: rabbitmq
+          service: orders-service
+        annotations:
+          summary: "High event processing latency (P99)"
+          description: "P99 processing latency is {{ $value }}s. Expected <5s."
+
+      # ============================================================================
+      # RABBITMQ AVAILABILITY ALERTS
+      # ============================================================================
+
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: rabbitmq
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ instance is not reachable. All event-driven communication is halted."
+
+      - alert: RabbitMQNoConnections
+        expr: sum(rabbitmq_connections) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: rabbitmq
+        annotations:
+          summary: "No active RabbitMQ connections"
+          description: "No services are connected to RabbitMQ. Check service health."
