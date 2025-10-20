@@ -542,3 +542,141 @@ func TestConfirmReservation_ReservationExpired(t *testing.T) {
 
 	mockConfirmUseCase.AssertExpectations(t)
 }
+
+// MockReleaseReservationUseCase is a mock of ReleaseReservationUseCase
+type MockReleaseReservationUseCase struct {
+	mock.Mock
+}
+
+func (m *MockReleaseReservationUseCase) Execute(ctx interface{}, input usecase.ReleaseReservationInput) (*usecase.ReleaseReservationOutput, error) {
+	args := m.Called(ctx, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*usecase.ReleaseReservationOutput), args.Error(1)
+}
+
+// ============================================================================
+// DELETE /api/inventory/reserve/:reservationId
+// ============================================================================
+
+func TestReleaseReservation_Success(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockReleaseUseCase := new(MockReleaseReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, nil, mockReleaseUseCase)
+
+	reservationID := uuid.New()
+	inventoryItemID := uuid.New()
+	orderID := uuid.New()
+
+	expectedOutput := &usecase.ReleaseReservationOutput{
+		ReservationID:    reservationID,
+		InventoryItemID:  inventoryItemID,
+		OrderID:          orderID,
+		QuantityReleased: 5,
+		AvailableStock:   100,
+		ReservedStock:    0,
+	}
+
+	mockReleaseUseCase.On("Execute", mock.Anything, mock.MatchedBy(func(input usecase.ReleaseReservationInput) bool {
+		return input.ReservationID == reservationID
+	})).Return(expectedOutput, nil)
+
+	router.DELETE("/api/inventory/reserve/:reservationId", h.ReleaseReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/inventory/reserve/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, reservationID.String(), response["reservation_id"])
+	assert.Equal(t, orderID.String(), response["order_id"])
+	assert.Equal(t, float64(5), response["quantity_released"])
+	assert.Equal(t, float64(100), response["available_stock"])
+	assert.Equal(t, float64(0), response["reserved_stock"])
+
+	mockReleaseUseCase.AssertExpectations(t)
+}
+
+func TestReleaseReservation_InvalidReservationID(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	h := handler.NewInventoryHandler(nil, nil, nil, nil)
+	router.DELETE("/api/inventory/reserve/:reservationId", h.ReleaseReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodDelete, "/api/inventory/reserve/invalid-uuid", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "invalid_reservation_id", response["error"])
+}
+
+func TestReleaseReservation_ReservationNotFound(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockReleaseUseCase := new(MockReleaseReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, nil, mockReleaseUseCase)
+
+	reservationID := uuid.New()
+
+	mockReleaseUseCase.On("Execute", mock.Anything, mock.Anything).Return(nil, errors.ErrReservationNotFound)
+
+	router.DELETE("/api/inventory/reserve/:reservationId", h.ReleaseReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/inventory/reserve/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "reservation_not_found", response["error"])
+
+	mockReleaseUseCase.AssertExpectations(t)
+}
+
+func TestReleaseReservation_ReservationNotPending(t *testing.T) {
+	// Arrange
+	router := setupRouter()
+	mockReleaseUseCase := new(MockReleaseReservationUseCase)
+	h := handler.NewInventoryHandler(nil, nil, nil, mockReleaseUseCase)
+
+	reservationID := uuid.New()
+
+	mockReleaseUseCase.On("Execute", mock.Anything, mock.Anything).Return(nil, errors.ErrReservationNotPending)
+
+	router.DELETE("/api/inventory/reserve/:reservationId", h.ReleaseReservation)
+
+	// Act
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/inventory/reserve/%s", reservationID.String()), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusConflict, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "reservation_not_pending", response["error"])
+
+	mockReleaseUseCase.AssertExpectations(t)
+}

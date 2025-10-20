@@ -191,6 +191,41 @@ func (h *InventoryHandler) ConfirmReservation(c *gin.Context) {
 	})
 }
 
+// ReleaseReservation handles DELETE /api/inventory/reserve/:reservationId
+// It cancels a reservation and releases the reserved stock back to available
+func (h *InventoryHandler) ReleaseReservation(c *gin.Context) {
+	// Parse reservation ID from URL parameter
+	reservationIDStr := c.Param("reservationId")
+	reservationID, err := uuid.Parse(reservationIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid_reservation_id",
+			"message": "Invalid reservation ID format. Expected UUID.",
+		})
+		return
+	}
+
+	// Execute use case
+	input := usecase.ReleaseReservationInput{
+		ReservationID: reservationID,
+	}
+
+	output, err := h.releaseReservation.Execute(c.Request.Context(), input)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{
+		"reservation_id":    output.ReservationID.String(),
+		"order_id":          output.OrderID.String(),
+		"quantity_released": output.QuantityReleased,
+		"available_stock":   output.AvailableStock,
+		"reserved_stock":    output.ReservedStock,
+	})
+}
+
 // handleError maps domain errors to appropriate HTTP responses
 func (h *InventoryHandler) handleError(c *gin.Context, err error) {
 	var statusCode int
