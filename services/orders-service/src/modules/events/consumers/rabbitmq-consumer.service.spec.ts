@@ -93,7 +93,7 @@ describe('RabbitMQConsumerService', () => {
 
       // Should assert queue
       expect(mockChannel.assertQueue).toHaveBeenCalledWith(
-        expect.stringContaining('orders-service'),
+        'orders.inventory_events',
         expect.objectContaining({ durable: true }),
       );
 

@@ -29,9 +29,9 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   private readonly EXCHANGE_NAME = 'inventory.events';
-  private readonly QUEUE_NAME = 'orders-service.inventory-events';
-  private readonly DLQ_EXCHANGE_NAME = 'inventory.dlx';
-  private readonly DLQ_ROUTING_KEY = 'orders-service.inventory-events.dlq';
+  private readonly QUEUE_NAME = 'orders.inventory_events';
+  private readonly DLQ_EXCHANGE_NAME = 'orders.inventory_events.dlx';
+  private readonly DLQ_ROUTING_KEY = 'orders.inventory_events.dlq';
 
   private readonly ROUTING_KEYS = [
     'inventory.stock.reserved',
