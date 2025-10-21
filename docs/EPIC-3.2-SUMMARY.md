@@ -28,12 +28,14 @@ Implementar comunicación asíncrona basada en eventos entre Inventory Service (
 ### Coverage por Servicio
 
 **Inventory Service:**
+
 - ✅ Event definitions (5 eventos)
 - ✅ Publisher interface y RabbitMQ implementation
 - ✅ Integración en 3 use cases (Reserve, Confirm, Release)
 - ✅ Tests completos con MockPublisher
 
 **Orders Service:**
+
 - ✅ Consumer actualizado con nuevos routing keys
 - ✅ Event handlers (5 handlers totales)
 - ✅ Zod schemas para validación type-safe
@@ -70,24 +72,29 @@ type StockDepletedPayload struct {
 #### Archivos Modificados
 
 1. **internal/domain/events/inventory_events.go**
+
    - Agregado `StockDepletedEvent` struct
    - Agregado `StockDepletedPayload` struct
    - Constante `RoutingKeyStockDepleted`
 
 2. **internal/domain/events/publisher.go**
+
    - Método `PublishStockDepleted(ctx, event) error`
 
 3. **internal/infrastructure/messaging/rabbitmq/publisher.go**
+
    - Implementación de `PublishStockDepleted`
    - Actualizado `getEventType()` para manejar StockDepleted
    - 7 tests para validar publicación
 
 4. **internal/application/usecase/reserve_stock.go**
+
    - Publica `StockReserved` al crear reserva exitosamente
    - Publica `StockDepleted` cuando `Available() == 0`
    - Logging de errores sin fallar la transacción
 
 5. **internal/application/usecase/confirm_reservation.go**
+
    - Publica `StockConfirmed` al confirmar
    - Publica `StockDepleted` cuando `quantity == 0` tras confirmar
 
@@ -107,6 +114,7 @@ type StockDepletedPayload struct {
 #### Consumer Configuration
 
 **Routing Keys Registrados:**
+
 ```typescript
 private readonly ROUTING_KEYS = [
   'inventory.stock.reserved',
@@ -118,6 +126,7 @@ private readonly ROUTING_KEYS = [
 ```
 
 **Event Mapping:**
+
 ```typescript
 'inventory.stock.depleted' → 'InventoryStockDepleted'
 ```
@@ -125,20 +134,24 @@ private readonly ROUTING_KEYS = [
 #### Archivos Modificados/Creados
 
 1. **src/modules/events/consumers/rabbitmq-consumer.service.ts** (MODIFICADO)
+
    - Agregado routing key `inventory.stock.depleted`
    - Actualizado `mapEventType()` con mapping
 
 2. **src/modules/events/handlers/inventory-depleted.handler.ts** (NUEVO)
+
    - Handler para procesar eventos de stock agotado
    - Extends `BaseEventHandler<InventoryStockDepletedEvent>`
    - Logging de evento
    - TODO: Lógica de negocio (procurement, backorders, restock)
 
 3. **src/modules/events/types/inventory.events.ts** (MODIFICADO)
+
    - Interface `InventoryStockDepletedEvent`
    - Agregado a union type `InventoryEvents`
 
 4. **src/modules/events/handlers/index.ts** (MODIFICADO)
+
    - Export de `InventoryDepletedHandler`
 
 5. **src/modules/events/events.module.ts** (MODIFICADO)
@@ -156,8 +169,8 @@ private readonly ROUTING_KEYS = [
 
 ```typescript
 export const StockDepletedEventSchema = BaseEventSchema.extend({
-  eventType: z.literal('inventory.stock.depleted'),
-  source: z.literal('inventory-service'),
+  eventType: z.literal("inventory.stock.depleted"),
+  source: z.literal("inventory-service"),
   payload: z.object({
     productId: z.string(),
     orderId: z.string().uuid(),
@@ -223,21 +236,25 @@ export const StockDepletedEventSchema = BaseEventSchema.extend({
 ### Características de Confiabilidad
 
 #### 1. Idempotency
+
 - **Mechanism:** Map-based deduplication con EventID único
 - **Window:** 24 horas TTL
 - **Benefit:** Garantiza procesamiento único sin duplicados
 
 #### 2. Dead Letter Queue (DLQ)
+
 - **Trigger:** Mensajes rechazados (NACK) o que fallan procesamiento
 - **Queue:** `inventory.events.dlq`
 - **Usage:** Retry manual vía admin endpoints (futuro)
 
 #### 3. Manual Acknowledgment
+
 - **ACK:** Mensaje procesado exitosamente
 - **NACK:** Mensaje fallido, enviar a DLQ
 - **Benefit:** No se pierden mensajes en fallos
 
 #### 4. Exponential Backoff (RabbitMQ side)
+
 - **Retries:** Máximo 3 intentos
 - **Delay:** 1s → 2s → 4s
 - **Benefit:** Resiliencia ante fallos transitorios
@@ -248,19 +265,15 @@ export const StockDepletedEventSchema = BaseEventSchema.extend({
 
 - [x] **T3.2.1:** Todos los eventos de inventario publicados correctamente
   - StockReserved, StockConfirmed, StockReleased, StockFailed, StockDepleted
-  
 - [x] **T3.2.2:** Orders Service consume y procesa eventos
   - Consumer configurado con 5 routing keys
   - 5 handlers implementados y registrados
-  
 - [x] **Infrastructure:** Estado de órdenes puede actualizarse basado en eventos
   - Handlers implementados (lógica de negocio en TODO)
   - Event flow completo funcional
-  
 - [x] **Reliability:** Idempotencia garantizada
   - Map-based deduplication con 24h TTL
   - EventID único por evento
-  
 - [x] **Monitoring:** RabbitMQ Management UI disponible
   - Exchange, queues y bindings configurados
   - Mensajes visibles en UI
@@ -272,7 +285,6 @@ export const StockDepletedEventSchema = BaseEventSchema.extend({
   - Publish event desde Go
   - Consume event en TypeScript
   - Verify handler execution
-  
 - [ ] **Business Logic en InventoryDepletedHandler**
   - Notificaciones de procurement
   - Manejo de backorders
@@ -283,18 +295,21 @@ export const StockDepletedEventSchema = BaseEventSchema.extend({
 ### Tests Ejecutados
 
 **Inventory Service (Go):**
+
 ```bash
 $ go test ./internal/application/usecase/... ./internal/infrastructure/messaging/...
 ✅ 74 tests PASS (67 use cases + 7 publisher)
 ```
 
 **Orders Service (TypeScript):**
+
 ```bash
 $ npm test -- --testPathPattern=events
 ✅ 106 tests PASS (11 test suites)
 ```
 
 **Build Validation:**
+
 ```bash
 # Inventory Service
 $ go build ./...
@@ -308,6 +323,7 @@ $ npm run build
 ### Coverage de Tests
 
 #### Inventory Service
+
 - ✅ Event struct marshaling/unmarshaling
 - ✅ Publisher interface methods
 - ✅ RabbitMQ integration tests (Testcontainers)
@@ -317,6 +333,7 @@ $ npm run build
 - ✅ Idempotency check
 
 #### Orders Service
+
 - ✅ Consumer routing key registration
 - ✅ Event type mapping
 - ✅ Zod schema validation
@@ -331,10 +348,10 @@ $ npm run build
 ### Epic 2.5: Procesamiento Asíncrono (Outbox + Events)
 
 **Infrastructure Reutilizada:**
+
 - ✅ **RabbitMQ Publisher** (Inventory Service)
   - Epic 2.5.3: Implementación base
   - Epic 3.2.1: Agregado StockDepleted event
-  
 - ✅ **RabbitMQ Consumer** (Orders Service)
   - Epic 2.5.4: Consumer base con idempotency + DLQ
   - Epic 3.2.2: Agregado routing key y handler
@@ -344,10 +361,12 @@ $ npm run build
 ### Epic 3.1: Comunicación Síncrona HTTP
 
 **Complemento:**
+
 - Epic 3.1: Orders → Inventory (HTTP sync) para `checkAvailability` y `reserveStock`
 - Epic 3.2: Inventory → Orders (Events async) para notificaciones y actualizaciones
 
 **Patrón Híbrido:**
+
 - **Sync:** Request/Response para operaciones críticas (reservar stock)
 - **Async:** Fire-and-forget para notificaciones (stock agotado)
 
@@ -358,19 +377,14 @@ $ npm run build
 1. **ADR-002: Event-Driven Outbox Pattern**
    - Outbox table para durabilidad
    - Procesamiento asíncrono con Bull
-   
 2. **ADR-008: Redis + Bull Queue System**
    - Background jobs para outbox processing
-   
 3. **ADR-009: Retry Pattern con Exponential Backoff**
    - 3 retries max, delays: 1s, 2s, 4s
-   
 4. **ADR-011: Idempotency Key Strategy**
    - EventID único, Map-based deduplication, 24h TTL
-   
 5. **ADR-012: Dead Letter Queue Handling**
    - DLQ para mensajes fallidos, retry manual futuro
-   
 6. **ADR-029: RabbitMQ como Message Broker**
    - Topic exchange para routing flexible
    - Queues durables, mensajes persistentes
@@ -390,16 +404,19 @@ $ npm run build
 Con Epic 3.2 completado, estamos listos para:
 
 1. **T3.3.1:** Implementar Two-Phase Commit simplificado
+
    - Reserve → Confirm/Release pattern ya funcional
    - Agregar timeout de 15 minutos
    - Auto-release con cronjob
 
 2. **T3.3.2:** Manejar fallos de red entre servicios
+
    - Retry con exponential backoff (ya implementado)
    - Marcar orden como FAILED definitivamente
    - Compensación: evitar reservas huérfanas
 
 3. **T3.3.3:** Ampliar DLQ para eventos fallidos
+
    - Admin endpoints: `GET /admin/dlq`, `POST /admin/dlq/:id/retry`
    - Dashboard para monitoreo
    - Alertas cuando DLQ > threshold
@@ -422,6 +439,7 @@ Con Epic 3.2 completado, estamos listos para:
 ### Archivos Actualizados
 
 1. **docs/PROJECT_BACKLOG.md**
+
    - Epic 3.2 marcado como ✅ COMPLETADA
    - T3.2.1 y T3.2.2 marcados como completados
    - Referencias a commits agregadas
@@ -468,6 +486,7 @@ Con Epic 3.2 completado, estamos listos para:
 **Duración:** 1 día
 
 **Commits:**
+
 - `6c52e16` - feat(inventory): T3.2.1 - Publicar eventos desde Inventory Service
 - `e61ebd7` - feat(orders): T3.2.2 - Consumir eventos desde Orders Service
 - `407392d` - docs: Marcar Epic 3.2 como COMPLETADA

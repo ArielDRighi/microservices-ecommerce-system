@@ -20,9 +20,7 @@ export class InventoryDepletedHandler extends BaseEventHandler<InventoryStockDep
    * - Trigger restock alerts
    */
   async handle(event: InventoryStockDepletedEvent): Promise<void> {
-    this.logger.log(
-      `Processing InventoryStockDepleted event for product ${event.productId}`,
-    );
+    this.logger.log(`Processing InventoryStockDepleted event for product ${event.productId}`);
 
     // TODO: Implement business logic:
     // 1. Mark product as out-of-stock in product catalog

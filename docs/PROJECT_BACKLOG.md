@@ -1576,6 +1576,7 @@ type ReservationRepository interface {
 **Nota:** Esta epic fue implementada como parte de Epic 3.1 (T3.1.4)
 
 **Tareas Completadas:**
+
 - ✅ Saga refactorizada para usar InventoryHttpClient
 - ✅ Step 1: Verificar stock llamando a Inventory Service (HTTP)
 - ✅ Step 2: Reservar stock (HTTP con idempotency key)
@@ -1657,6 +1658,7 @@ type ReservationRepository interface {
 - [x] Monitoreo de eventos en RabbitMQ Management UI
 
 **📝 Notas de Implementación:**
+
 - Event flow completo: Inventory (Go) → RabbitMQ → Orders (TypeScript)
 - 5 eventos totales: Reserved, Confirmed, Released, Failed, Depleted
 - 180 tests passing en total (74 Inventory + 106 Orders)
