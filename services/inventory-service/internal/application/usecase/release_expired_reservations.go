@@ -51,12 +51,12 @@ func NewReleaseExpiredReservationsUseCase(
 
 // Execute releases all expired reservations
 // This operation:
-// 1. Finds all expired reservations (status=pending and expiresAt < now)
-// 2. For each expired reservation:
-//    a. Releases the reserved stock
-//    b. Marks reservation as released
-//    c. Publishes StockReleased event with reason="reservation_expired"
-// 3. Returns summary of operations (total found, released, failed)
+//  1. Finds all expired reservations (status=pending and expiresAt < now)
+//  2. For each expired reservation:
+//     a. Releases the reserved stock
+//     b. Marks reservation as released
+//     c. Publishes StockReleased event with reason="reservation_expired"
+//  3. Returns summary of operations (total found, released, failed)
 //
 // Note: This operation continues processing all reservations even if some fail.
 // Individual failures are logged and tracked, but don't stop the batch process.
