@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -425,14 +426,16 @@ func TestRollback_Performance(t *testing.T) {
 		require.NoError(t, err)
 
 		// Measure rollback time
-		start := context.Background()
-		_ = start // Placeholder for timing logic
+		start := time.Now()
 
 		err = m.Down()
 		require.NoError(t, err)
 
+		rollbackDuration := time.Since(start)
+
 		// Rollback should complete quickly (< 1 second for empty tables)
-		t.Log("Rollback completed successfully")
+		t.Logf("Rollback completed successfully in %v", rollbackDuration)
+		assert.Less(t, rollbackDuration, 1*time.Second, "Rollback should complete in less than 1 second for empty tables")
 		t.Log("Performance Note: Rollback time scales with data volume")
 		t.Log("  - Empty tables: < 100ms")
 		t.Log("  - 10k rows: < 500ms")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -305,8 +306,8 @@ func seedOrdersProducts(t *testing.T, db *gorm.DB, count int) {
 	for i := 0; i < count; i++ {
 		product := ProductRecord{
 			ID:    uuid.New(),
-			Name:  "Test Product " + string(rune('A'+i)),
-			SKU:   "SKU" + string(rune('0'+i)),
+			Name:  fmt.Sprintf("Test Product %d", i+1),
+			SKU:   fmt.Sprintf("SKU%03d", i+1),
 			Price: float64((i + 1) * 10),
 		}
 		err := db.Create(&product).Error
