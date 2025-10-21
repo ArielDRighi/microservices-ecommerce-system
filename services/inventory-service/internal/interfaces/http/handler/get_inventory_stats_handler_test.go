@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockGetInventoryStatsUseCase es un mock del use case
+// MockGetInventoryStatsUseCase is a mock of the use case
 type MockGetInventoryStatsUseCase struct {
 	mock.Mock
 }

@@ -8,24 +8,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetInventoryStatsUseCaseInterface define la interface del use case
+// GetInventoryStatsUseCaseInterface defines the interface of the use case
 type GetInventoryStatsUseCaseInterface interface {
 	Execute(ctx context.Context) (*usecase.InventoryStats, error)
 }
 
-// GetInventoryStatsHandler maneja las peticiones para obtener estadísticas globales del inventario
+// GetInventoryStatsHandler handles requests to obtain global inventory statistics
 type GetInventoryStatsHandler struct {
 	getStatsUseCase GetInventoryStatsUseCaseInterface
 }
 
-// NewGetInventoryStatsHandler crea una nueva instancia del handler
+// NewGetInventoryStatsHandler creates a new instance of the handler
 func NewGetInventoryStatsHandler(getStatsUseCase GetInventoryStatsUseCaseInterface) *GetInventoryStatsHandler {
 	return &GetInventoryStatsHandler{
 		getStatsUseCase: getStatsUseCase,
 	}
 }
 
-// GetInventoryStatsResponse es la respuesta del endpoint de estadísticas
+// GetInventoryStatsResponse is the response of the statistics endpoint
 type GetInventoryStatsResponse struct {
 	TotalItems       int64   `json:"total_items"`
 	TotalQuantity    int64   `json:"total_quantity"`
@@ -36,7 +36,7 @@ type GetInventoryStatsResponse struct {
 	ReservationRate  float64 `json:"reservation_rate"`
 }
 
-// Handle maneja la petición GET /api/inventory/stats
+// Handle handles the GET /api/inventory/stats request
 func (h *GetInventoryStatsHandler) Handle(c *gin.Context) {
 	stats, err := h.getStatsUseCase.Execute(c.Request.Context())
 	if err != nil {

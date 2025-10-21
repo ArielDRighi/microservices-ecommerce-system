@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestGetInventoryStats_Success verifica que las estadísticas se calculen correctamente
+// TestGetInventoryStats_Success verifies that statistics are calculated correctly
 func TestGetInventoryStats_Success(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockInventoryRepository)
@@ -61,7 +61,7 @@ func TestGetInventoryStats_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetInventoryStats_EmptyInventory verifica manejo de inventario vacío
+// TestGetInventoryStats_EmptyInventory verifies empty inventory handling
 func TestGetInventoryStats_EmptyInventory(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockInventoryRepository)
@@ -87,7 +87,7 @@ func TestGetInventoryStats_EmptyInventory(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetInventoryStats_RepositoryError verifica manejo de errores del repositorio
+// TestGetInventoryStats_RepositoryError verifies repository error handling
 func TestGetInventoryStats_RepositoryError(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockInventoryRepository)
@@ -108,7 +108,7 @@ func TestGetInventoryStats_RepositoryError(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetInventoryStats_AllLowStock verifica cuando todo el inventario está bajo
+// TestGetInventoryStats_AllLowStock verifies when all inventory is low stock
 func TestGetInventoryStats_AllLowStock(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockInventoryRepository)
@@ -146,7 +146,7 @@ func TestGetInventoryStats_AllLowStock(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetInventoryStats_HighReservationRate verifica tasa de reserva alta
+// TestGetInventoryStats_HighReservationRate verifies high reservation rate
 func TestGetInventoryStats_HighReservationRate(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockInventoryRepository)

@@ -7,7 +7,7 @@ import (
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/repository"
 )
 
-// InventoryStats contiene estadísticas agregadas del inventario
+// InventoryStats contains aggregated inventory statistics
 type InventoryStats struct {
 	TotalItems       int64   `json:"total_items"`
 	TotalQuantity    int64   `json:"total_quantity"`
@@ -18,27 +18,27 @@ type InventoryStats struct {
 	ReservationRate  float64 `json:"reservation_rate"` // Porcentaje: (reserved / quantity) * 100
 }
 
-// GetInventoryStatsUseCase obtiene estadísticas globales del inventario
+// GetInventoryStatsUseCase obtains global inventory statistics
 type GetInventoryStatsUseCase struct {
 	inventoryRepo repository.InventoryRepository
 }
 
-// NewGetInventoryStatsUseCase crea una nueva instancia del use case
+// NewGetInventoryStatsUseCase creates a new instance of the use case
 func NewGetInventoryStatsUseCase(inventoryRepo repository.InventoryRepository) *GetInventoryStatsUseCase {
 	return &GetInventoryStatsUseCase{
 		inventoryRepo: inventoryRepo,
 	}
 }
 
-// Execute calcula y retorna las estadísticas del inventario
+// Execute calculates and returns inventory statistics
 func (uc *GetInventoryStatsUseCase) Execute(ctx context.Context) (*InventoryStats, error) {
-	// Fetch all inventory items (sin paginación para cálculo correcto)
+	// Fetch all inventory items (without pagination for correct calculation)
 	items, err := uc.inventoryRepo.FindAll(ctx, 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch inventory items: %w", err)
 	}
 
-	// Inicializar estadísticas
+	// Initialize statistics
 	stats := &InventoryStats{
 		TotalItems:       int64(len(items)),
 		TotalQuantity:    0,
@@ -49,25 +49,25 @@ func (uc *GetInventoryStatsUseCase) Execute(ctx context.Context) (*InventoryStat
 		ReservationRate:  0,
 	}
 
-	// Si no hay items, retornar stats vacías
+	// If there are no items, return empty stats
 	if len(items) == 0 {
 		return stats, nil
 	}
 
-	// Calcular agregaciones
+	// Calculate aggregations
 	for _, item := range items {
 		stats.TotalQuantity += int64(item.Quantity)
 		stats.TotalReserved += int64(item.Reserved)
 		available := item.Available()
 		stats.TotalAvailable += int64(available)
 
-		// Contar items con low stock (disponible < 10)
+		// Count items with low stock (available < 10)
 		if available < 10 {
 			stats.LowStockCount++
 		}
 	}
 
-	// Calcular promedios y tasas
+	// Calculate averages and rates
 	if stats.TotalItems > 0 {
 		stats.AverageAvailable = float64(stats.TotalAvailable) / float64(stats.TotalItems)
 	}
