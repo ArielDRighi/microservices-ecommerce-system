@@ -121,7 +121,7 @@ func (uc *ReserveStockUseCase) Execute(ctx context.Context, input ReserveStockIn
 		return nil, err
 	}
 
-		// Publish StockReserved event (don't fail transaction if event publication fails)
+	// Publish StockReserved event (don't fail transaction if event publication fails)
 	stockReservedEvent := events.StockReservedEvent{
 		BaseEvent: events.BaseEvent{
 			EventID:   uuid.New().String(),
