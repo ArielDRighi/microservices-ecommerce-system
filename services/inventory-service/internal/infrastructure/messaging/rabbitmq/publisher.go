@@ -100,6 +100,11 @@ func (p *Publisher) PublishStockFailed(ctx context.Context, event events.StockFa
 	return p.publish(ctx, events.RoutingKeyStockFailed, event)
 }
 
+// PublishStockDepleted publishes a stock depleted event (when quantity reaches 0)
+func (p *Publisher) PublishStockDepleted(ctx context.Context, event events.StockDepletedEvent) error {
+	return p.publish(ctx, events.RoutingKeyStockDepleted, event)
+}
+
 // publish is the internal method that handles the actual publishing with retry logic
 func (p *Publisher) publish(ctx context.Context, routingKey string, event interface{}) error {
 	startTime := time.Now()
@@ -193,6 +198,8 @@ func getEventType(event interface{}) string {
 		return "stock_released"
 	case events.StockFailedEvent:
 		return "stock_failed"
+	case events.StockDepletedEvent:
+		return "stock_depleted"
 	default:
 		return "unknown"
 	}

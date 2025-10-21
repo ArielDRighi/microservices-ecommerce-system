@@ -7,11 +7,47 @@ import (
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/entity"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/events"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+// MockPublisher is a mock implementation of events.Publisher
+type MockPublisher struct {
+	mock.Mock
+}
+
+func (m *MockPublisher) PublishStockReserved(ctx context.Context, event events.StockReservedEvent) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockPublisher) PublishStockConfirmed(ctx context.Context, event events.StockConfirmedEvent) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockPublisher) PublishStockReleased(ctx context.Context, event events.StockReleasedEvent) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockPublisher) PublishStockFailed(ctx context.Context, event events.StockFailedEvent) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockPublisher) PublishStockDepleted(ctx context.Context, event events.StockDepletedEvent) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+func (m *MockPublisher) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
 
 // MockReservationRepository is a mock implementation of repository.ReservationRepository
 type MockReservationRepository struct {
@@ -120,12 +156,14 @@ func (m *MockReservationRepository) CountByStatus(ctx context.Context, status en
 func TestNewReserveStockUseCase(t *testing.T) {
 	mockInventoryRepo := new(MockInventoryRepository)
 	mockReservationRepo := new(MockReservationRepository)
+	mockPublisher := new(MockPublisher)
 
-	uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+	uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 	assert.NotNil(t, uc)
 	assert.Equal(t, mockInventoryRepo, uc.inventoryRepo)
 	assert.Equal(t, mockReservationRepo, uc.reservationRepo)
+	assert.Equal(t, mockPublisher, uc.publisher)
 }
 
 func TestReserveStockUseCase_Execute_Success(t *testing.T) {
@@ -133,7 +171,8 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -143,6 +182,7 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		mockInventoryRepo.On("FindByProductID", mock.Anything, productID).Return(item, nil)
 		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
 		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockReserved", mock.Anything, mock.AnythingOfType("events.StockReservedEvent")).Return(nil)
 
 		input := ReserveStockInput{
 			ProductID: productID,
@@ -172,7 +212,8 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -183,6 +224,7 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		mockInventoryRepo.On("FindByProductID", mock.Anything, productID).Return(item, nil)
 		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
 		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockReserved", mock.Anything, mock.AnythingOfType("events.StockReservedEvent")).Return(nil)
 
 		input := ReserveStockInput{
 			ProductID: productID,
@@ -209,7 +251,8 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -223,6 +266,7 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 			return i.Version > initialVersion && i.Reserved == 50
 		})).Return(nil)
 		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockReserved", mock.Anything, mock.AnythingOfType("events.StockReservedEvent")).Return(nil)
 
 		input := ReserveStockInput{
 			ProductID: productID,
@@ -242,12 +286,137 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 	})
 }
 
+func TestReserveStockUseCase_Execute_PublishesEvents(t *testing.T) {
+	t.Run("should publish StockReserved event on success", func(t *testing.T) {
+		// Arrange
+		mockInventoryRepo := new(MockInventoryRepository)
+		mockReservationRepo := new(MockReservationRepository)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
+
+		productID := uuid.New()
+		orderID := uuid.New()
+		item, _ := entity.NewInventoryItem(productID, 100)
+
+		mockReservationRepo.On("ExistsByOrderID", mock.Anything, orderID).Return(false, nil)
+		mockInventoryRepo.On("FindByProductID", mock.Anything, productID).Return(item, nil)
+		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
+		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+
+		// Expect StockReserved event to be published
+		mockPublisher.On("PublishStockReserved", mock.Anything, mock.MatchedBy(func(event events.StockReservedEvent) bool {
+			return event.Payload.ProductID == productID.String() &&
+				event.Payload.OrderID == orderID.String() &&
+				event.Payload.Quantity == 50 &&
+				!event.Payload.ReservedAt.IsZero() &&
+				!event.Payload.ExpiresAt.IsZero()
+		})).Return(nil)
+
+		input := ReserveStockInput{
+			ProductID: productID,
+			OrderID:   orderID,
+			Quantity:  50,
+		}
+
+		// Act
+		output, err := uc.Execute(context.Background(), input)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockPublisher.AssertExpectations(t)
+		mockInventoryRepo.AssertExpectations(t)
+		mockReservationRepo.AssertExpectations(t)
+	})
+
+	t.Run("should publish StockDepleted event when stock reaches zero", func(t *testing.T) {
+		// Arrange
+		mockInventoryRepo := new(MockInventoryRepository)
+		mockReservationRepo := new(MockReservationRepository)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
+
+		productID := uuid.New()
+		orderID := uuid.New()
+		item, _ := entity.NewInventoryItem(productID, 50) // Exactly 50 in stock
+
+		mockReservationRepo.On("ExistsByOrderID", mock.Anything, orderID).Return(false, nil)
+		mockInventoryRepo.On("FindByProductID", mock.Anything, productID).Return(item, nil)
+		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
+		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+
+		// Expect both StockReserved and StockDepleted events
+		mockPublisher.On("PublishStockReserved", mock.Anything, mock.AnythingOfType("events.StockReservedEvent")).Return(nil)
+		mockPublisher.On("PublishStockDepleted", mock.Anything, mock.MatchedBy(func(event events.StockDepletedEvent) bool {
+			return event.Payload.ProductID == productID.String() &&
+				event.Payload.OrderID == orderID.String() &&
+				event.Payload.LastQuantity == 50 &&
+				!event.Payload.DepletedAt.IsZero()
+		})).Return(nil)
+
+		input := ReserveStockInput{
+			ProductID: productID,
+			OrderID:   orderID,
+			Quantity:  50, // Reserve all stock
+		}
+
+		// Act
+		output, err := uc.Execute(context.Background(), input)
+
+		// Assert
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, 0, output.RemainingStock)
+		mockPublisher.AssertExpectations(t)
+		mockInventoryRepo.AssertExpectations(t)
+		mockReservationRepo.AssertExpectations(t)
+	})
+
+	t.Run("should not fail reservation if event publication fails", func(t *testing.T) {
+		// Arrange
+		mockInventoryRepo := new(MockInventoryRepository)
+		mockReservationRepo := new(MockReservationRepository)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
+
+		productID := uuid.New()
+		orderID := uuid.New()
+		item, _ := entity.NewInventoryItem(productID, 100)
+
+		mockReservationRepo.On("ExistsByOrderID", mock.Anything, orderID).Return(false, nil)
+		mockInventoryRepo.On("FindByProductID", mock.Anything, productID).Return(item, nil)
+		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
+		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+
+		// Simulate event publication failure
+		mockPublisher.On("PublishStockReserved", mock.Anything, mock.AnythingOfType("events.StockReservedEvent")).
+			Return(assert.AnError)
+
+		input := ReserveStockInput{
+			ProductID: productID,
+			OrderID:   orderID,
+			Quantity:  50,
+		}
+
+		// Act
+		output, err := uc.Execute(context.Background(), input)
+
+		// Assert - Reservation should still succeed even if event publication fails
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockPublisher.AssertExpectations(t)
+		mockInventoryRepo.AssertExpectations(t)
+		mockReservationRepo.AssertExpectations(t)
+	})
+}
+
 func TestReserveStockUseCase_Execute_InsufficientStock(t *testing.T) {
 	t.Run("should return error when insufficient stock", func(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -278,7 +447,8 @@ func TestReserveStockUseCase_Execute_InsufficientStock(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -312,7 +482,8 @@ func TestReserveStockUseCase_Execute_ValidationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		input := ReserveStockInput{
 			ProductID: uuid.New(),
@@ -333,7 +504,8 @@ func TestReserveStockUseCase_Execute_ValidationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		input := ReserveStockInput{
 			ProductID: uuid.New(),
@@ -354,7 +526,8 @@ func TestReserveStockUseCase_Execute_ValidationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		orderID := uuid.New()
 
@@ -383,7 +556,8 @@ func TestReserveStockUseCase_Execute_RepositoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -413,7 +587,8 @@ func TestReserveStockUseCase_Execute_RepositoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReserveStockUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()

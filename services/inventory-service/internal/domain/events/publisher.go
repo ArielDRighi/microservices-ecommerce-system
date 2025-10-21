@@ -17,6 +17,9 @@ type Publisher interface {
 	// PublishStockFailed publishes a stock operation failure event
 	PublishStockFailed(ctx context.Context, event StockFailedEvent) error
 
+	// PublishStockDepleted publishes a stock depleted event (when quantity reaches 0)
+	PublishStockDepleted(ctx context.Context, event StockDepletedEvent) error
+
 	// Close closes the publisher and releases resources
 	Close() error
 }

@@ -156,6 +156,25 @@ func TestEventStructs_JSONMarshaling(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "StockDepletedEvent",
+			event: events.StockDepletedEvent{
+				BaseEvent: events.BaseEvent{
+					EventID:   uuid.New().String(),
+					EventType: events.RoutingKeyStockDepleted,
+					Timestamp: now.Format(time.RFC3339),
+					Version:   events.EventVersion,
+					Source:    events.SourceInventoryService,
+				},
+				Payload: events.StockDepletedPayload{
+					ProductID:    "prod-123",
+					OrderID:      uuid.New().String(),
+					UserID:       uuid.New().String(),
+					DepletedAt:   now,
+					LastQuantity: 10,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -188,6 +207,7 @@ func TestEventConstants(t *testing.T) {
 		{"RoutingKeyStockConfirmed", events.RoutingKeyStockConfirmed, "inventory.stock.confirmed"},
 		{"RoutingKeyStockReleased", events.RoutingKeyStockReleased, "inventory.stock.released"},
 		{"RoutingKeyStockFailed", events.RoutingKeyStockFailed, "inventory.stock.failed"},
+		{"RoutingKeyStockDepleted", events.RoutingKeyStockDepleted, "inventory.stock.depleted"},
 		{"ExchangeInventoryEvents", events.ExchangeInventoryEvents, "inventory.events"},
 		{"SourceInventoryService", events.SourceInventoryService, "inventory-service"},
 		{"EventVersion", events.EventVersion, "1.0.0"},

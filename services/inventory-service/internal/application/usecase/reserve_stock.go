@@ -2,10 +2,12 @@ package usecase
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/entity"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/events"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/repository"
 	"github.com/google/uuid"
 )
@@ -33,16 +35,19 @@ type ReserveStockOutput struct {
 type ReserveStockUseCase struct {
 	inventoryRepo   repository.InventoryRepository
 	reservationRepo repository.ReservationRepository
+	publisher       events.Publisher
 }
 
 // NewReserveStockUseCase creates a new instance of ReserveStockUseCase
 func NewReserveStockUseCase(
 	inventoryRepo repository.InventoryRepository,
 	reservationRepo repository.ReservationRepository,
+	publisher events.Publisher,
 ) *ReserveStockUseCase {
 	return &ReserveStockUseCase{
 		inventoryRepo:   inventoryRepo,
 		reservationRepo: reservationRepo,
+		publisher:       publisher,
 	}
 }
 
@@ -114,6 +119,56 @@ func (uc *ReserveStockUseCase) Execute(ctx context.Context, input ReserveStockIn
 		// Note: In a real system, this should be wrapped in a transaction
 		// or use compensating actions to rollback the inventory update
 		return nil, err
+	}
+
+	// Publish StockReserved event (don't fail transaction if event publication fails)
+	stockReservedEvent := events.StockReservedEvent{
+		BaseEvent: events.BaseEvent{
+			EventID:   uuid.New().String(),
+			EventType: "stock_reserved",
+			Timestamp: time.Now().Format(time.RFC3339),
+			Version:   events.EventVersion,
+			Source:    events.SourceInventoryService,
+		},
+		Payload: events.StockReservedPayload{
+			ReservationID: reservation.ID.String(),
+			ProductID:     input.ProductID.String(),
+			Quantity:      input.Quantity,
+			OrderID:       input.OrderID.String(),
+			UserID:        "", // TODO: Get from context when auth is implemented
+			ExpiresAt:     reservation.ExpiresAt,
+			ReservedAt:    reservation.CreatedAt,
+		},
+	}
+
+	if err := uc.publisher.PublishStockReserved(ctx, stockReservedEvent); err != nil {
+		// Log error but don't fail the reservation
+		log.Printf("Failed to publish StockReserved event: %v", err)
+	}
+
+	// Publish StockDepleted event if available quantity reached zero
+	if item.Available() == 0 {
+		stockDepletedEvent := events.StockDepletedEvent{
+			BaseEvent: events.BaseEvent{
+				EventID:   uuid.New().String(),
+				EventType: "stock_depleted",
+				Timestamp: time.Now().Format(time.RFC3339),
+				Version:   events.EventVersion,
+				Source:    events.SourceInventoryService,
+			},
+			Payload: events.StockDepletedPayload{
+				ProductID:    input.ProductID.String(),
+				OrderID:      input.OrderID.String(),
+				UserID:       "", // TODO: Get from context when auth is implemented
+				DepletedAt:   time.Now(),
+				LastQuantity: input.Quantity,
+			},
+		}
+
+		if err := uc.publisher.PublishStockDepleted(ctx, stockDepletedEvent); err != nil {
+			// Log error but don't fail the reservation
+			log.Printf("Failed to publish StockDepleted event: %v", err)
+		}
 	}
 
 	return &ReserveStockOutput{

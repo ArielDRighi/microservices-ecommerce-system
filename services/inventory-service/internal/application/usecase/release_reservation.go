@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/events"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/repository"
 	"github.com/google/uuid"
 )
@@ -31,16 +34,19 @@ type ReleaseReservationOutput struct {
 type ReleaseReservationUseCase struct {
 	inventoryRepo   repository.InventoryRepository
 	reservationRepo repository.ReservationRepository
+	publisher       events.Publisher
 }
 
 // NewReleaseReservationUseCase creates a new instance of ReleaseReservationUseCase
 func NewReleaseReservationUseCase(
 	inventoryRepo repository.InventoryRepository,
 	reservationRepo repository.ReservationRepository,
+	publisher events.Publisher,
 ) *ReleaseReservationUseCase {
 	return &ReleaseReservationUseCase{
 		inventoryRepo:   inventoryRepo,
 		reservationRepo: reservationRepo,
+		publisher:       publisher,
 	}
 }
 
@@ -96,6 +102,31 @@ func (uc *ReleaseReservationUseCase) Execute(ctx context.Context, input ReleaseR
 		// to ensure atomicity. If reservation update fails, the inventory update
 		// should also be rolled back.
 		return nil, err
+	}
+
+	// Publish StockReleased event (don't fail transaction if event publication fails)
+	stockReleasedEvent := events.StockReleasedEvent{
+		BaseEvent: events.BaseEvent{
+			EventID:   uuid.New().String(),
+			EventType: "stock_released",
+			Timestamp: time.Now().Format(time.RFC3339),
+			Version:   events.EventVersion,
+			Source:    events.SourceInventoryService,
+		},
+		Payload: events.StockReleasedPayload{
+			ReservationID: reservation.ID.String(),
+			ProductID:     item.ProductID.String(),
+			Quantity:      reservation.Quantity,
+			OrderID:       reservation.OrderID.String(),
+			UserID:        "",               // TODO: Get from context when auth is implemented
+			Reason:        "manual_release", // TODO: Get actual reason from input
+			ReleasedAt:    time.Now(),
+		},
+	}
+
+	if err := uc.publisher.PublishStockReleased(ctx, stockReleasedEvent); err != nil {
+		// Log error but don't fail the release
+		log.Printf("Failed to publish StockReleased event: %v", err)
 	}
 
 	return &ReleaseReservationOutput{

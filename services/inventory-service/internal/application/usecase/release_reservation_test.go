@@ -15,12 +15,14 @@ import (
 func TestNewReleaseReservationUseCase(t *testing.T) {
 	mockInventoryRepo := new(MockInventoryRepository)
 	mockReservationRepo := new(MockReservationRepository)
+	mockPublisher := new(MockPublisher)
 
-	uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+	uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 	assert.NotNil(t, uc)
 	assert.Equal(t, mockInventoryRepo, uc.inventoryRepo)
 	assert.Equal(t, mockReservationRepo, uc.reservationRepo)
+	assert.Equal(t, mockPublisher, uc.publisher)
 }
 
 func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
@@ -28,7 +30,8 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -44,6 +47,7 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 		mockInventoryRepo.On("FindByID", mock.Anything, item.ID).Return(item, nil)
 		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
 		mockReservationRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockReleased", mock.Anything, mock.AnythingOfType("events.StockReleasedEvent")).Return(nil)
 
 		input := ReleaseReservationInput{
 			ReservationID: reservation.ID,
@@ -70,7 +74,8 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -86,6 +91,7 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 		mockInventoryRepo.On("FindByID", mock.Anything, item.ID).Return(item, nil)
 		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
 		mockReservationRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockReleased", mock.Anything, mock.AnythingOfType("events.StockReleasedEvent")).Return(nil)
 
 		input := ReleaseReservationInput{
 			ReservationID: reservation.ID,
@@ -108,7 +114,8 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -126,6 +133,7 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 			// Verify status changed from pending to released
 			return r.Status == entity.ReservationReleased && initialStatus == entity.ReservationPending
 		})).Return(nil)
+		mockPublisher.On("PublishStockReleased", mock.Anything, mock.AnythingOfType("events.StockReleasedEvent")).Return(nil)
 
 		input := ReleaseReservationInput{
 			ReservationID: reservation.ID,
@@ -146,7 +154,8 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -164,6 +173,7 @@ func TestReleaseReservationUseCase_Execute_Success(t *testing.T) {
 			return i.Quantity == initialQuantity && i.Reserved == 0
 		})).Return(nil)
 		mockReservationRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockReleased", mock.Anything, mock.AnythingOfType("events.StockReleasedEvent")).Return(nil)
 
 		input := ReleaseReservationInput{
 			ReservationID: reservation.ID,
@@ -186,7 +196,8 @@ func TestReleaseReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		reservationID := uuid.New()
 
@@ -211,7 +222,8 @@ func TestReleaseReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -243,7 +255,8 @@ func TestReleaseReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -277,7 +290,8 @@ func TestReleaseReservationUseCase_Execute_InventoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		orderID := uuid.New()
 		inventoryItemID := uuid.New()
@@ -307,7 +321,8 @@ func TestReleaseReservationUseCase_Execute_InventoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -341,7 +356,8 @@ func TestReleaseReservationUseCase_Execute_InventoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewReleaseReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()

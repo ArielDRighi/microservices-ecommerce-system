@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/events"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/repository"
 	"github.com/google/uuid"
 )
@@ -31,16 +34,19 @@ type ConfirmReservationOutput struct {
 type ConfirmReservationUseCase struct {
 	inventoryRepo   repository.InventoryRepository
 	reservationRepo repository.ReservationRepository
+	publisher       events.Publisher
 }
 
 // NewConfirmReservationUseCase creates a new instance of ConfirmReservationUseCase
 func NewConfirmReservationUseCase(
 	inventoryRepo repository.InventoryRepository,
 	reservationRepo repository.ReservationRepository,
+	publisher events.Publisher,
 ) *ConfirmReservationUseCase {
 	return &ConfirmReservationUseCase{
 		inventoryRepo:   inventoryRepo,
 		reservationRepo: reservationRepo,
+		publisher:       publisher,
 	}
 }
 
@@ -99,6 +105,55 @@ func (uc *ConfirmReservationUseCase) Execute(ctx context.Context, input ConfirmR
 		// to ensure atomicity. If reservation update fails, the inventory update
 		// should also be rolled back.
 		return nil, err
+	}
+
+	// Publish StockConfirmed event (don't fail transaction if event publication fails)
+	stockConfirmedEvent := events.StockConfirmedEvent{
+		BaseEvent: events.BaseEvent{
+			EventID:   uuid.New().String(),
+			EventType: "stock_confirmed",
+			Timestamp: time.Now().Format(time.RFC3339),
+			Version:   events.EventVersion,
+			Source:    events.SourceInventoryService,
+		},
+		Payload: events.StockConfirmedPayload{
+			ReservationID: reservation.ID.String(),
+			ProductID:     item.ProductID.String(),
+			Quantity:      reservation.Quantity,
+			OrderID:       reservation.OrderID.String(),
+			UserID:        "", // TODO: Get from context when auth is implemented
+			ConfirmedAt:   time.Now(),
+		},
+	}
+
+	if err := uc.publisher.PublishStockConfirmed(ctx, stockConfirmedEvent); err != nil {
+		// Log error but don't fail the confirmation
+		log.Printf("Failed to publish StockConfirmed event: %v", err)
+	}
+
+	// Publish StockDepleted event if available quantity reached zero
+	if item.Available() == 0 {
+		stockDepletedEvent := events.StockDepletedEvent{
+			BaseEvent: events.BaseEvent{
+				EventID:   uuid.New().String(),
+				EventType: "stock_depleted",
+				Timestamp: time.Now().Format(time.RFC3339),
+				Version:   events.EventVersion,
+				Source:    events.SourceInventoryService,
+			},
+			Payload: events.StockDepletedPayload{
+				ProductID:    item.ProductID.String(),
+				OrderID:      reservation.OrderID.String(),
+				UserID:       "", // TODO: Get from context when auth is implemented
+				DepletedAt:   time.Now(),
+				LastQuantity: reservation.Quantity,
+			},
+		}
+
+		if err := uc.publisher.PublishStockDepleted(ctx, stockDepletedEvent); err != nil {
+			// Log error but don't fail the confirmation
+			log.Printf("Failed to publish StockDepleted event: %v", err)
+		}
 	}
 
 	return &ConfirmReservationOutput{
