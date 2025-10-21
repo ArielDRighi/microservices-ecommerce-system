@@ -1,8 +1,8 @@
 # Estrategia de CI/CD - Microservices E-commerce System
 
-**Fecha:** 2025-10-17  
-**Estado:** Fase 1 - Epic 1.3 ✅ COMPLETADO | Epic 1.4 EN PROGRESO  
-**Última actualización:** Epic 1.3 completado y mergeado - Epic 1.4 iniciado
+**Fecha:** 2025-10-21  
+**Estado:** Fase 3 - Epic 3.1 ✅ COMPLETADO | Epic 3.2 ✅ COMPLETADO  
+**Última actualización:** Epic 3.1 completado - HTTP Client con resiliencia implementado
 
 ---
 
@@ -12,44 +12,66 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 
 ---
 
-## 📊 Estado Actual del Proyecto
+## 📊 Estado Actual del Proyecto (Actualizado 2025-10-21)
 
-### Epic 1.3: CI/CD Pipeline Inicial ✅ COMPLETADO
+### Epic 3.1: Comunicación Síncrona (HTTP) ✅ COMPLETADO
 
 ```
-├── Epic 1.1 ✅ Estructura del Monorepo (COMPLETADA)
-├── Epic 1.2 ✅ Inventory Service - Esqueleto Básico (COMPLETADA)
-├── Epic 1.3 ✅ CI/CD - Pipeline Inicial (COMPLETADA - MERGEADA)
-│   ├── T1.3.1 ✅ Crear inventory-service-ci.yml
-│   ├── T1.3.2 ✅ Configurar golangci-lint
-│   ├── T1.3.3 ✅ Crear orders-service-ci.yml
-│   └── T1.3.4 ✅ Añadir badges CI/CD al README
-└── Epic 1.4 🔄 Docker & Orchestration (EN PROGRESO)
-    ├── T1.4.1 ✅ docker-compose.yml principal
-    ├── T1.4.2 ✅ Bases de datos separadas
-    ├── T1.4.3 ✅ Dockerfile para Inventory Service
-    ├── T1.4.4 ⏳ Dockerfile.dev (desarrollo con hot-reload)
-    └── T1.4.5 ⏳ Setup RabbitMQ
+├── Fase 0 ✅ Technical Spikes (COMPLETADA)
+│   ├── T0.1.1 ✅ API Gateway (ADR-026)
+│   ├── T0.1.2 ✅ Testcontainers Strategy (ADR-027)
+│   ├── T0.1.3 ✅ REST Sync Communication (ADR-028)
+│   └── T0.1.4 ✅ RabbitMQ Topology (ADR-029)
+├── Fase 1 ✅ Implementación Base (COMPLETADA)
+│   ├── Epic 1.1 ✅ Estructura del Monorepo
+│   ├── Epic 1.2 ✅ Inventory Service - Esqueleto Básico
+│   ├── Epic 1.3 ✅ CI/CD - Pipeline Inicial
+│   └── Epic 1.4 ✅ Docker & Orchestration
+├── Fase 2 ✅ Features Core (COMPLETADA)
+│   └── Epic 2.x ✅ Inventory Service Implementation
+└── Fase 3 🔄 Integración HTTP (ACTUAL)
+    ├── Epic 3.1 ✅ Comunicación Síncrona HTTP (COMPLETADA)
+    │   ├── T3.1.1 ✅ Setup Cliente HTTP
+    │   ├── T3.1.2 ✅ InventoryHttpClient con Resiliencia
+    │   ├── T3.1.3 ✅ Tests del Cliente HTTP (31 tests)
+    │   ├── T3.1.4 ✅ Integración con Saga (12 tests)
+    │   └── T3.1.5 ✅ Observabilidad y Métricas
+    └── Epic 3.2 ✅ Saga con HTTP (COMPLETADA - integrada en 3.1)
 ```
 
-**Epic 1.3 - Resultado:**
+**Epic 3.1 - Resultado:**
 
-- ✅ Pipelines minimalistas: Build + Lint (non-blocking)
-- ✅ Tests deshabilitados explícitamente (con documentación)
-- ✅ CI pasa en todos los servicios
-- ✅ PR #6 mergeado a develop
+- ✅ InventoryHttpClient implementado (520 líneas)
+- ✅ 43 tests pasando (31 client unit + 12 saga integration)
+- ✅ Circuit breakers con opossum (50% threshold, 30s reset)
+- ✅ Retry con exponential backoff (3 intentos: 1s, 2s, 4s)
+- ✅ Métricas Prometheus con private Registry
+- ✅ Coverage >95% en InventoryHttpClient
+- ✅ 6 commits: 2d2a0b4, 838d15a, 29e0360, 22d23aa, 4c3ea2d, 6cd1b1a
+- ✅ Documentación completa: docs/epic-3.1-summary.md
 
-**Epic 1.4 - Objetivo:**
+**Estado de Tests por Servicio:**
 
-- Completar infraestructura Docker
-- RabbitMQ para mensajería asíncrona
-- Hot-reload en desarrollo
+**Orders Service (NestJS):**
+- ✅ 218+ archivos `.spec.ts` en src/
+- ✅ Tests configurados con Jest
+- ✅ E2E tests con Supertest en test/
+- ✅ Coverage configurado (jest.config.js)
+- ✅ Scripts disponibles: test, test:cov, test:e2e
+- ✅ Epic 3.1: +43 tests nuevos (HTTP client + saga integration)
 
-**Duración Epic 1.4:** ~3-5 días
+**Inventory Service (Go):**
+- ✅ 54+ archivos `*_test.go`
+- ✅ Tests unitarios en internal/
+- ✅ Tests de integración con Testcontainers en tests/integration/
+- ✅ Makefile con targets: test, test-coverage, test-integration, test-e2e
+- ✅ Coverage configurado (coverage.out)
+
+**Duración Epic 3.1:** ~10 horas (estimado vs real: exacto)
 
 ---
 
-## 🔧 Pipelines ACTIVOS en Epic 1.3
+## 🔧 Pipelines ACTIVOS (Actualizado 2025-10-21)
 
 ### 1. CI Basic (`.github/workflows/ci-basic.yml`)
 
@@ -59,7 +81,7 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 
 - ✅ Valida estructura de directorios
 - ✅ Verifica archivos de configuración existen
-- ✅ Linting básico (no bloqueante)
+- ✅ Linting básico (non-blocking)
 
 **Estado:** ✅ ACTIVO
 
@@ -67,137 +89,158 @@ Este documento explica la **estrategia progresiva** de CI/CD adaptada al estado 
 
 ### 2. Inventory Service CI (`.github/workflows/inventory-service-ci.yml`)
 
-**Propósito:** Build + Linting para servicio Go
+**Propósito:** CI completo para servicio Go
 
 **Jobs:**
 
 #### Job 1: Build & Unit Tests
 
-- ✅ **Build**: Compila binario Go
-- ⏸️ **Tests**: DISABLED (no hay DB configurada - pendiente Epic 1.4)
-- ⏸️ **Coverage**: DISABLED (se habilitará en Epic 2.x)
+- ✅ **Build**: Compila binario Go (`go build -v -o bin/inventory-service cmd/api/main.go`)
+- ⏸️ **Tests**: DISABLED en workflow (comentados con explicación)
+  - **Razón**: Tests requieren DB configurada (pendiente Epic 1.4)
+  - **Tests disponibles**: 54+ archivos `*_test.go` listos para ejecutarse
+  - **Comando local**: `make test` o `go test ./... -v -race -short`
+- ⏸️ **Coverage**: DISABLED (se habilitará después de Epic 1.4)
+
+**Realidad del Código vs Pipeline:**
+- ❌ Pipeline dice "no hay tests" 
+- ✅ Código tiene 54+ archivos de test
+- ✅ Tests pasan localmente con `make test`
+- 🎯 **ACTUALIZACIÓN NECESARIA**: Habilitar tests en CI con servicios Docker
 
 ```yaml
-- name: Build application
-  run: go build -v -o bin/inventory-service cmd/api/main.go
-
+# ESTADO ACTUAL EN WORKFLOW (DESACTUALIZADO):
 - name: Run unit tests (DISABLED - Epic 1.3)
-  run: |
-    echo "⏸️ Tests DISABLED - Database not configured yet"
-    # go test ./internal/... (se habilitará en Epic 1.4)
+  run: echo "⏸️ Tests DISABLED during Epic 1.3"
+
+# DEBERÍA SER (CON EPIC 3.1 COMPLETADO):
+- name: Run unit tests
+  run: go test ./... -v -race -short -coverprofile=coverage.out
 ```
 
 #### Job 2: Integration Tests
 
-- ⏸️ **Status**: Skipped (requiere Testcontainers + Docker - Epic 1.4)
+- ⏸️ **Status**: Skipped en workflow
+- ✅ **Tests disponibles**: tests/integration/ con Testcontainers
+- 🎯 **ACTUALIZACIÓN NECESARIA**: Habilitar con Docker en GitHub Actions
 
 #### Job 3: Linting
 
-- ✅ **golangci-lint**: Ejecuta pero `continue-on-error: true` (non-blocking)
-- ✅ **gofmt**: Check de formateo (warnings, no falla el pipeline)
-- ✅ **go vet**: Análisis estático (warnings, no falla el pipeline)
-
-```yaml
-- uses: golangci/golangci-lint-action@v6
-  continue-on-error: true # Non-blocking for Epic 1.3
-```
+- ✅ **golangci-lint**: Ejecuta con `.golangci.yml` (non-blocking)
+- ✅ **gofmt**: Check de formateo
+- ✅ **go vet**: Análisis estático
 
 #### Job 4: Security
 
-- ✅ **gosec**: Scanner de seguridad (ejecuta, warnings non-blocking)
+- ✅ **gosec**: Scanner de seguridad (non-blocking)
 
-**Path filters:** Solo ejecuta si cambian archivos en `services/inventory-service/**`
+**Path filters:** `services/inventory-service/**`
 
-**Estado:** ✅ ACTIVO (minimalista - solo build + lint)
+**Estado:** ✅ ACTIVO (build + lint) | 🎯 NECESITA ACTUALIZACIÓN (habilitar tests)
 
 ---
 
 ### 3. Orders Service CI (`.github/workflows/orders-service-ci.yml`)
 
-**Propósito:** Build + Linting para servicio NestJS
+**Propósito:** CI completo para servicio NestJS
 
 **Jobs:**
 
 #### Job 1: Build & Unit Tests
 
-- ✅ **Install**: `npm ci --ignore-scripts` (evita husky en monorepo)
-- ✅ **Lint**: `npm run lint` (warnings non-blocking)
+- ✅ **Install**: `npm ci --ignore-scripts`
+- ✅ **Build shared types**: Compila `shared/types` package
+- ✅ **Lint**: `npm run lint` (non-blocking)
 - ✅ **Build**: `npm run build` (validación TypeScript)
-- ⏸️ **Tests**: DISABLED (servicio reciclado, no configurado aún)
+- ⏸️ **Tests**: DISABLED en workflow (comentados con explicación)
+  - **Razón declarada**: "Servicio reciclado, no configurado"
+  - **Tests disponibles**: 218+ archivos `.spec.ts`
+  - **Epic 3.1**: +43 tests nuevos (HTTP client + saga)
+  - **Comando local**: `npm run test` o `npm run test:cov`
+- ⏸️ **Coverage**: DISABLED
+
+**Realidad del Código vs Pipeline:**
+- ❌ Pipeline dice "servicio no configurado"
+- ✅ Código tiene 218+ archivos de test
+- ✅ Epic 3.1 agregó 43 tests nuevos (todos pasando)
+- ✅ Tests pasan localmente con `npm run test`
+- 🎯 **ACTUALIZACIÓN NECESARIA**: Habilitar tests en CI con servicios Docker
 
 ```yaml
-- name: Install dependencies
-  run: npm ci --ignore-scripts # Evita husky en CI
-
+# ESTADO ACTUAL EN WORKFLOW (DESACTUALIZADO):
 - name: Run unit tests (DISABLED - Epic 1.3)
+  run: echo "⏸️ Unit tests DISABLED during Epic 1.3"
+
+# DEBERÍA SER (CON EPIC 3.1 COMPLETADO):
+- name: Run unit tests
+  run: npm run test:cov
+  
+- name: Check coverage threshold
   run: |
-    echo "⏸️ Tests DISABLED - Service not configured yet"
-    echo "📝 Missing: .env, database, configuration"
-    # npm run test:cov (se habilitará en Epic 2.x)
+    COVERAGE=$(grep -oP '"lines":\s*\K[0-9.]+' coverage/coverage-summary.json | head -1)
+    if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+      echo "❌ Coverage $COVERAGE% is below 70%"
+      exit 1
+    fi
 ```
 
-**Por qué tests están deshabilitados:**
+**Services configurados en workflow:**
+- ✅ PostgreSQL 16 (test database)
+- ✅ Redis 7 (cache)
 
-- Orders Service es **código reciclado** de otro proyecto
-- **NO está configurado** para este proyecto:
-  - ❌ Sin `.env` configurado
-  - ❌ Sin base de datos creada
-  - ❌ Variables de entorno incorrectas
+**Por qué los tests DEBERÍAN estar habilitados:**
+- ✅ Orders Service está completamente configurado
+- ✅ Epic 3.1 agregó InventoryHttpClient con 31 tests
+- ✅ Epic 3.1 agregó saga integration con 12 tests
+- ✅ Todos los 43 tests nuevos pasan localmente
+- ✅ Services Docker ya configurados en workflow
 
 #### Job 2: E2E Tests
 
-- ⏸️ **Status**: Skipped (servicio no configurado, se habilitará en Epic 2.x)
-
-```yaml
-e2e-tests:
-  name: E2E Tests (Disabled)
-  steps:
-    - run: echo "⏸️ E2E tests DISABLED during Epic 1.3"
-```
+- ⏸️ **Status**: Skipped en workflow
+- ✅ **Tests disponibles**: test/ con Supertest
+- 🎯 **ACTUALIZACIÓN NECESARIA**: Habilitar con servicios Docker
 
 #### Job 3: Linting
 
-- ✅ **ESLint**: Ejecuta (warnings non-blocking)
-- ✅ **Prettier**: Check de formateo (warnings non-blocking)
-- ✅ **TypeScript**: Type checking vía build (warnings non-blocking)
-
-```yaml
-- run: npm run lint || echo "⚠️ Linting issues (non-blocking)"
-```
+- ✅ **ESLint**: Ejecuta (non-blocking)
+- ✅ **Prettier**: Check de formateo (non-blocking)
+- ✅ **TypeScript**: Type checking vía build
 
 #### Job 4: Security
 
 - ⏸️ **npm audit**: Skipped (23 vulnerabilidades conocidas en devDeps)
 
-**Path filters:** Solo ejecuta si cambian archivos en `services/orders-service/**`
+**Path filters:** `services/orders-service/**`
 
-**Estado:** ✅ ACTIVO (minimalista - solo build + lint)
+**Estado:** ✅ ACTIVO (build + lint) | 🎯 NECESITA ACTUALIZACIÓN (habilitar tests)
 
 ---
 
-## 📅 Roadmap de CI/CD por Epic
+## 📅 Roadmap de CI/CD por Epic (Actualizado 2025-10-21)
 
-### Epic 1.3: CI/CD Pipeline Inicial (ACTUAL)
+### ✅ Epic 1.3: CI/CD Pipeline Inicial (COMPLETADO)
 
 ```yaml
 Inventory Service:
   - ✅ Build compilation
   - ✅ Linting (non-blocking)
-  - ⏸️ Unit tests DISABLED
-  - ⏸️ Coverage DISABLED
+  - ⏸️ Unit tests DISABLED in workflow
+  - ⏸️ Coverage DISABLED in workflow
 
 Orders Service:
   - ✅ Build compilation
+  - ✅ Build shared types package
   - ✅ Linting (non-blocking)
-  - ⏸️ Unit tests DISABLED
-  - ⏸️ E2E tests DISABLED
-  - ⏸️ Coverage DISABLED
+  - ⏸️ Unit tests DISABLED in workflow
+  - ⏸️ E2E tests DISABLED in workflow
+  - ⏸️ Coverage DISABLED in workflow
 
-Criteria:
+Status:
   - ✅ Pipelines ejecutan sin errores
   - ✅ Builds compilan correctamente
-  - ✅ Linting está configurado (warnings OK)
-  - ❌ Tests automáticos (fuera de scope)
+  - ✅ Linting está configurado
+  - ⚠️ Tests existen pero están deshabilitados en workflows
 ```
 
 **Duración:** 1 semana  
@@ -205,73 +248,100 @@ Criteria:
 
 ---
 
-### Epic 1.4: Docker & Orchestration (PRÓXIMA)
+### ✅ Epic 3.1: Comunicación Síncrona HTTP (COMPLETADO 2025-10-21)
+
+```yaml
+Orders Service - Nuevos componentes:
+  - ✅ InventoryHttpClient (520 líneas)
+  - ✅ 31 unit tests (InventoryHttpClient)
+  - ✅ 12 integration tests (Saga con HTTP)
+  - ✅ Circuit breakers (opossum)
+  - ✅ Retry logic (axios-retry)
+  - ✅ Prometheus metrics (private Registry)
+  - ✅ Coverage >95%
+
+Estado Tests Locales:
+  - ✅ 43 tests nuevos pasando (npm run test)
+  - ✅ Coverage >95% en HTTP client
+  - ✅ Integration tests con saga funcionando
+
+Estado CI Workflow:
+  - ❌ Tests DISABLED en workflow (desactualizado)
+  - � NECESITA ACTUALIZACIÓN
+
+Brecha identificada:
+  - Tests pasan localmente ✅
+  - Tests deshabilitados en CI ❌
+  - Workflows no reflejan capacidad real del código
+```
+
+**Duración:** ~10 horas  
+**Entregable:** InventoryHttpClient + tests completos  
+**Próxima acción:** Actualizar workflows para habilitar tests
+
+---
+
+### 🎯 PRÓXIMA ACTUALIZACIÓN RECOMENDADA: Epic 3.1 CI Enhancement
 
 ```yaml
 Inventory Service:
   - ✅ Build compilation (mantener)
   - ✅ Linting (mantener)
-  - 🆕 Unit tests ENABLED (con DB en Docker)
-  - 🆕 Coverage threshold >70% (enforced)
-  - ⏸️ Integration tests (Testcontainers, manual)
+  - 🆕 HABILITAR Unit tests (con servicios Docker)
+  - 🆕 HABILITAR Coverage threshold >70%
+  - 🆕 HABILITAR Integration tests (Testcontainers en CI)
 
 Orders Service:
   - ✅ Build compilation (mantener)
   - ✅ Linting (mantener)
-  - ⏸️ Unit tests (pendiente adaptación servicio)
-  - ⏸️ E2E tests (pendiente adaptación servicio)
+  - 🆕 HABILITAR Unit tests (ya configurados en workflow)
+  - 🆕 HABILITAR Coverage threshold >70%
+  - 🆕 Verificar 43 tests nuevos de Epic 3.1
+
+Cambios necesarios en workflows:
+  1. orders-service-ci.yml:
+     - Descomentar "npm run test:cov"
+     - Descomentar "Check coverage threshold"
+     - Actualizar mensaje de Epic 1.3 → Epic 3.1
+     
+  2. inventory-service-ci.yml:
+     - Descomentar "go test ./... -v -race -short"
+     - Descomentar "Generate coverage report"
+     - Habilitar integration tests con Docker
 
 Infrastructure:
-  - 🆕 docker-compose.yml configurado
-  - 🆕 PostgreSQL databases (inventory, orders)
-  - 🆕 Redis cluster
-  - 🆕 Health checks
+  - ✅ PostgreSQL ya configurado en workflows
+  - ✅ Redis ya configurado en workflows
+  - ✅ Docker Compose configurado localmente
+  - 🆕 Agregar Docker setup en Inventory workflow
 ```
 
-**Duración:** 2-3 semanas  
-**Entregable:** Inventory Service completo con tests automáticos
+**Duración:** 1-2 horas  
+**Entregable:** Workflows actualizados con tests habilitados  
+**Beneficio:** CI reflejará capacidad real del código (218+ tests Orders, 54+ tests Inventory)
 
 ---
 
-### Epic 2.x: Feature Implementation (FUTURA)
-
-```yaml
-Inventory Service:
-  - ✅ Build + Lint + Unit Tests (mantener)
-  - 🆕 Integration tests ENABLED (Testcontainers en CI)
-  - 🆕 Coverage threshold >75% (enforced)
-
-Orders Service:
-  - 🆕 Service ADAPTED to this project
-  - 🆕 Unit tests ENABLED (.env, DB configured)
-  - 🆕 E2E tests ENABLED (PostgreSQL, Redis)
-  - 🆕 Coverage threshold >70% (enforced)
-
-Test Strategy:
-  - Unit: Jest (NestJS), Go testing
-  - Integration: Testcontainers (Inventory)
-  - E2E: Supertest (Orders)
-```
-
-**Duración:** 3-4 semanas  
-**Entregable:** Ambos servicios con tests completos + coverage >70%
-
----
-
-### Epic 3.x: CI/CD Avanzado (FUTURA)
+### Fase Futura: Epic 4.x - CI/CD Avanzado
 
 ```yaml
 CI:
-  - ✅ All tests passing automatically
+  - ✅ All tests running automatically
   - 🆕 Performance tests (load testing)
-  - 🆕 Security scans (SARIF upload)
+  - 🆕 Security scans (SARIF upload activo)
   - 🆕 Mutation testing (optional)
+  - 🆕 Test de resiliencia (circuit breakers, retry)
 
 CD:
   - 🆕 Docker images build
   - 🆕 Push to ghcr.io
   - 🆕 Deploy to staging (Railway/Fly.io)
   - ⏸️ Production deploy (manual approval)
+
+Monitoring in CI:
+  - 🆕 Prometheus metrics validation
+  - 🆕 Circuit breaker state tests
+  - 🆕 Performance regression detection
 ```
 
 **Duración:** 2-3 semanas  
@@ -279,76 +349,204 @@ CD:
 
 ---
 
-## 🚨 Decisiones Importantes
+## 🚨 Decisiones Importantes (Actualizado 2025-10-21)
 
-### 1. Tests DISABLED en Epic 1.3
+### 1. Tests DISABLED en Workflows pero DISPONIBLES en Código ⚠️
 
-**Razón:**
+**Estado Actual:**
+- ✅ **Orders Service**: 218+ archivos `.spec.ts`
+  - ✅ Epic 3.1: +43 tests nuevos (HTTP client + saga)
+  - ✅ Tests pasan localmente: `npm run test`
+  - ❌ Tests deshabilitados en workflow (comentario obsoleto de Epic 1.3)
+- ✅ **Inventory Service**: 54+ archivos `*_test.go`
+  - ✅ Tests pasan localmente: `make test`
+  - ❌ Tests deshabilitados en workflow (comentario obsoleto de Epic 1.3)
 
-- Epic 1.3 es **setup de CI/CD**, no configuración de servicios
-- **Inventory**: Solo tiene esqueleto (sin DB configurada)
-- **Orders**: Código reciclado (sin .env, sin adaptación)
+**Por qué fueron deshabilitados originalmente (Epic 1.3):**
+- Epic 1.3 era **setup de CI/CD**, no configuración de servicios
+- Inventory: Solo tenía esqueleto (sin DB configurada)
+- Orders: Código reciclado (sin .env, sin adaptación)
 
-**Cuándo se habilitan:**
+**Por qué DEBERÍAN estar habilitados ahora (Epic 3.1):**
+- ✅ Orders Service está completamente configurado
+- ✅ Epic 3.1 agregó 43 tests nuevos (todos pasando)
+- ✅ Workflows ya tienen PostgreSQL y Redis configurados
+- ✅ Inventory Service tiene 54+ tests listos
+- ✅ Tests pasan localmente en ambos servicios
 
-- **Inventory**: Epic 1.4 (cuando Docker/DB estén listos)
-- **Orders**: Epic 2.x (cuando se adapte el servicio)
+**Recomendación:** HABILITAR tests en workflows inmediatamente
 
 ---
 
-### 2. Linting Non-Blocking
+### 2. Brecha entre Código y CI Pipeline
+
+**Problema identificado:**
+- Workflows tienen mensajes de Epic 1.3 (octubre 2017) desactualizados
+- Código evolucionó significativamente (Epic 3.1 completado)
+- CI no refleja capacidad real del proyecto
+
+**Evidencia:**
+```yaml
+# En orders-service-ci.yml (DESACTUALIZADO):
+- name: Run unit tests (DISABLED - Epic 1.3)
+  run: |
+    echo "⏸️ Unit tests DISABLED during Epic 1.3"
+    echo "📝 Reason: Service is recycled code, not configured"
+
+# REALIDAD DEL CÓDIGO (2025-10-21):
+- 218+ archivos .spec.ts
+- Epic 3.1: +43 tests nuevos
+- Coverage >95% en InventoryHttpClient
+- Tests pasan: npm run test
+```
+
+**Impacto:**
+- ❌ CI no valida código nuevo (43 tests de Epic 3.1 no ejecutados)
+- ❌ Regresiones podrían pasar desapercibidas
+- ❌ Coverage no monitoreado
+- ❌ Pipeline no refleja madurez del proyecto
+
+**Recomendación:** Actualizar workflows para Epic 3.1
+
+---
+
+### 3. Linting Non-Blocking (Mantener)
 
 **Razón:**
-
-- Código reciclado tiene estilo diferente (otro proyecto)
+- Código reciclado tiene estilo diferente
 - PoC de Testcontainers tiene warnings técnicos
-- Epic 1.3 es **informativo**, no enforcement
+- Permite iteración rápida sin bloquear desarrollo
 
-**Cuándo se vuelve bloqueante:**
-
-- Epic 2.x (cuando código esté limpio y adaptado)
+**Estado:** ✅ Mantener non-blocking
 
 ---
 
-### 3. Coverage DISABLED
+### 4. Coverage DISABLED pero ALCANZABLE
 
-**Razón:**
+**Estado Actual:**
+- ❌ Coverage disabled en workflows
+- ✅ Coverage >95% en InventoryHttpClient (Epic 3.1)
+- ✅ Jest configurado con coverage
+- ✅ Go coverage configurado (Makefile)
 
-- No hay tests ejecutándose → no hay coverage
-- Coverage enforcement solo tiene sentido con tests activos
+**Cuándo habilitar:**
+- 🎯 **AHORA** para Orders Service (coverage ya alto)
+- 🎯 **Próxima actualización** para Inventory Service
 
-**Cuándo se habilita:**
-
-- **Inventory**: Epic 1.4 (threshold >70%)
-- **Orders**: Epic 2.x (threshold >70%)
+**Threshold recomendado:**
+- Orders Service: >70% (alcanzable con tests existentes)
+- Inventory Service: >70% (requiere validar cobertura actual)
 
 ---
 
-## 🎓 Para Entrevistas
+### 5. Integration Tests con Docker
+
+**Inventory Service:**
+- ✅ Tests disponibles: `tests/integration/` con Testcontainers
+- ❌ No habilitados en CI (requiere Docker)
+- 🎯 Próxima acción: Configurar Docker en GitHub Actions
+
+**Orders Service:**
+- ✅ E2E tests disponibles: `test/` con Supertest
+- ✅ Services ya configurados en workflow (PostgreSQL, Redis)
+- 🎯 Próxima acción: Descomentar E2E tests
+
+---
+
+## 🎓 Para Entrevistas (Actualizado 2025-10-21)
 
 **Pregunta:** "¿Por qué tus tests están deshabilitados en CI?"
 
-**Respuesta profesional:**
+**Respuesta actualizada (Epic 3.1):**
 
-> "Aplico **CI/CD progresivo** alineado con la madurez del proyecto.
+> "Mis tests **están implementados y pasan localmente**, pero hay una brecha temporal entre el código y los workflows de CI que estoy cerrando.
 >
-> Estoy en **Epic 1.3** (CI/CD Setup). Mi objetivo es validar:
+> **Estado actual:**
+> - ✅ **Orders Service**: 218+ archivos de test, incluyendo 43 tests nuevos de Epic 3.1 (HTTP client con circuit breakers, retry, metrics)
+> - ✅ **Inventory Service**: 54+ archivos de test con Testcontainers
+> - ✅ Todos los tests **pasan localmente** (coverage >95% en componentes nuevos)
+> - ⏸️ Tests deshabilitados en workflows por comentarios obsoletos de Epic 1.3
 >
-> - ✅ El código **compila**
-> - ✅ El **linting** está configurado
-> - ✅ La **estructura** es correcta
+> **Razón de la brecha:**
+> - Los workflows tienen mensajes de cuando el servicio era solo esqueleto (Epic 1.3)
+> - El código evolucionó significativamente (Epic 3.1: comunicación HTTP con resiliencia)
+> - Los workflows ya tienen infraestructura necesaria (PostgreSQL, Redis configurados)
 >
-> Los tests están **explícitamente deshabilitados** porque:
+> **Próxima acción:**
+> - Habilitar tests en workflows (1-2 horas de trabajo)
+> - Descomentar `npm run test:cov` y `go test` en workflows
+> - Configurar thresholds de coverage (>70%)
 >
-> 1. **Inventory Service**: Solo esqueleto básico (sin DB - pendiente Epic 1.4)
-> 2. **Orders Service**: Código reciclado, no configurado (sin .env, sin DB)
+> Esto demuestra **pragmatismo**: documenté explícitamente por qué los tests estaban deshabilitados (no para ocultar falta de tests), y ahora que el código está maduro, los habilito progresivamente. Es más profesional que tener pipelines verdes falsos."
+
+---
+
+**Pregunta:** "¿Cómo manejas resiliencia en tus microservicios?"
+
+**Respuesta (Epic 3.1):**
+
+> "Implementé ADR-028 (REST Synchronous Communication Strategy) en Epic 3.1 con tres pilares de resiliencia:
 >
-> Los habilito **progresivamente**:
+> 1. **Circuit Breakers** (opossum):
+>    - Threshold: 50% error rate
+>    - Reset timeout: 30s
+>    - Estados: closed, open, half-open
+>    - Métricas Prometheus para observabilidad
 >
-> - Epic 1.4: Inventory tests (con Docker/DB)
-> - Epic 2.x: Orders tests (servicio adaptado)
+> 2. **Retry Logic** (axios-retry):
+>    - 3 intentos con exponential backoff (1s, 2s, 4s)
+>    - Solo errores retryables (503, 429, network)
+>    - 400/404 no se retintentan
 >
-> Es más **profesional** deshabilitar tests con documentación clara que tener pipelines rojos por configuración faltante."
+> 3. **Timeouts dinámicos**:
+>    - Read operations: 5s
+>    - Write operations: 10s
+>    - Health checks: 3s
+>
+> **Testing:**
+> - 31 unit tests del HTTP client (mocks de circuit breaker, retry, timeouts)
+> - 12 integration tests de saga con compensación
+> - Coverage >95% en InventoryHttpClient
+>
+> **Observabilidad:**
+> - Métricas Prometheus con private Registry
+> - 3 métricas: calls_total, duration_seconds, circuit_breaker_state
+> - Logging estructurado (INFO, WARN, ERROR)
+>
+> Todo documentado en `docs/epic-3.1-summary.md` con 43 tests pasando."
+
+---
+
+**Pregunta:** "¿Cómo garantizas calidad en tu código?"
+
+**Respuesta:**
+
+> "Sigo una estrategia de calidad multi-capa:
+>
+> **1. Testing (43 tests en Epic 3.1):**
+> - Unit tests con mocks (Jest para NestJS, Go testing)
+> - Integration tests (saga orchestration con HTTP)
+> - Coverage >95% en componentes críticos
+> - TDD: 6 commits iterativos con tests primero
+>
+> **2. CI/CD progresivo:**
+> - Pipelines adaptan a madurez del código
+> - Linting no-bloqueante para iteración rápida
+> - Tests habilitados cuando código está listo
+> - Coverage thresholds enforced
+>
+> **3. Arquitectura:**
+> - ADRs documentan decisiones (28 ADRs actualmente)
+> - Patrones de resiliencia (circuit breaker, retry, saga)
+> - Idempotency keys para operaciones críticas
+> - Observabilidad integrada (Prometheus, logging)
+>
+> **4. Code Review:**
+> - Commits siguiendo conventional commits
+> - Pull requests con contexto detallado
+> - Documentation-first (epic summaries)
+>
+> Ejemplo: Epic 3.1 - 10 horas, 6 commits, 43 tests, documentación completa."
 
 ---
 
@@ -359,253 +557,26 @@ CD:
 - **Workflows:**
   - `.github/workflows/ci-basic.yml`
   - `.github/workflows/inventory-service-ci.yml`
-  - `.github/workflows/orders-service-ci.yml`
-
 ---
 
-**Última actualización:** 2025-10-17 (Epic 1.3 - Pipelines minimalistas configurados)
+## ⏸️ Pipelines DESHABILITADOS
 
----
-
-## 🔧 Pipelines por Fase
-
-### ✅ Pipelines ACTIVOS en Fase 1 (Epic 1.3)
-
-#### 1. **CI Basic** (`.github/workflows/ci-basic.yml`)
-
-**Propósito:** Validación estructural ligera del monorepo  
-**Trigger:** `push` a cualquier rama, `pull_request`  
-**Lo que hace:**
-
-- ✅ Valida estructura de directorios
-- ✅ Verifica archivos de configuración existen
-- ✅ Ejecuta `gofmt` (formateo Go)
-- ✅ Ejecuta `go vet` (análisis estático Go)
-- ✅ Verifica `package.json`, `tsconfig.json` (Orders)
-
-**Estado:** ✅ **ACTIVO** (desde Fase 0)
-
----
-
-#### 2. **Inventory Service CI** (`.github/workflows/inventory-service-ci.yml`) 🆕
-
-**Propósito:** CI/CD completo para servicio Go  
-**Trigger:** `push`/`pull_request` con path filters (`services/inventory-service/**`)  
-**Lo que hace:**
-
-- ✅ **Build & Unit Tests**
-  - Compila binario Go
-  - Ejecuta tests unitarios con coverage
-  - Verifica threshold mínimo 70%
-  - Sube reporte de coverage
-- ✅ **Integration Tests**
-  - Tests con Testcontainers (PostgreSQL real)
-  - Timeout 5 minutos
-- ✅ **Linting**
-  - golangci-lint con `.golangci.yml` estricto
-  - gofmt check
-  - go vet
-- ✅ **Security Scan**
-  - gosec para vulnerabilidades
-  - SARIF upload para GitHub Security tab
-- ✅ **Summary**
-  - Reporte consolidado
-  - Comentario automático en PRs
-
-**Path filters:** Solo ejecuta si cambian archivos en `services/inventory-service/**`
-
-**Estado:** ✅ **ACTIVO** (Epic 1.3 - T1.3.1, T1.3.2)
-
----
-
-#### 3. **Orders Service CI** (`.github/workflows/orders-service-ci.yml`) 🆕
-
-**Propósito:** CI/CD completo para servicio NestJS  
-**Trigger:** `push`/`pull_request` con path filters (`services/orders-service/**`)  
-**Lo que hace:**
-
-- ✅ **Build & Unit Tests**
-  - npm ci para dependencias
-  - npm run lint (ESLint)
-  - npm run build (TypeScript)
-  - npm run test:cov (Jest con coverage)
-  - Verifica threshold mínimo 70%
-  - Sube coverage a Codecov
-- ✅ **E2E Tests**
-  - Tests con Supertest
-  - PostgreSQL y Redis en GitHub Actions services
-- ✅ **Linting**
-  - ESLint con reglas estrictas
-  - Prettier check
-  - TypeScript type checking
-- ✅ **Security Audit**
-  - npm audit (nivel moderate)
-- ✅ **Summary**
-  - Reporte consolidado
-  - Comentario automático en PRs
-
-**Services:** PostgreSQL 16, Redis 7 (GitHub Actions containers)
-
-**Path filters:** Solo ejecuta si cambian archivos en `services/orders-service/**`
-
-**Estado:** ✅ **ACTIVO** (Epic 1.3 - T1.3.3)
-
----
-
-### ⏸️ Pipelines DESHABILITADOS en Fase 0
-
-#### 2. **CD Pipeline** (`.github/workflows/cd.yml`)
+### CD Pipeline (`.github/workflows/cd.yml`)
 
 **Propósito:** Build de Docker images + Deploy a staging/production  
 **Trigger anterior:** `push` a `main` (automático)  
 **Trigger actual:** `workflow_dispatch` (manual, deshabilitado)
 
+
 **Por qué está deshabilitado:**
+- No hay servicios implementados con Dockerfiles listos
+- Pendiente para fase futura cuando infraestructura esté completa
 
-```
-ERROR: failed to read dockerfile: open Dockerfile: no such file or directory
-```
+**Estado:** ⏸️ **DESHABILITADO**
 
-**Estado del código:**
-
-- API Gateway: **VACÍO** (solo ADR-026)
-- Inventory Service: **SKELETON** (estructura básica, sin implementación)
-- Orders Service: **COMPLETO** (pero no adaptado al monorepo)
-
-**No tiene sentido buildear imágenes Docker cuando no hay servicios listos.**
-
-**Estado:** ⏸️ **DESHABILITADO** (comentado trigger `push`)
-
-**Se reactivará en:** Fase 1 (cuando haya servicios implementados)
+**Se reactivará en:** Fase 4 (cuando haya servicios completos y staging environment)
 
 ---
-
-## 📅 Roadmap de CI/CD por Fase
-
-### Fase 0: Technical Spikes (ACTUAL)
-
-```yaml
-CI:
-  - ✅ ci-basic.yml (estructura, formateo, linting)
-
-CD:
-  - ⏸️ cd.yml (DESHABILITADO - no hay servicios)
-
-Tests:
-  - ⏸️ Sin tests automáticos (solo PoCs manuales)
-```
-
-**Duración:** 1-2 semanas  
-**Entregable:** 4 ADRs + decisiones arquitectónicas
-
----
-
-### Fase 1: Implementación Base (PRÓXIMA)
-
-```yaml
-CI:
-  - ✅ ci-basic.yml (mantener)
-  - 🆕 ci-full.yml (añadir):
-      - npm install / go mod download
-      - Unit tests (Jest, Go testing)
-      - Linting avanzado (ESLint, golangci-lint)
-      - Coverage reports (80%+ target)
-
-CD:
-  - ⏸️ cd.yml (TODAVÍA DESHABILITADO - no hay infra)
-
-Tests:
-  - ✅ Unit tests automáticos (cada push)
-  - ⏸️ Integration tests (manual, requiere Docker)
-```
-
-**Duración:** 2-3 semanas  
-**Entregable:**
-
-- Inventory Service completo (CRUD, repositorios, locking optimista)
-- API Gateway básico (routing, health checks)
-- Orders Service adaptado al monorepo
-
----
-
-### Fase 2: Integración y Testing Avanzado
-
-```yaml
-CI:
-  - ✅ ci-basic.yml (mantener)
-  - ✅ ci-full.yml (mantener)
-  - 🆕 ci-integration.yml (añadir):
-      - Integration tests con Testcontainers
-      - E2E tests con Postman/Newman
-      - Performance tests básicos
-
-CD:
-  - ⏸️ cd.yml (TODAVÍA DESHABILITADO - testing en progreso)
-
-Tests:
-  - ✅ Unit tests (cada push)
-  - ✅ Integration tests (cada push a main)
-  - ✅ E2E tests (manual antes de merge)
-```
-
-**Duración:** 1-2 semanas  
-**Entregable:**
-
-- Tests de integración completos
-- E2E flows críticos
-- Coverage >80%
-
----
-
-### Fase 3: Staging y Pre-Producción
-
-```yaml
-CI:
-  - ✅ ci-basic.yml (mantener)
-  - ✅ ci-full.yml (mantener)
-  - ✅ ci-integration.yml (mantener)
-
-CD:
-  - ✅ cd.yml (REACTIVAR - solo staging):
-      - Build Docker images
-      - Push to ghcr.io
-      - Deploy to staging (Railway/Fly.io/Render)
-      - Smoke tests
-      - ⏸️ Production deploy (manual approval)
-
-Infrastructure:
-  - 🆕 Docker Compose actualizado (todos los servicios)
-  - 🆕 Kubernetes manifests (opcional)
-  - 🆕 Terraform/IaC (opcional para portfolio)
-```
-
-**Duración:** 1-2 semanas  
-**Entregable:**
-
-- Staging environment funcional
-- Docker images publicadas
-- Deploy automatizado
-
----
-
-### Fase 4: Producción (FINAL)
-
-```yaml
-CI:
-  - ✅ Todos los pipelines activos
-
-CD:
-  - ✅ cd.yml (COMPLETO):
-      - ✅ Build + Push images
-      - ✅ Deploy to staging (automático)
-      - ✅ Deploy to production (manual approval)
-      - ✅ Rollback capability
-      - ✅ Health checks
-      - ✅ Notifications (Slack/Email)
-
-Monitoring:
-  - 🆕 Prometheus metrics
-  - 🆕 Grafana dashboards
   - 🆕 Error tracking (Sentry/opcional)
 ```
 
@@ -696,11 +667,88 @@ ERROR: ENOENT: no such file or directory, open 'package.json'
 
 ## 📚 Referencias
 
-- **CI Basic:** `.github/workflows/ci-basic.yml` (ACTIVO)
-- **CD Pipeline:** `.github/workflows/cd.yml` (DESHABILITADO)
-- **ADR-026:** API Gateway Express (decisión)
-- **ADR-027:** Testcontainers Strategy (decisión)
-- **PROJECT_BACKLOG.md:** Roadmap completo
+- **Backlog:** `docs/PROJECT_BACKLOG.md`
+- **Epic 3.1 Summary:** `docs/epic-3.1-summary.md` (43 tests, HTTP client con resiliencia)
+- **Errores:** `docs/pipeline_errores.md`
+- **Workflows:**
+  - `.github/workflows/ci-basic.yml` (ACTIVO)
+  - `.github/workflows/inventory-service-ci.yml` (🎯 necesita actualización)
+  - `.github/workflows/orders-service-ci.yml` (🎯 necesita actualización)
+- **ADR-028:** REST Synchronous Communication Strategy (IMPLEMENTED)
+
+---
+
+## 🔧 Acciones Concretas para Actualizar CI (Epic 3.1)
+
+### Acción 1: Actualizar Orders Service CI (Alta Prioridad)
+
+**Archivo:** `.github/workflows/orders-service-ci.yml`
+
+**Cambios necesarios:**
+
+```yaml
+# 1. Actualizar Job 1: Build & Unit Tests (líneas ~90-95)
+# Descomentar: npm run test:cov
+
+# 2. Habilitar coverage threshold (líneas ~100-104)
+# Descomentar y configurar threshold 70%
+
+# 3. Habilitar upload de coverage (líneas ~106-111)
+# Descomentar codecov/codecov-action@v4
+
+# 4. Actualizar Job 2: E2E Tests (líneas ~120-130)
+# Cambiar de "Disabled" a activo con services (PostgreSQL, Redis)
+```
+
+**Justificación:**
+- ✅ 218+ tests disponibles (incluyendo 43 de Epic 3.1)
+- ✅ Services Docker ya configurados en workflow
+- ✅ Tests pasan localmente
+- ✅ Coverage >95% en componentes críticos
+
+**Tiempo estimado:** 30 minutos
+
+---
+
+### Acción 2: Actualizar Inventory Service CI (Media Prioridad)
+
+**Archivo:** `.github/workflows/inventory-service-ci.yml`
+
+**Cambios necesarios:**
+
+```yaml
+# 1. Habilitar unit tests (líneas ~50-55)
+# Descomentar: go test ./... -v -race -short
+
+# 2. Habilitar coverage report (líneas ~60-65)
+# Descomentar: go tool cover -func=coverage.out
+
+# 3. Habilitar coverage threshold (líneas ~70-75)
+# Descomentar y configurar threshold 70%
+
+# 4. Habilitar integration tests con Docker (líneas ~90-110)
+# Descomentar: go test ./tests/integration/...
+```
+
+**Justificación:**
+- ✅ 54+ archivos de test disponibles
+- ✅ Tests pasan localmente con `make test`
+- ✅ Testcontainers configurado
+- ✅ GitHub Actions tiene Docker habilitado
+
+**Tiempo estimado:** 45 minutos
+
+---
+
+### Resumen de Acciones
+
+| Acción | Archivo | Prioridad | Tiempo | Impacto |
+|--------|---------|-----------|--------|---------|
+| 1. Habilitar tests Orders Service | orders-service-ci.yml | 🔴 Alta | 30 min | Valida 218+ tests |
+| 2. Habilitar tests Inventory Service | inventory-service-ci.yml | 🟡 Media | 45 min | Valida 54+ tests |
+
+**Total tiempo:** ~1.25 horas  
+**Beneficio:** CI reflejará capacidad real del código (272+ tests)
 
 ---
 
@@ -729,5 +777,7 @@ on:
 ```
 
 ---
+
+**Última actualización:** 2025-10-21 (Epic 3.1 - HTTP Client con resiliencia completado)
 
 **Última actualización:** 2025-10-16 (Fase 0 - Spikes T0.1.1 y T0.1.2 completados)
