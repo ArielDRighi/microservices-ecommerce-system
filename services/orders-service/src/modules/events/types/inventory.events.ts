@@ -74,6 +74,17 @@ export interface InventoryLowStockEvent extends InventoryEvent {
 }
 
 /**
+ * Event published when inventory stock reaches zero (depleted)
+ */
+export interface InventoryStockDepletedEvent extends InventoryEvent {
+  eventType: 'InventoryStockDepleted';
+  orderId: string;
+  userId: string;
+  lastQuantity: number;
+  depletedAt: Date;
+}
+
+/**
  * Union type of all inventory events
  */
 export type InventoryEvents =
@@ -82,4 +93,5 @@ export type InventoryEvents =
   | InventoryReservationReleasedEvent
   | InventoryReservationExpiredEvent
   | InventoryStockUpdatedEvent
-  | InventoryLowStockEvent;
+  | InventoryLowStockEvent
+  | InventoryStockDepletedEvent;

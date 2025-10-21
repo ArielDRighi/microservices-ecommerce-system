@@ -18,3 +18,4 @@ export * from './inventory-reserved.handler';
 export * from './inventory-confirmed.handler';
 export * from './inventory-released.handler';
 export * from './inventory-failed.handler';
+export * from './inventory-depleted.handler';

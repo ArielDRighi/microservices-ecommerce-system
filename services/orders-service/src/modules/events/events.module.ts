@@ -15,6 +15,7 @@ import {
   InventoryConfirmedHandler,
   InventoryReleasedHandler,
   InventoryFailedHandler,
+  InventoryDepletedHandler,
 } from './handlers';
 
 /**
@@ -57,6 +58,7 @@ import {
     InventoryConfirmedHandler,
     InventoryReleasedHandler,
     InventoryFailedHandler,
+    InventoryDepletedHandler,
 
     // Provider for INVENTORY_HANDLERS injection token
     {
@@ -66,12 +68,14 @@ import {
         confirmed: InventoryConfirmedHandler,
         released: InventoryReleasedHandler,
         failed: InventoryFailedHandler,
-      ) => [reserved, confirmed, released, failed],
+        depleted: InventoryDepletedHandler,
+      ) => [reserved, confirmed, released, failed, depleted],
       inject: [
         InventoryReservedHandler,
         InventoryConfirmedHandler,
         InventoryReleasedHandler,
         InventoryFailedHandler,
+        InventoryDepletedHandler,
       ],
     },
   ],
@@ -86,6 +90,7 @@ import {
     InventoryConfirmedHandler,
     InventoryReleasedHandler,
     InventoryFailedHandler,
+    InventoryDepletedHandler,
   ],
 })
 export class EventsModule {}

@@ -97,6 +97,24 @@ export const StockFailedEventSchema = BaseEventSchema.extend({
 export type StockFailedEvent = z.infer<typeof StockFailedEventSchema>;
 
 /**
+ * Stock Depleted Event
+ * Emitted by Inventory Service when available stock reaches zero
+ */
+export const StockDepletedEventSchema = BaseEventSchema.extend({
+  eventType: z.literal('inventory.stock.depleted'),
+  source: z.literal('inventory-service'),
+  payload: z.object({
+    productId: z.string().describe('Product identifier that is now depleted'),
+    orderId: z.string().uuid().describe('Order that caused the depletion'),
+    userId: z.string().uuid().describe('User who owns the order'),
+    depletedAt: z.string().datetime().describe('When the stock was depleted'),
+    lastQuantity: z.number().int().positive().describe('The last quantity that was reserved/confirmed before depletion'),
+  }),
+});
+
+export type StockDepletedEvent = z.infer<typeof StockDepletedEventSchema>;
+
+/**
  * Union type of all inventory events
  */
 export const InventoryEventSchema = z.discriminatedUnion('eventType', [
@@ -104,6 +122,7 @@ export const InventoryEventSchema = z.discriminatedUnion('eventType', [
   StockConfirmedEventSchema,
   StockReleasedEventSchema,
   StockFailedEventSchema,
+  StockDepletedEventSchema,
 ]);
 
 export type InventoryEvent = z.infer<typeof InventoryEventSchema>;
