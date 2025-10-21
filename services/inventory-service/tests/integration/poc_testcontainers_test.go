@@ -149,11 +149,12 @@ func TestPoCTestcontainers(t *testing.T) {
 
 	// Test 3: Constraints de DB Real
 	t.Run("should enforce NOT NULL constraint", func(t *testing.T) {
-		// Intentar crear producto sin nombre (NOT NULL)
-		product := &Product{Stock: 10}
-		result := db.Create(product)
+		// Intentar crear producto con SQL directo omitiendo el campo name
+		// GORM permite string vacío "", pero SQL directo respeta NOT NULL
+		result := db.Exec("INSERT INTO products (stock, version, created_at, updated_at) VALUES (?, ?, ?, ?)",
+			10, 1, time.Now(), time.Now())
 
-		// Debería fallar
+		// Debería fallar por NOT NULL constraint en name
 		assert.Error(t, result.Error, "Should fail due to NOT NULL constraint")
 	})
 
