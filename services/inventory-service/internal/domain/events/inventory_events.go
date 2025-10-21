@@ -81,12 +81,28 @@ type StockFailedEvent struct {
 	Payload StockFailedPayload `json:"payload"`
 }
 
+// StockDepletedPayload contains the data for a stock depleted event
+type StockDepletedPayload struct {
+	ProductID    string    `json:"productId"`
+	OrderID      string    `json:"orderId"`
+	UserID       string    `json:"userId"`
+	DepletedAt   time.Time `json:"depletedAt"`
+	LastQuantity int       `json:"lastQuantity"` // Previous quantity before depletion
+}
+
+// StockDepletedEvent represents a stock depletion event (quantity reached 0)
+type StockDepletedEvent struct {
+	BaseEvent
+	Payload StockDepletedPayload `json:"payload"`
+}
+
 // Event routing keys
 const (
 	RoutingKeyStockReserved  = "inventory.stock.reserved"
 	RoutingKeyStockConfirmed = "inventory.stock.confirmed"
 	RoutingKeyStockReleased  = "inventory.stock.released"
 	RoutingKeyStockFailed    = "inventory.stock.failed"
+	RoutingKeyStockDepleted  = "inventory.stock.depleted"
 )
 
 // Exchange name

@@ -16,12 +16,14 @@ import (
 func TestNewConfirmReservationUseCase(t *testing.T) {
 	mockInventoryRepo := new(MockInventoryRepository)
 	mockReservationRepo := new(MockReservationRepository)
+	mockPublisher := new(MockPublisher)
 
-	uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+	uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 	assert.NotNil(t, uc)
 	assert.Equal(t, mockInventoryRepo, uc.inventoryRepo)
 	assert.Equal(t, mockReservationRepo, uc.reservationRepo)
+	assert.Equal(t, mockPublisher, uc.publisher)
 }
 
 func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
@@ -29,7 +31,8 @@ func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -45,6 +48,7 @@ func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
 		mockInventoryRepo.On("FindByID", mock.Anything, item.ID).Return(item, nil)
 		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
 		mockReservationRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockConfirmed", mock.Anything, mock.AnythingOfType("events.StockConfirmedEvent")).Return(nil)
 
 		input := ConfirmReservationInput{
 			ReservationID: reservation.ID,
@@ -71,7 +75,8 @@ func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -87,6 +92,7 @@ func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
 		mockInventoryRepo.On("FindByID", mock.Anything, item.ID).Return(item, nil)
 		mockInventoryRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.InventoryItem")).Return(nil)
 		mockReservationRepo.On("Update", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
+		mockPublisher.On("PublishStockConfirmed", mock.Anything, mock.AnythingOfType("events.StockConfirmedEvent")).Return(nil)
 
 		input := ConfirmReservationInput{
 			ReservationID: reservation.ID,
@@ -109,7 +115,8 @@ func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -127,6 +134,7 @@ func TestConfirmReservationUseCase_Execute_Success(t *testing.T) {
 			// Verify status changed from pending to confirmed
 			return r.Status == entity.ReservationConfirmed && initialStatus == entity.ReservationPending
 		})).Return(nil)
+		mockPublisher.On("PublishStockConfirmed", mock.Anything, mock.AnythingOfType("events.StockConfirmedEvent")).Return(nil)
 
 		input := ConfirmReservationInput{
 			ReservationID: reservation.ID,
@@ -149,7 +157,8 @@ func TestConfirmReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		reservationID := uuid.New()
 
@@ -174,7 +183,8 @@ func TestConfirmReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -207,7 +217,8 @@ func TestConfirmReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -239,7 +250,8 @@ func TestConfirmReservationUseCase_Execute_ReservationErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -273,7 +285,8 @@ func TestConfirmReservationUseCase_Execute_InventoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		orderID := uuid.New()
 		inventoryItemID := uuid.New()
@@ -303,7 +316,8 @@ func TestConfirmReservationUseCase_Execute_InventoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()
@@ -337,7 +351,8 @@ func TestConfirmReservationUseCase_Execute_InventoryErrors(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
-		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo)
+		mockPublisher := new(MockPublisher)
+		uc := NewConfirmReservationUseCase(mockInventoryRepo, mockReservationRepo, mockPublisher)
 
 		productID := uuid.New()
 		orderID := uuid.New()

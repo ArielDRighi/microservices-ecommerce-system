@@ -39,6 +39,7 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
     'inventory.stock.confirmed',
     'inventory.stock.released',
     'inventory.stock.failed',
+    'inventory.stock.depleted',
   ];
 
   constructor(
@@ -339,6 +340,7 @@ export class RabbitMQConsumerService implements OnModuleInit, OnModuleDestroy {
       'inventory.stock.confirmed': 'InventoryReservationConfirmed',
       'inventory.stock.released': 'InventoryReservationReleased',
       'inventory.stock.failed': 'InventoryReservationFailed',
+      'inventory.stock.depleted': 'InventoryStockDepleted',
     };
 
     return mapping[rabbitmqType] || rabbitmqType;

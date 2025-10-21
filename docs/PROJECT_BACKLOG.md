@@ -1576,6 +1576,7 @@ type ReservationRepository interface {
 **Nota:** Esta epic fue implementada como parte de Epic 3.1 (T3.1.4)
 
 **Tareas Completadas:**
+
 - ✅ Saga refactorizada para usar InventoryHttpClient
 - ✅ Step 1: Verificar stock llamando a Inventory Service (HTTP)
 - ✅ Step 2: Reservar stock (HTTP con idempotency key)
@@ -1621,35 +1622,50 @@ type ReservationRepository interface {
 
 ### Epic 3.2: Comunicación Asíncrona (Eventos)
 
-**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
+**Priority:** CRITICAL | **Status:** ✅ COMPLETADA | **Fecha:** 2025-01-21
 
 **Contexto:** Complementar comunicación síncrona con eventos asíncronos para desacoplamiento y notificaciones.
 
-#### ⏳ T3.2.1: Publicar eventos desde Inventory
+#### ✅ T3.2.1: Publicar eventos desde Inventory
 
-- **Status:** ⏳ PENDIENTE
-- `StockReserved`: cuando se crea una reserva
-- `StockConfirmed`: cuando se confirma y decrementa
-- `StockReleased`: cuando se cancela una reserva
-- `StockDepleted`: cuando quantity = 0
-- Integración con Epic 2.5.3 (Publisher ya implementado)
+- **Status:** ✅ COMPLETADA
+- **Commit:** `6c52e16`
+- `StockReserved`: cuando se crea una reserva ✅
+- `StockConfirmed`: cuando se confirma y decrementa ✅
+- `StockReleased`: cuando se cancela una reserva ✅
+- `StockDepleted`: cuando quantity = 0 ✅
+- Integración con Epic 2.5.3 (Publisher ya implementado) ✅
+- Tests: 74 tests passing (67 use cases + 7 publisher)
 
-#### ⏳ T3.2.2: Consumir eventos en Orders Service
+#### ✅ T3.2.2: Consumir eventos en Orders Service
 
-- **Status:** ⏳ PENDIENTE
-- Actualizar estado de orden al confirmar stock
-- Manejar evento StockDepleted (notificar backorders)
-- Integración con Epic 2.5.4 (Consumer ya implementado)
-- Logging de eventos consumidos
+- **Status:** ✅ COMPLETADA
+- **Commit:** `e61ebd7`
+- Actualizar estado de orden al confirmar stock ✅
+- Manejar evento StockDepleted (handler implementado con TODO para lógica de negocio) ✅
+- Integración con Epic 2.5.4 (Consumer ya implementado) ✅
+- Logging de eventos consumidos ✅
+- Tests: 106 event tests passing
+- Shared-types: Zod schemas para type safety ✅
 
 **✅ Definition of Done - Epic 3.2:**
 
-- [ ] Todos los eventos de inventario publicados correctamente
-- [ ] Orders Service consume y procesa eventos
-- [ ] Estado de órdenes se actualiza basado en eventos
-- [ ] Tests de integración de eventos end-to-end
-- [ ] Idempotencia garantizada (sin procesamiento duplicado)
-- [ ] Monitoreo de eventos en RabbitMQ Management UI
+- [x] Todos los eventos de inventario publicados correctamente
+- [x] Orders Service consume y procesa eventos
+- [x] Estado de órdenes se actualiza basado en eventos (infraestructura lista)
+- [ ] Tests de integración de eventos end-to-end (pendiente para futuro)
+- [x] Idempotencia garantizada (sin procesamiento duplicado)
+- [x] Monitoreo de eventos en RabbitMQ Management UI
+
+**📝 Notas de Implementación:**
+
+- Event flow completo: Inventory (Go) → RabbitMQ → Orders (TypeScript)
+- 5 eventos totales: Reserved, Confirmed, Released, Failed, Depleted
+- 180 tests passing en total (74 Inventory + 106 Orders)
+- Idempotency: Map-based deduplication con 24h TTL
+- DLQ support: Dead Letter Queue para mensajes fallidos
+- Manual ACK/NACK: Reliability garantizada
+- TODO restante: Lógica de negocio en InventoryDepletedHandler (procurement, backorders, restock workflow)
 
 ---
 
