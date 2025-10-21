@@ -981,11 +981,11 @@ type ReservationRepository interface {
 
 ---
 
-### Epic 2.5: Sistema de Eventos Distribuidos (RabbitMQ) 🎯 **IMPLEMENTA ADR-029**
+### ✅ Epic 2.5: Sistema de Eventos Distribuidos (RabbitMQ) 🎯 **IMPLEMENTA ADR-029** **[COMPLETADA]**
 
-**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE  
+**Priority:** CRITICAL | **Status:** ✅ COMPLETADA (2025-10-21) | **Effort:** ~17 horas  
 **Referencia:** [ADR-029: Message Broker - RabbitMQ vs Redis Pub/Sub](../adr/029-message-broker-rabbitmq-vs-redis-pubsub.md)  
-**Tiempo Estimado:** ~17 horas (~2.5 días)
+**Branch:** `feature/epic-2.5-rabbitmq-events` | **PR:** #14
 
 **Contexto:** Implementar comunicación asíncrona entre Inventory Service (Go) y Orders Service (NestJS) mediante eventos publicados a RabbitMQ. Este Epic implementa las decisiones documentadas en ADR-029.
 
@@ -1006,23 +1006,23 @@ type ReservationRepository interface {
 
 ---
 
-#### ⏳ T2.5.1: Setup Infraestructura RabbitMQ (2 horas)
+#### ✅ T2.5.1: Setup Infraestructura RabbitMQ (2 horas)
 
-**Status:** ⏳ PENDIENTE
+**Status:** ✅ COMPLETADA (Commit: 64b6811)
 
 **Descripción:** Configurar topology de RabbitMQ (exchanges, queues, bindings, DLQ).
 
 **Checklist:**
 
-- [ ] Crear script `scripts/setup-rabbitmq.sh` para inicialización
-- [ ] Declarar exchange `inventory.events` (type: topic, durable)
-- [ ] Declarar exchange `orders.events` (type: topic, durable)
-- [ ] Crear queue `orders.inventory_events` con DLQ configurada
-- [ ] Crear queue `inventory.order_events` con DLQ configurada
-- [ ] Binding: `inventory.events` → `orders.inventory_events` (routing key: `inventory.*`)
-- [ ] Binding: `orders.events` → `inventory.order_events` (routing key: `order.*`)
-- [ ] Verificar topology en Management UI (http://localhost:15672)
-- [ ] Documentar configuración en README
+- [x] Crear script `scripts/setup-rabbitmq.sh` para inicialización
+- [x] Declarar exchange `inventory.events` (type: topic, durable)
+- [x] Declarar exchange `orders.events` (type: topic, durable)
+- [x] Crear queue `orders.inventory_events` con DLQ configurada
+- [x] Crear queue `inventory.order_events` con DLQ configurada
+- [x] Binding: `inventory.events` → `orders.inventory_events` (routing key: `inventory.*`)
+- [x] Binding: `orders.events` → `inventory.order_events` (routing key: `order.*`)
+- [x] Verificar topology en Management UI (http://localhost:15672)
+- [x] Documentar configuración en README
 
 **Entregables:**
 
@@ -1034,31 +1034,31 @@ type ReservationRepository interface {
 
 ---
 
-#### ⏳ T2.5.2: Definir Schemas de Eventos (2 horas)
+#### ✅ T2.5.2: Definir Schemas de Eventos (2 horas)
 
-**Status:** ⏳ PENDIENTE
+**Status:** ✅ COMPLETADA (Commit: 1dd5682)
 
 **Descripción:** Crear tipos TypeScript compartidos para todos los eventos con validación.
 
 **Checklist:**
 
-- [ ] Crear `shared/types/events/inventory.events.ts`
+- [x] Crear `shared/types/events/inventory.events.ts`
   - `InventoryReservedEvent`: cuando se crea una reserva
   - `InventoryConfirmedEvent`: cuando se confirma y decrementa stock
   - `InventoryReleasedEvent`: cuando se cancela una reserva
   - `StockDepletedEvent`: cuando quantity = 0 (opcional)
-- [ ] Crear `shared/types/events/orders.events.ts`
+- [x] Crear `shared/types/events/orders.events.ts`
   - `OrderCancelledEvent`: cuando orden se cancela
   - `OrderCompletedEvent`: cuando orden finaliza
-- [ ] Añadir campos obligatorios:
+- [x] Añadir campos obligatorios:
   - `eventType`: string (e.g., "inventory.reserved")
   - `eventId`: UUID v4 (para idempotencia)
   - `timestamp`: ISO 8601
   - `version`: "1.0" (versionamiento)
   - `data`: payload específico del evento
   - `metadata`: { service, correlationId }
-- [ ] Validar con Zod o class-validator
-- [ ] Documentar ejemplos JSON en `docs/api-testing/08-EVENTS-SCHEMA.md`
+- [x] Validar con Zod o class-validator
+- [x] Documentar ejemplos JSON en `docs/api-testing/08-EVENTS-SCHEMA.md`
 
 **Entregables:**
 
@@ -1070,30 +1070,30 @@ type ReservationRepository interface {
 
 ---
 
-#### ⏳ T2.5.3: Implementar Publisher en Inventory Service (Go) (4 horas)
+#### ✅ T2.5.3: Implementar Publisher en Inventory Service (Go) (4 horas)
 
-**Status:** ⏳ PENDIENTE
+**Status:** ✅ COMPLETADA (Commits: 20fc306, 7700dd3)
 
 **Descripción:** Crear módulo de eventos en Go que publica a RabbitMQ con garantías de entrega.
 
 **Checklist:**
 
-- [ ] Instalar librería: `go get github.com/rabbitmq/amqp091-go@v1.9.0`
-- [ ] Crear `internal/infrastructure/messaging/rabbitmq_publisher.go`
-- [ ] Implementar connection pooling y reconnection logic
-- [ ] Implementar métodos de publicación:
+- [x] Instalar librería: `go get github.com/rabbitmq/amqp091-go@v1.9.0`
+- [x] Crear `internal/infrastructure/messaging/rabbitmq_publisher.go`
+- [x] Implementar connection pooling y reconnection logic
+- [x] Implementar métodos de publicación:
   - `PublishInventoryReserved(ctx, reservationID, orderID, productID, quantity, correlationID)`
   - `PublishInventoryConfirmed(ctx, reservationID, orderID, newStockLevel, correlationID)`
   - `PublishInventoryReleased(ctx, reservationID, reason, correlationID)`
-- [ ] Configurar publisher confirms (garantizar entrega at-least-once)
-- [ ] Mensajes persistentes (DeliveryMode: amqp.Persistent)
-- [ ] Añadir logging estructurado con correlationId y eventId
-- [ ] Añadir métricas Prometheus:
+- [x] Configurar publisher confirms (garantizar entrega at-least-once)
+- [x] Mensajes persistentes (DeliveryMode: amqp.Persistent)
+- [x] Añadir logging estructurado con correlationId y eventId
+- [x] Añadir métricas Prometheus:
   - `inventory_events_published_total{event_type}`
   - `inventory_events_publish_duration_seconds{event_type}`
   - `inventory_events_publish_errors_total{event_type}`
-- [ ] Tests unitarios con RabbitMQ mockeado
-- [ ] Tests de integración con Testcontainers
+- [x] Tests unitarios con RabbitMQ mockeado
+- [x] Tests de integración con Testcontainers
 
 **Archivos a crear:**
 
@@ -1105,36 +1105,36 @@ type ReservationRepository interface {
 
 ---
 
-#### ⏳ T2.5.4: Implementar Consumer en Orders Service (NestJS) (4 horas)
+#### ✅ T2.5.4: Implementar Consumer en Orders Service (NestJS) (4 horas)
 
-**Status:** ⏳ PENDIENTE
+**Status:** ✅ COMPLETADA (Commit: 8da8d56)
 
 **Descripción:** Crear módulo RabbitMQ consumer en NestJS con ACK manual e idempotencia.
 
 **Checklist:**
 
-- [ ] Instalar dependencias:
+- [x] Instalar dependencias:
   ```bash
   npm install @nestjs/microservices amqplib amqp-connection-manager
   ```
-- [ ] Crear `src/messaging/rabbitmq.module.ts` con configuración
-- [ ] Crear `src/messaging/inventory-events.consumer.ts` con handlers
-- [ ] Implementar event handlers con decorators:
+- [x] Crear `src/messaging/rabbitmq.module.ts` con configuración
+- [x] Crear `src/messaging/inventory-events.consumer.ts` con handlers
+- [x] Implementar event handlers con decorators:
   - `@EventPattern('inventory.reserved')` → `handleInventoryReserved()`
   - `@EventPattern('inventory.confirmed')` → `handleInventoryConfirmed()`
   - `@EventPattern('inventory.released')` → `handleInventoryReleased()`
-- [ ] Implementar idempotencia:
+- [x] Implementar idempotencia:
   - Crear tabla `processed_events` (eventId UUID PRIMARY KEY)
   - Check si evento ya procesado antes de ejecutar lógica
   - Guardar eventId en misma transacción que cambios de negocio
-- [ ] Implementar ACK/NACK manual:
+- [x] Implementar ACK/NACK manual:
   - `channel.ack()` si procesamiento exitoso
   - `channel.nack(requeue=true)` si error retriable
   - `channel.nack(requeue=false)` si error no-retriable → DLQ
-- [ ] Configurar Dead Letter Queue (DLQ) en queueOptions
-- [ ] Logging estructurado con Winston (correlationId, eventId)
-- [ ] Tests unitarios con eventos mockeados
-- [ ] Tests de integración con Testcontainers
+- [x] Configurar Dead Letter Queue (DLQ) en queueOptions
+- [x] Logging estructurado con Winston (correlationId, eventId)
+- [x] Tests unitarios con eventos mockeados
+- [x] Tests de integración con Testcontainers
 
 **Archivos a crear:**
 
@@ -1148,32 +1148,32 @@ type ReservationRepository interface {
 
 ---
 
-#### ⏳ T2.5.5: Tests End-to-End de Eventos (3 horas)
+#### ✅ T2.5.5: Tests End-to-End de Eventos (3 horas)
 
-**Status:** ⏳ PENDIENTE
+**Status:** ✅ COMPLETADA (Commit: c704018)
 
 **Descripción:** Validar flujo completo: Inventory publica → RabbitMQ → Orders consume.
 
 **Checklist:**
 
-- [ ] Test E2E: Reserva de inventario exitosa
+- [x] Test E2E: Reserva de inventario exitosa
   - POST `/inventory/reserve` → Inventory crea reserva → publica evento
   - Consumer en Orders actualiza orden a "reserved"
   - Verificar estado final de orden en DB
-- [ ] Test E2E: Confirmación de inventario
+- [x] Test E2E: Confirmación de inventario
   - POST `/inventory/confirm/:reservationId` → publica `InventoryConfirmedEvent`
   - Orders actualiza orden a "processing"
-- [ ] Test E2E: Liberación por cancelación
+- [x] Test E2E: Liberación por cancelación
   - POST `/orders/:id/cancel` → Orders publica `OrderCancelledEvent`
   - Inventory libera reserva (status = 'released')
-- [ ] Test E2E: Idempotencia (evento duplicado)
+- [x] Test E2E: Idempotencia (evento duplicado)
   - Publicar mismo evento 2 veces manualmente
   - Verificar que solo se procesa 1 vez (check `processed_events`)
-- [ ] Test E2E: Dead Letter Queue (DLQ)
+- [x] Test E2E: Dead Letter Queue (DLQ)
   - Forzar error no-retriable en consumer (e.g., ValidationError)
   - Verificar mensaje aparece en DLQ via Management UI
-- [ ] Coverage >80% en módulos de messaging
-- [ ] Documentar tests en `docs/api-testing/08-EVENTS-TESTING.md`
+- [x] Coverage >80% en módulos de messaging
+- [x] Documentar tests en `docs/api-testing/08-EVENTS-TESTING.md`
 
 **Herramientas:**
 
@@ -1185,36 +1185,36 @@ type ReservationRepository interface {
 
 ---
 
-#### ⏳ T2.5.6: Observabilidad y Métricas (2 horas)
+#### ✅ T2.5.6: Observabilidad y Métricas (2 horas)
 
-**Status:** ⏳ PENDIENTE
+**Status:** ✅ COMPLETADA (Commits: e0c49d4, 2328693, d79e9fd)
 
 **Descripción:** Añadir métricas de RabbitMQ y dashboards de monitoreo.
 
 **Checklist:**
 
-- [ ] Métricas de Publisher (Go/Prometheus):
+- [x] Métricas de Publisher (Go/Prometheus):
   - `inventory_events_published_total{event_type, status}` (counter)
   - `inventory_events_publish_duration_seconds{event_type}` (histogram)
   - `inventory_events_publish_errors_total{event_type, error_type}` (counter)
-- [ ] Métricas de Consumer (NestJS/Prometheus):
+- [x] Métricas de Consumer (NestJS/Prometheus):
   - `orders_events_consumed_total{event_type, status}` (counter: success/retry/dlq)
   - `orders_events_processing_duration_seconds{event_type}` (histogram)
   - `orders_events_dlq_total{event_type}` (counter)
   - `orders_events_idempotent_skips_total{event_type}` (counter)
-- [ ] Habilitar RabbitMQ Prometheus Plugin
-- [ ] Crear Grafana dashboard "RabbitMQ - Messaging Overview":
+- [x] Habilitar RabbitMQ Prometheus Plugin
+- [x] Crear Grafana dashboard "RabbitMQ - Messaging Overview":
   - Queue length (mensajes pending por queue)
   - Publish rate (msg/s por exchange)
   - Consume rate (msg/s por queue)
   - Error rate (% de mensajes a DLQ)
   - Latencia P95/P99 de processing
-- [ ] Configurar alertas Prometheus:
+- [x] Configurar alertas Prometheus:
   - DLQ con >10 mensajes (severity: warning)
   - Queue length >1000 (severity: warning)
   - Consumer lag >5 minutos (severity: critical)
   - Publish errors >5% (severity: critical)
-- [ ] Documentar métricas en `docs/MONITORING.md`
+- [x] Documentar métricas en `docs/MONITORING.md`
 
 **Entregables:**
 
@@ -1229,19 +1229,19 @@ type ReservationRepository interface {
 
 **✅ Definition of Done - Epic 2.5:**
 
-- [ ] RabbitMQ corriendo en docker-compose con Management UI accesible (http://localhost:15672)
-- [ ] Exchanges, queues y bindings declarados correctamente (topology validada)
-- [ ] Todos los eventos definidos y documentados (TypeScript types + JSON examples)
-- [ ] Inventory Service publica eventos correctamente (Publisher funcional en Go)
-- [ ] Orders Service consume eventos correctamente (Consumer funcional en NestJS)
-- [ ] Idempotencia implementada (tabla `processed_events`, sin duplicados)
-- [ ] Dead Letter Queue configurada y validada (mensajes fallidos capturados)
-- [ ] Tests de integración pasando con coverage >80%
-- [ ] Tests E2E pasando (flujo completo Inventory → RabbitMQ → Orders)
-- [ ] Métricas de Prometheus disponibles para ambos servicios
-- [ ] Grafana dashboard creado y funcional
-- [ ] Alertas configuradas en Prometheus
-- [ ] Documentación completa (README + ADR-029 + tests docs + monitoring docs)
+- [x] RabbitMQ corriendo en docker-compose con Management UI accesible (http://localhost:15672)
+- [x] Exchanges, queues y bindings declarados correctamente (topology validada)
+- [x] Todos los eventos definidos y documentados (TypeScript types + JSON examples)
+- [x] Inventory Service publica eventos correctamente (Publisher funcional en Go)
+- [x] Orders Service consume eventos correctamente (Consumer funcional en NestJS)
+- [x] Idempotencia implementada (tabla `processed_events`, sin duplicados)
+- [x] Dead Letter Queue configurada y validada (mensajes fallidos capturados)
+- [x] Tests de integración pasando con coverage >80%
+- [x] Tests E2E pasando (flujo completo Inventory → RabbitMQ → Orders)
+- [x] Métricas de Prometheus disponibles para ambos servicios
+- [x] Grafana dashboard creado y funcional
+- [x] Alertas configuradas en Prometheus
+- [x] Documentación completa (README + ADR-029 + tests docs + monitoring docs)
 
 ---
 
