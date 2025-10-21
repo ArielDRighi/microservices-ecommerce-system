@@ -155,11 +155,11 @@ func TestPoCTestcontainers(t *testing.T) {
 			10, 1, time.Now(), time.Now())
 
 		// Debería fallar por NOT NULL constraint en name
-		assert.Error(t, result.Error, "Should fail due to NOT NULL constraint")
+		assert.Error(t, result.Error, "Should fail with NOT NULL constraint violation")
 	})
 
-	// Test 4: Query Performance (simple benchmark)
-	t.Run("should query multiple products efficiently", func(t *testing.T) {
+	// Test 4: Query Performance
+	t.Run("should query products efficiently", func(t *testing.T) {
 		// Insertar 100 productos
 		for i := 1; i <= 100; i++ {
 			db.Create(&Product{
