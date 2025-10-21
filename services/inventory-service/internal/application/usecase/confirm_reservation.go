@@ -111,7 +111,7 @@ func (uc *ConfirmReservationUseCase) Execute(ctx context.Context, input ConfirmR
 	stockConfirmedEvent := events.StockConfirmedEvent{
 		BaseEvent: events.BaseEvent{
 			EventID:   uuid.New().String(),
-			EventType: "stock_confirmed",
+			EventType: events.RoutingKeyStockConfirmed,
 			Timestamp: time.Now().Format(time.RFC3339),
 			Version:   events.EventVersion,
 			Source:    events.SourceInventoryService,
@@ -136,7 +136,7 @@ func (uc *ConfirmReservationUseCase) Execute(ctx context.Context, input ConfirmR
 		stockDepletedEvent := events.StockDepletedEvent{
 			BaseEvent: events.BaseEvent{
 				EventID:   uuid.New().String(),
-				EventType: "stock_depleted",
+				EventType: events.RoutingKeyStockDepleted,
 				Timestamp: time.Now().Format(time.RFC3339),
 				Version:   events.EventVersion,
 				Source:    events.SourceInventoryService,

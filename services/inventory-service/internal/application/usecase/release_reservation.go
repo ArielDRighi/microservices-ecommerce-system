@@ -108,7 +108,7 @@ func (uc *ReleaseReservationUseCase) Execute(ctx context.Context, input ReleaseR
 	stockReleasedEvent := events.StockReleasedEvent{
 		BaseEvent: events.BaseEvent{
 			EventID:   uuid.New().String(),
-			EventType: "stock_released",
+			EventType: events.RoutingKeyStockReleased,
 			Timestamp: time.Now().Format(time.RFC3339),
 			Version:   events.EventVersion,
 			Source:    events.SourceInventoryService,

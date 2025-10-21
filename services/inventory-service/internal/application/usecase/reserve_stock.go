@@ -121,11 +121,11 @@ func (uc *ReserveStockUseCase) Execute(ctx context.Context, input ReserveStockIn
 		return nil, err
 	}
 
-	// Publish StockReserved event (don't fail transaction if event publication fails)
+		// Publish StockReserved event (don't fail transaction if event publication fails)
 	stockReservedEvent := events.StockReservedEvent{
 		BaseEvent: events.BaseEvent{
 			EventID:   uuid.New().String(),
-			EventType: "stock_reserved",
+			EventType: events.RoutingKeyStockReserved,
 			Timestamp: time.Now().Format(time.RFC3339),
 			Version:   events.EventVersion,
 			Source:    events.SourceInventoryService,
@@ -151,7 +151,7 @@ func (uc *ReserveStockUseCase) Execute(ctx context.Context, input ReserveStockIn
 		stockDepletedEvent := events.StockDepletedEvent{
 			BaseEvent: events.BaseEvent{
 				EventID:   uuid.New().String(),
-				EventType: "stock_depleted",
+				EventType: events.RoutingKeyStockDepleted,
 				Timestamp: time.Now().Format(time.RFC3339),
 				Version:   events.EventVersion,
 				Source:    events.SourceInventoryService,
