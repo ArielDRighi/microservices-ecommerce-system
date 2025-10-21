@@ -1675,23 +1675,39 @@ type ReservationRepository interface {
 
 **Contexto:** Implementar estrategias robustas de compensación para transacciones distribuidas y manejo de fallos de red entre servicios.
 
-#### ⏳ T3.3.1: Implementar patrón Two-Phase Commit simplificado
+#### ✅ T3.3.1: Implementar patrón Two-Phase Commit simplificado
 
-- **Status:** ⏳ PENDIENTE
+- **Status:** ✅ COMPLETADA (2025-10-21)
 - **Phase 1 - Reserve**: reserva temporal en Inventory Service
 - **Phase 2 - Confirm o Release**: según resultado de pago
 - Timeout de 15 minutos para confirmación automática
-- Auto-release si no se confirma a tiempo (cronjob de Epic 2.2.5)
+- Auto-release si no se confirma a tiempo (cronjob/scheduler implementado)
 - Logs detallados de cada fase
+- **Commits:**
+  - `42aeda7` - feat(inventory): T3.3.1 part 1 - ReleaseExpiredReservationsUseCase (7 tests)
+  - `d27efef` - feat(inventory): T3.3.1 part 2 - Admin HTTP handler for expired reservations (4 tests)
+  - `61f3a88` - feat(inventory): T3.3.1 - Scheduler for auto-release expired reservations (5 tests)
+- **Implementación:**
+  - Use case: `release_expired_reservations.go` con batch processing (limit 1000)
+  - Handler: `reservation_maintenance_handler.go` para trigger manual POST /admin/reservations/release-expired
+  - Scheduler: `reservation_scheduler.go` con ejecución periódica configurable (recomendado 5-10 min)
+  - Fire-and-forget event publishing (failures logged but don't fail release)
+  - 16 tests passing total
 
-#### ⏳ T3.3.2: Manejar fallos de red entre servicios
+#### ✅ T3.3.2: Manejar fallos de red entre servicios
 
-- **Status:** ⏳ PENDIENTE
-- Si Inventory no responde, retry 3 veces con exponential backoff
-- Si falla definitivamente, marcar orden como FAILED
-- Registrar error detallado en logs con correlation ID
-- Enviar notificación al cliente sobre fallo
-- Compensación: no dejar reservas huérfanas
+- **Status:** ✅ COMPLETADA (implementado en Epic 3.1 y 3.2)
+- ✅ Si Inventory no responde, retry 3 veces con exponential backoff (axios-retry + saga executeStep)
+- ✅ Si falla definitivamente, marcar orden como CANCELLED (CompensationAction.CANCEL_ORDER)
+- ✅ Registrar error detallado en logs con correlation ID (sagaState.correlationId)
+- ✅ Enviar notificación al cliente sobre fallo (CompensationAction.NOTIFY_FAILURE)
+- ✅ Compensación: no dejar reservas huérfanas (CompensationAction.RELEASE_INVENTORY)
+- **Implementación:**
+  - HTTP Client: `inventory.client.ts` con axios-retry (3 intentos, backoff 1s-2s-4s)
+  - Circuit breakers: `opossum` para inventory, payment, notification services
+  - Saga: `order-processing-saga.service.ts` con compensación automática
+  - Timeout dinámicos: 5s (read), 10s (write), 15s (critical)
+  - Idempotencia: UUIDs y idempotency keys en reservas
 
 #### ⏳ T3.3.3: Implementar Dead Letter Queue para eventos fallidos
 
