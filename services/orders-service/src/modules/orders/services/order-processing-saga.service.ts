@@ -8,13 +8,13 @@ import {
 } from '../../../database/entities/saga-state.entity';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../enums/order-status.enum';
-import { InventoryServiceClient } from '../../inventory-client/inventory-client.service';
+import { InventoryHttpClient } from '../../../infrastructure/http/inventory.client';
 import {
   InventoryServiceUnavailableException,
   InventoryServiceTimeoutException,
   InsufficientStockException,
   ReservationNotFoundException,
-} from '../../inventory-client/exceptions/inventory-client.exceptions';
+} from '../../../infrastructure/http/inventory.interface';
 import { PaymentsService } from '../../payments/payments.service';
 import { PaymentMethod, PaymentStatus } from '../../payments/dto/payment.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -46,7 +46,7 @@ export class OrderProcessingSagaService {
     private readonly sagaStateRepository: Repository<SagaStateEntity>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-    private readonly inventoryClient: InventoryServiceClient,
+    private readonly inventoryClient: InventoryHttpClient,
     private readonly paymentsService: PaymentsService,
     private readonly notificationsService: NotificationsService,
   ) {
@@ -300,12 +300,9 @@ export class OrderProcessingSagaService {
       const result = await this.inventoryCircuitBreaker.execute(async () => {
         for (const item of stateData.items) {
           try {
-            const stockResponse = await this.inventoryClient.checkStock({
-              productId: item.productId,
-              quantity: item.quantity,
-            });
+            const stockResponse = await this.inventoryClient.checkStock(item.productId);
 
-            if (!stockResponse.available || stockResponse.availableQuantity < item.quantity) {
+            if (!stockResponse.is_available || stockResponse.available_quantity < item.quantity) {
               return {
                 verified: false,
                 unavailableProducts: [item.productId],
@@ -383,15 +380,14 @@ export class OrderProcessingSagaService {
         for (const item of stateData.items) {
           try {
             const reservationResponse = await this.inventoryClient.reserveStock({
-              productId: item.productId,
+              product_id: item.productId,
+              order_id: stateData.orderId,
               quantity: item.quantity,
-              orderId: stateData.orderId,
-              expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes TTL
             });
 
             // Store reservation ID from first item (assuming same reservation for all items in order)
             if (!reservationId) {
-              reservationId = reservationResponse.reservationId;
+              reservationId = reservationResponse.reservation_id;
             }
           } catch (error) {
             // Handle specific inventory client exceptions
@@ -615,8 +611,7 @@ export class OrderProcessingSagaService {
           if (stateData.reservationId) {
             try {
               await this.inventoryClient.releaseReservation({
-                reservationId: stateData.reservationId,
-                reason: 'Order processing failed - saga compensation',
+                reservation_id: stateData.reservationId,
               });
               this.logger.log(`Released inventory reservation ${stateData.reservationId}`);
             } catch (error) {

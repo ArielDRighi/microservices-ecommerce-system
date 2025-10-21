@@ -9,8 +9,7 @@ import { Product } from '../products/entities/product.entity';
 import { EventsModule } from '../events/events.module';
 import { SagaStateEntity } from '../../database/entities/saga-state.entity';
 import { OrderProcessingSagaService } from './services/order-processing-saga.service';
-// import { InventoryModule } from '../inventory/inventory.module'; // ❌ REMOVED Epic 1.6 - Will use HTTP client instead
-import { InventoryClientModule } from '../inventory-client/inventory-client.module'; // ✅ ADDED Epic 1.6 - HTTP client for Inventory Service
+import { InventoryHttpModule } from '../../infrastructure/http/inventory-http.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
@@ -25,8 +24,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       name: 'order-processing',
     }),
     EventsModule,
-    // InventoryModule, // ❌ REMOVED Epic 1.6 - Will use InventoryServiceClient (HTTP) instead
-    InventoryClientModule, // ✅ ADDED Epic 1.6 - HTTP client for Inventory Service
+    InventoryHttpModule, // ✅ Epic 3.1 - HTTP client for Inventory Service
     PaymentsModule,
     NotificationsModule,
   ],
