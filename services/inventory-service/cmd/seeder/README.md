@@ -20,7 +20,9 @@ The seeder connects to both Orders and Inventory Service databases, fetches acti
 ## Datasets
 
 ### Dev Dataset (default)
+
 Seeds 100 products with balanced, realistic stock levels:
+
 - **20% low stock** (1-9 items) - Critical stock situations
 - **60% medium stock** (10-100 items) - Normal operation
 - **20% high stock** (100-500 items) - Popular/bulk products
@@ -29,7 +31,9 @@ Seeds 100 products with balanced, realistic stock levels:
 **Use Case**: Local development, manual testing, demos
 
 ### Test Dataset
+
 Seeds 20 products with predictable, reproducible scenarios:
+
 - **Quantities**: Fixed values (0, 1, 5, 10, 50, 100)
 - **Reservations**: None (clean state for testing)
 - **Reproducibility**: Fixed seed for consistent results
@@ -37,7 +41,9 @@ Seeds 20 products with predictable, reproducible scenarios:
 **Use Case**: Automated testing, CI/CD pipelines
 
 ### Demo Dataset
+
 Seeds 10 products with extreme edge cases:
+
 - **Scenarios**:
   - Out of stock (0)
   - Last item (1)
@@ -101,29 +107,31 @@ go run cmd/seeder/main.go -help
 ### Environment Variables
 
 #### Orders Service Database
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ORDERS_DB_HOST` | `localhost` | Orders database host |
-| `ORDERS_DB_PORT` | `5433` | Orders database port |
-| `ORDERS_DB_USER` | `microservices_user` | Database user |
-| `ORDERS_DB_PASSWORD` | `microservices_pass_2024` | Database password |
-| `ORDERS_DB_NAME` | `microservices_orders` | Database name |
+
+| Variable             | Default                   | Description          |
+| -------------------- | ------------------------- | -------------------- |
+| `ORDERS_DB_HOST`     | `localhost`               | Orders database host |
+| `ORDERS_DB_PORT`     | `5433`                    | Orders database port |
+| `ORDERS_DB_USER`     | `microservices_user`      | Database user        |
+| `ORDERS_DB_PASSWORD` | `microservices_pass_2024` | Database password    |
+| `ORDERS_DB_NAME`     | `microservices_orders`    | Database name        |
 
 #### Inventory Service Database
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `INVENTORY_DB_HOST` | `localhost` | Inventory database host |
-| `INVENTORY_DB_PORT` | `5433` | Inventory database port |
-| `INVENTORY_DB_USER` | `microservices_user` | Database user |
-| `INVENTORY_DB_PASSWORD` | `microservices_pass_2024` | Database password |
-| `INVENTORY_DB_NAME` | `microservices_inventory` | Database name |
+
+| Variable                | Default                   | Description             |
+| ----------------------- | ------------------------- | ----------------------- |
+| `INVENTORY_DB_HOST`     | `localhost`               | Inventory database host |
+| `INVENTORY_DB_PORT`     | `5433`                    | Inventory database port |
+| `INVENTORY_DB_USER`     | `microservices_user`      | Database user           |
+| `INVENTORY_DB_PASSWORD` | `microservices_pass_2024` | Database password       |
+| `INVENTORY_DB_NAME`     | `microservices_inventory` | Database name           |
 
 ### Command-Line Flags
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `-dataset` | string | `dev` | Dataset type: dev, test, demo |
-| `-help` | bool | `false` | Show help message |
+| Flag       | Type   | Default | Description                   |
+| ---------- | ------ | ------- | ----------------------------- |
+| `-dataset` | string | `dev`   | Dataset type: dev, test, demo |
+| `-help`    | bool   | `false` | Show help message             |
 
 ## Development
 
@@ -210,14 +218,14 @@ go build -o bin/seeder ./cmd/seeder
 
 ## Dataset Characteristics Comparison
 
-| Characteristic | Dev | Test | Demo |
-|---------------|-----|------|------|
-| **Products** | 100 | 20 | 10 |
+| Characteristic         | Dev                 | Test        | Demo    |
+| ---------------------- | ------------------- | ----------- | ------- |
+| **Products**           | 100                 | 20          | 10      |
 | **Stock Distribution** | Balanced (20/60/20) | Predictable | Extreme |
-| **Quantity Range** | 1-500 | 0-100 | 0-1000 |
-| **Reservations** | 0-30% | None | 30-70% |
-| **Use Case** | Development | Testing | Demos |
-| **Reproducibility** | Random | Fixed | Random |
+| **Quantity Range**     | 1-500               | 0-100       | 0-1000  |
+| **Reservations**       | 0-30%               | None        | 30-70%  |
+| **Use Case**           | Development         | Testing     | Demos   |
+| **Reproducibility**    | Random              | Fixed       | Random  |
 
 ## Troubleshooting
 
@@ -225,7 +233,8 @@ go build -o bin/seeder ./cmd/seeder
 
 **Cause**: Orders Service database is empty or has no active products.
 
-**Solution**: 
+**Solution**:
+
 1. Verify Orders Service database has products:
    ```sql
    SELECT COUNT(*) FROM products WHERE is_active = true AND deleted_at IS NULL;
@@ -238,6 +247,7 @@ go build -o bin/seeder ./cmd/seeder
 **Cause**: Database connection parameters are incorrect.
 
 **Solution**:
+
 1. Verify database is running: `docker ps | grep postgres`
 2. Check connection parameters (host, port, user, password)
 3. Test connection manually:
@@ -250,6 +260,7 @@ go build -o bin/seeder ./cmd/seeder
 **Cause**: Migrations not applied to Inventory database.
 
 **Solution**:
+
 ```bash
 cd services/inventory-service/migrations
 psql -U microservices_user -d microservices_inventory \
@@ -321,6 +332,7 @@ curl http://localhost:8080/api/inventory/stats
 - **Demo dataset (10 products)**: ~150ms
 
 Performance measured on:
+
 - PostgreSQL 16 (local)
 - Go 1.25
 - Batch size: 50 items/batch
@@ -330,17 +342,20 @@ Performance measured on:
 ### Adding New Datasets
 
 1. Define new constant in `main.go`:
+
    ```go
    const DatasetProduction = "prod"
    ```
 
 2. Add to `getProductLimit()`:
+
    ```go
    case DatasetProduction:
        return 1000
    ```
 
 3. Implement generator functions:
+
    ```go
    func (s *Seeder) generateProductionQuantity(rnd *rand.Rand) int {
        // Your logic
@@ -358,6 +373,7 @@ Part of microservices-ecommerce-system project.
 ## Support
 
 For issues or questions:
+
 - Check [Troubleshooting](#troubleshooting) section
 - Review integration tests in `main_test.go`
 - Contact backend team

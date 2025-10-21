@@ -17,11 +17,13 @@ DROP TABLE IF EXISTS reservations CASCADE;
 ```
 
 **What it does:**
+
 - Drops the `reservations` table completely
 - Cascades to dependent objects (if any)
 - ⚠️ **Data Loss**: All reservation records will be deleted
 
 **When to use:**
+
 - Need to remove reservation functionality
 - Migration to a different reservation model
 - Critical schema error in reservations table
@@ -35,11 +37,13 @@ DROP TABLE IF EXISTS inventory_items CASCADE;
 ```
 
 **What it does:**
+
 - Drops the `inventory_items` table completely
 - Cascades to dependent tables (reservations via FK)
 - ⚠️ **Data Loss**: All inventory data will be deleted
 
 **When to use:**
+
 - Complete reset of inventory schema
 - Major schema redesign
 - Critical database corruption
@@ -111,6 +115,7 @@ A convenience script is provided in `scripts/rollback-migrations.sh`:
 **Problem:** Migration 002 introduced a bug in reservations schema.
 
 **Solution:**
+
 ```bash
 # Rollback migration 002
 migrate -database $DB_URL down 1
@@ -128,6 +133,7 @@ migrate -database $DB_URL up 1
 **Problem:** Complete schema redesign required.
 
 **Solution:**
+
 ```bash
 # Backup current data
 pg_dump -U microservices_user microservices_inventory > backup.sql
@@ -148,11 +154,13 @@ migrate -database $DB_URL up
 **Problem:** Migration failed midway, database in inconsistent state.
 
 **Symptoms:**
+
 ```
 error: Dirty database version 2. Fix and force version.
 ```
 
 **Solution:**
+
 ```bash
 # Check current state
 migrate -database $DB_URL version
@@ -179,37 +187,40 @@ migrate -database $DB_URL up
 **Procedure:**
 
 1. **Prepare** (before rollback):
+
    ```bash
    # Take full backup
    pg_dump -U user -d inventory_db > prod_backup_$(date +%Y%m%d_%H%M%S).sql
-   
+
    # Verify backup
    pg_restore --list prod_backup_*.sql | head
    ```
 
 2. **Execute Rollback** (maintenance window):
+
    ```bash
    # Stop application servers (prevent writes)
    docker-compose stop inventory-service
-   
+
    # Rollback migration
    migrate -database $PROD_DB_URL down 1
-   
+
    # Verify schema
    psql $PROD_DB_URL -c "\dt"
-   
+
    # Restart with previous application version
    docker-compose up -d inventory-service
    ```
 
 3. **Validate** (post-rollback):
+
    ```bash
    # Health check
    curl http://inventory-service/health
-   
+
    # Smoke tests
    curl http://inventory-service/api/inventory/:productId
-   
+
    # Monitor logs
    docker-compose logs -f inventory-service
    ```
@@ -224,28 +235,33 @@ migrate -database $DB_URL up
 Before rolling back any migration:
 
 - [ ] **Backup Database**
+
   ```bash
   pg_dump -U microservices_user microservices_inventory \
           -f backup_before_rollback_$(date +%Y%m%d).sql
   ```
 
 - [ ] **Identify Dependencies**
+
   ```sql
   -- Check for dependent objects
   SELECT * FROM pg_depend WHERE refobjid = 'inventory_items'::regclass;
   ```
 
 - [ ] **Notify Team**
+
   - Alert developers of planned rollback
   - Schedule maintenance window if production
   - Coordinate with ops team
 
 - [ ] **Stop Application**
+
   ```bash
   docker-compose stop inventory-service
   ```
 
 - [ ] **Verify Rollback Script**
+
   ```bash
   # Dry run on test database first
   psql -U test -d test_inventory -f migrations/002_*.down.sql
@@ -287,8 +303,8 @@ SELECT conname, contype FROM pg_constraint WHERE conrelid = 'inventory_items'::r
 SELECT COUNT(*) FROM inventory_items;
 
 -- Check for orphaned records (if rolling back only 002)
-SELECT i.* FROM inventory_items i 
-LEFT JOIN reservations r ON i.id = r.inventory_item_id 
+SELECT i.* FROM inventory_items i
+LEFT JOIN reservations r ON i.id = r.inventory_item_id
 WHERE r.id IS NOT NULL;
 -- Should be 0 if 002 was rolled back
 ```
@@ -318,12 +334,14 @@ go test ./tests/integration/...
 ### Error 1: Foreign Key Constraint Violation
 
 **Error:**
+
 ```
 ERROR: cannot drop table inventory_items because other objects depend on it
 DETAIL: constraint fk_reservations_inventory_item on table reservations depends on table inventory_items
 ```
 
 **Solution:**
+
 ```sql
 -- Use CASCADE to drop dependent objects
 DROP TABLE inventory_items CASCADE;
@@ -332,11 +350,13 @@ DROP TABLE inventory_items CASCADE;
 ### Error 2: Table Does Not Exist
 
 **Error:**
+
 ```
 ERROR: table "reservations" does not exist
 ```
 
 **Solution:**
+
 - Table already dropped or never created
 - Check migration history
 - Safe to ignore if table should not exist
@@ -344,11 +364,13 @@ ERROR: table "reservations" does not exist
 ### Error 3: Permission Denied
 
 **Error:**
+
 ```
 ERROR: permission denied for table inventory_items
 ```
 
 **Solution:**
+
 ```bash
 # Use superuser or table owner
 psql -U postgres -d microservices_inventory -f migrations/001_*.down.sql
@@ -387,37 +409,42 @@ go test ./migrations/... -run TestMigration_RollbackIdempotent
 
 ## Rollback Decision Matrix
 
-| Scenario | Rollback Strategy | Risk Level | Recommended Action |
-|----------|-------------------|------------|-------------------|
-| Bug in latest migration | Rollback last (down 1) | Low | Safe to proceed |
-| Data corruption | Full backup + rollback | Medium | Test in staging first |
-| Schema redesign | Rollback all | High | Plan migration strategy |
-| Production issue | Targeted rollback | High | Full backup, maintenance window |
-| Dirty migration state | Force version + manual fix | Medium | Inspect schema carefully |
+| Scenario                | Rollback Strategy          | Risk Level | Recommended Action              |
+| ----------------------- | -------------------------- | ---------- | ------------------------------- |
+| Bug in latest migration | Rollback last (down 1)     | Low        | Safe to proceed                 |
+| Data corruption         | Full backup + rollback     | Medium     | Test in staging first           |
+| Schema redesign         | Rollback all               | High       | Plan migration strategy         |
+| Production issue        | Targeted rollback          | High       | Full backup, maintenance window |
+| Dirty migration state   | Force version + manual fix | Medium     | Inspect schema carefully        |
 
 ## Best Practices
 
 1. **Always Backup First**
+
    - Take full backup before any rollback
    - Store backups with timestamps
    - Verify backup integrity
 
 2. **Test in Lower Environments**
+
    - Never rollback in production first
    - Test in dev → staging → production
    - Document results at each stage
 
 3. **Use Version Control**
+
    - Track all migration changes in git
    - Tag migration versions
    - Document breaking changes
 
 4. **Coordinate with Team**
+
    - Notify team before rollback
    - Schedule maintenance windows
    - Have rollback plan reviewed
 
 5. **Monitor After Rollback**
+
    - Watch application logs
    - Monitor database performance
    - Run smoke tests

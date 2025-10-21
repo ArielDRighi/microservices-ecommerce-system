@@ -1305,6 +1305,7 @@ type ReservationRepository interface {
 - [ ] Métricas de cache hit rate implementadas (futuro, no bloqueante)
 
 **📊 Métricas Finales Epic 2.6:**
+
 - **Commits:** 2 nuevos (3c5cddf, e50e0bf) + reuso de Epic 2.3.5
 - **Tests:** 8 nuevos (5 use case + 3 handler)
 - **LOC Código:** ~350 líneas nuevas (use case + handler)
@@ -1416,6 +1417,7 @@ type ReservationRepository interface {
 - [x] Backups automáticos configurados (documentado en ROLLBACK_STRATEGY.md, checklist pre-rollback)
 
 **Métricas finales Epic 2.7:**
+
 - **Líneas de código:** ~1,527 LOC (code + tests)
   - cmd/seeder/main.go: 381 LOC
   - cmd/seeder/main_test.go: 283 LOC
