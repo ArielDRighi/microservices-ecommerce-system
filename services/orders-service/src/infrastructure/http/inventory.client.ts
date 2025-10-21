@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import CircuitBreaker from 'opossum';
 import axiosRetry from 'axios-retry';
+import { Counter, Histogram, Gauge, Registry } from 'prom-client';
 import {
   CheckStockResponse,
   ReserveStockRequest,
@@ -26,6 +27,7 @@ import {
  * - Retry automático: 3 intentos con exponential backoff (1s, 2s, 4s)
  * - Circuit breaker: fail-fast cuando servicio está caído
  * - Logging estructurado con Winston
+ * - Métricas de Prometheus para observabilidad
  */
 @Injectable()
 export class InventoryHttpClient {
@@ -33,12 +35,43 @@ export class InventoryHttpClient {
   private readonly checkStockBreaker: CircuitBreaker<[string], CheckStockResponse>;
   private readonly reserveStockBreaker: CircuitBreaker<[ReserveStockRequest], ReserveStockResponse>;
 
+  // Métricas de Prometheus
+  private readonly registry: Registry;
+  private readonly httpCallsCounter: Counter;
+  private readonly httpCallDuration: Histogram;
+  private readonly circuitBreakerStateGauge: Gauge;
+
   // Timeouts por tipo de operación (según ADR-028)
   private readonly DEFAULT_TIMEOUT = 5000; // Read operations
   private readonly WRITE_TIMEOUT = 10000; // Write operations
   private readonly CRITICAL_TIMEOUT = 15000; // Critical operations
 
   constructor(private readonly httpService: HttpService) {
+    // Usar registry privado para evitar conflictos en tests
+    this.registry = new Registry();
+
+    // Inicializar métricas de Prometheus
+    this.httpCallsCounter = new Counter({
+      name: 'inventory_http_calls_total',
+      help: 'Total number of HTTP calls to Inventory Service',
+      labelNames: ['method', 'endpoint', 'status'],
+      registers: [this.registry],
+    });
+
+    this.httpCallDuration = new Histogram({
+      name: 'inventory_http_call_duration_seconds',
+      help: 'Duration of HTTP calls to Inventory Service',
+      labelNames: ['method', 'endpoint'],
+      buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10], // 10ms to 10s
+      registers: [this.registry],
+    });
+
+    this.circuitBreakerStateGauge = new Gauge({
+      name: 'inventory_circuit_breaker_state',
+      help: 'Circuit breaker state (0=closed, 1=half-open, 2=open)',
+      labelNames: ['operation'],
+      registers: [this.registry],
+    });
     // Configurar axios-retry con exponential backoff
     axiosRetry(this.httpService.axiosRef, {
       retries: 3,
@@ -80,8 +113,9 @@ export class InventoryHttpClient {
       volumeThreshold: 10,
     });
 
-    // Logging de eventos del circuit breaker
+    // Logging de eventos del circuit breaker y métricas
     this.checkStockBreaker.on('open', () => {
+      this.circuitBreakerStateGauge.set({ operation: 'check-stock' }, 2); // 2 = open
       this.logger.error('Circuit breaker OPEN: inventory-check-stock', {
         breaker: 'check-stock',
         state: 'open',
@@ -89,6 +123,7 @@ export class InventoryHttpClient {
     });
 
     this.checkStockBreaker.on('halfOpen', () => {
+      this.circuitBreakerStateGauge.set({ operation: 'check-stock' }, 1); // 1 = half-open
       this.logger.warn('Circuit breaker HALF_OPEN: inventory-check-stock', {
         breaker: 'check-stock',
         state: 'half-open',
@@ -96,6 +131,7 @@ export class InventoryHttpClient {
     });
 
     this.checkStockBreaker.on('close', () => {
+      this.circuitBreakerStateGauge.set({ operation: 'check-stock' }, 0); // 0 = closed
       this.logger.log('Circuit breaker CLOSED: inventory-check-stock', {
         breaker: 'check-stock',
         state: 'closed',
@@ -103,6 +139,7 @@ export class InventoryHttpClient {
     });
 
     this.reserveStockBreaker.on('open', () => {
+      this.circuitBreakerStateGauge.set({ operation: 'reserve-stock' }, 2); // 2 = open
       this.logger.error('Circuit breaker OPEN: inventory-reserve-stock', {
         breaker: 'reserve-stock',
         state: 'open',
@@ -110,6 +147,7 @@ export class InventoryHttpClient {
     });
 
     this.reserveStockBreaker.on('halfOpen', () => {
+      this.circuitBreakerStateGauge.set({ operation: 'reserve-stock' }, 1); // 1 = half-open
       this.logger.warn('Circuit breaker HALF_OPEN: inventory-reserve-stock', {
         breaker: 'reserve-stock',
         state: 'half-open',
@@ -117,11 +155,16 @@ export class InventoryHttpClient {
     });
 
     this.reserveStockBreaker.on('close', () => {
+      this.circuitBreakerStateGauge.set({ operation: 'reserve-stock' }, 0); // 0 = closed
       this.logger.log('Circuit breaker CLOSED: inventory-reserve-stock', {
         breaker: 'reserve-stock',
         state: 'closed',
       });
     });
+
+    // Inicializar gauges en estado cerrado
+    this.circuitBreakerStateGauge.set({ operation: 'check-stock' }, 0);
+    this.circuitBreakerStateGauge.set({ operation: 'reserve-stock' }, 0);
   }
 
   /**
@@ -163,14 +206,17 @@ export class InventoryHttpClient {
    * Método interno para verificar stock (llamado por circuit breaker)
    */
   private async checkStockInternal(productId: string): Promise<CheckStockResponse> {
+    const startTime = Date.now();
     try {
-      const startTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.get(`/api/inventory/${productId}`, {
           timeout: this.DEFAULT_TIMEOUT,
         }),
       );
       const duration = Date.now() - startTime;
+
+      // Registrar métricas exitosas
+      this.recordMetrics('GET', '/api/inventory/:productId', 'success', duration);
 
       this.logger.log(`Check stock successful for product ${productId}`, {
         productId,
@@ -181,6 +227,10 @@ export class InventoryHttpClient {
 
       return response.data;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      // Registrar métricas de error
+      this.recordMetrics('GET', '/api/inventory/:productId', 'error', duration);
+
       this.handleHttpError(error, 'checkStock', productId);
     }
   }
@@ -221,14 +271,17 @@ export class InventoryHttpClient {
    * Método interno para reservar stock (llamado por circuit breaker)
    */
   private async reserveStockInternal(request: ReserveStockRequest): Promise<ReserveStockResponse> {
+    const startTime = Date.now();
     try {
-      const startTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.post('/api/inventory/reserve', request, {
           timeout: this.WRITE_TIMEOUT,
         }),
       );
       const duration = Date.now() - startTime;
+
+      // Registrar métricas exitosas
+      this.recordMetrics('POST', '/api/inventory/reserve', 'success', duration);
 
       this.logger.log(`Reserve stock successful for product ${request.product_id}`, {
         productId: request.product_id,
@@ -240,15 +293,19 @@ export class InventoryHttpClient {
 
       return response.data;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      // Registrar métricas de error
+      this.recordMetrics('POST', '/api/inventory/reserve', 'error', duration);
+
       this.handleHttpError(error, 'reserveStock', request.product_id);
     }
   }
 
   /**
-   * Confirma una reserva y decrementa stock real
-   * - Timeout: 10s
+   * Confirma una reserva (hace el commit final del stock)
+   * - Timeout: 10s (operación con lock)
    * - Retry: 3 intentos
-   * - Sin circuit breaker (operación crítica)
+   * - Sin circuit breaker (operación idempotente)
    *
    * @param request Datos de confirmación
    * @returns Información de la confirmación
@@ -257,8 +314,8 @@ export class InventoryHttpClient {
   async confirmReservation(
     request: ConfirmReservationRequest,
   ): Promise<ConfirmReservationResponse> {
+    const startTime = Date.now();
     try {
-      const startTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.post(
           `/api/inventory/confirm/${request.reservation_id}`,
@@ -270,6 +327,9 @@ export class InventoryHttpClient {
       );
       const duration = Date.now() - startTime;
 
+      // Registrar métricas exitosas
+      this.recordMetrics('POST', '/api/inventory/confirm/:reservationId', 'success', duration);
+
       this.logger.log(`Confirm reservation successful: ${request.reservation_id}`, {
         reservationId: request.reservation_id,
         duration: `${duration}ms`,
@@ -277,7 +337,11 @@ export class InventoryHttpClient {
 
       return response.data;
     } catch (error) {
+      const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Registrar métricas de error
+      this.recordMetrics('POST', '/api/inventory/confirm/:reservationId', 'error', duration);
 
       this.logger.error(`Failed to confirm reservation ${request.reservation_id}`, {
         reservationId: request.reservation_id,
@@ -286,9 +350,7 @@ export class InventoryHttpClient {
 
       this.handleHttpError(error, 'confirmReservation', request.reservation_id);
     }
-  }
-
-  /**
+  } /**
    * Libera una reserva (compensación)
    * - Timeout: 10s
    * - Retry: 3 intentos
@@ -300,14 +362,17 @@ export class InventoryHttpClient {
   async releaseReservation(
     request: ReleaseReservationRequest,
   ): Promise<ReleaseReservationResponse | null> {
+    const startTime = Date.now();
     try {
-      const startTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.delete(`/api/inventory/reserve/${request.reservation_id}`, {
           timeout: this.WRITE_TIMEOUT,
         }),
       );
       const duration = Date.now() - startTime;
+
+      // Registrar métricas exitosas
+      this.recordMetrics('DELETE', '/api/inventory/reserve/:reservationId', 'success', duration);
 
       this.logger.log(`Release reservation successful: ${request.reservation_id}`, {
         reservationId: request.reservation_id,
@@ -316,7 +381,11 @@ export class InventoryHttpClient {
 
       return response.data;
     } catch (error) {
+      const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Registrar métricas de error
+      this.recordMetrics('DELETE', '/api/inventory/reserve/:reservationId', 'error', duration);
 
       // Release es best-effort, no propagamos el error
       this.logger.error(
@@ -340,17 +409,63 @@ export class InventoryHttpClient {
    * @returns true si servicio está disponible
    */
   async healthCheck(): Promise<boolean> {
+    const startTime = Date.now();
     try {
       const response = await firstValueFrom(this.httpService.get('/health', { timeout: 3000 }));
+      const duration = Date.now() - startTime;
+
+      // Registrar métricas exitosas
+      this.recordMetrics('GET', '/health', 'success', duration);
+
       return response.status === 200;
     } catch (error) {
+      const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Registrar métricas de error
+      this.recordMetrics('GET', '/health', 'error', duration);
 
       this.logger.warn('Inventory service health check failed', {
         error: errorMessage,
       });
       return false;
     }
+  }
+
+  /**
+   * Obtiene las métricas en formato Prometheus
+   * @returns Métricas en texto plano para ser expuestas en /metrics
+   */
+  async getMetrics(): Promise<string> {
+    return this.registry.metrics();
+  }
+
+  /**
+   * Registra métricas de HTTP call
+   */
+  private recordMetrics(
+    method: string,
+    endpoint: string,
+    status: 'success' | 'error',
+    durationMs: number,
+  ): void {
+    const durationSeconds = durationMs / 1000;
+
+    // Incrementar contador de llamadas
+    this.httpCallsCounter.inc({
+      method,
+      endpoint,
+      status,
+    });
+
+    // Registrar duración
+    this.httpCallDuration.observe(
+      {
+        method,
+        endpoint,
+      },
+      durationSeconds,
+    );
   }
 
   /**

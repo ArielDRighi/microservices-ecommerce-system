@@ -467,4 +467,125 @@ describe('InventoryHttpClient', () => {
       });
     });
   });
+
+  describe('metrics', () => {
+    const productId = '123e4567-e89b-12d3-a456-426614174000';
+
+    it('should record successful HTTP call metrics for checkStock', async () => {
+      const mockResponse: CheckStockResponse = {
+        product_id: productId,
+        is_available: true,
+        requested_quantity: 10,
+        available_quantity: 50,
+        total_stock: 100,
+        reserved_quantity: 50,
+      };
+
+      httpService.get.mockReturnValue(of(createAxiosResponse(mockResponse)));
+
+      // Spy on metrics methods
+      const recordMetricsSpy = jest.spyOn(client as any, 'recordMetrics');
+
+      await client.checkStock(productId);
+
+      // Verify metrics were recorded
+      expect(recordMetricsSpy).toHaveBeenCalledWith(
+        'GET',
+        '/api/inventory/:productId',
+        'success',
+        expect.any(Number),
+      );
+    });
+
+    it('should record failed HTTP call metrics for checkStock', async () => {
+      const error = createAxiosError(503, 'Service Unavailable');
+      httpService.get.mockReturnValue(throwError(() => error));
+
+      // Spy on metrics methods
+      const recordMetricsSpy = jest.spyOn(client as any, 'recordMetrics');
+
+      await expect(client.checkStock(productId)).rejects.toThrow();
+
+      // Verify error metrics were recorded
+      expect(recordMetricsSpy).toHaveBeenCalledWith(
+        'GET',
+        '/api/inventory/:productId',
+        'error',
+        expect.any(Number),
+      );
+    });
+
+    it('should record successful HTTP call metrics for reserveStock', async () => {
+      const request: ReserveStockRequest = {
+        product_id: productId,
+        order_id: '987fcdeb-51a2-43d7-b890-123456789abc',
+        quantity: 5,
+      };
+
+      const mockResponse: ReserveStockResponse = {
+        reservation_id: 'res-123',
+        product_id: request.product_id,
+        order_id: request.order_id,
+        quantity: request.quantity,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        remaining_stock: 45,
+        reserved_quantity: 55,
+      };
+
+      httpService.post.mockReturnValue(of(createAxiosResponse(mockResponse)));
+
+      const recordMetricsSpy = jest.spyOn(client as any, 'recordMetrics');
+
+      await client.reserveStock(request);
+
+      expect(recordMetricsSpy).toHaveBeenCalledWith(
+        'POST',
+        '/api/inventory/reserve',
+        'success',
+        expect.any(Number),
+      );
+    });
+
+    it('should record metrics for healthCheck', async () => {
+      httpService.get.mockReturnValue(of(createAxiosResponse({ status: 'ok' })));
+
+      const recordMetricsSpy = jest.spyOn(client as any, 'recordMetrics');
+
+      await client.healthCheck();
+
+      expect(recordMetricsSpy).toHaveBeenCalledWith(
+        'GET',
+        '/health',
+        'success',
+        expect.any(Number),
+      );
+    });
+
+    it('should update circuit breaker state gauge on state changes', (done) => {
+      // Access circuit breaker and gauge
+      const breaker = client['checkStockBreaker'];
+      const gauge = client['circuitBreakerStateGauge'];
+
+      // Spy on gauge set method
+      const gaugeSpy = jest.spyOn(gauge, 'set');
+
+      // Force circuit breaker to open by simulating failures
+      const error = createAxiosError(503, 'Service Unavailable');
+      httpService.get.mockReturnValue(throwError(() => error));
+
+      // Emit open event manually to test gauge update
+      breaker.emit('open');
+
+      // Verify gauge was updated to open state (2)
+      expect(gaugeSpy).toHaveBeenCalledWith({ operation: 'check-stock' }, 2);
+
+      // Emit close event
+      breaker.emit('close');
+
+      // Verify gauge was updated to closed state (0)
+      expect(gaugeSpy).toHaveBeenCalledWith({ operation: 'check-stock' }, 0);
+
+      done();
+    });
+  });
 });
