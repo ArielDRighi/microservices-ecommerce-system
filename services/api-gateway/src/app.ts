@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import { config } from './config';
 import { logger } from './logger';
 import { ordersProxy, inventoryProxy } from './middleware/proxy';
+import { authMiddleware } from './middleware/auth';
 
 const app = express();
 
@@ -55,8 +56,8 @@ app.get('/ready', (_req: Request, res: Response) => {
   });
 });
 
-// Proxy routes
-app.use('/api/orders', ordersProxy);
-app.use('/api/inventory', inventoryProxy);
+// Proxy routes (protected with JWT authentication)
+app.use('/api/orders', authMiddleware, ordersProxy);
+app.use('/api/inventory', authMiddleware, inventoryProxy);
 
 export { app };

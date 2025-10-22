@@ -19,22 +19,22 @@ describe('Proxy Routes', () => {
   });
 
   describe('Proxy configuration', () => {
-    it('should attempt to proxy /api/orders/* routes', async () => {
-      // This will fail with ECONNREFUSED since orders-service is not running
-      // but it proves the proxy route is configured
+    it('should require authentication for /api/orders/* routes', async () => {
+      // Without token, should return 401
       const response = await request(app).get('/api/orders/test');
 
-      // Expect 503 Service Unavailable from our error handler
-      expect([503, 500]).toContain(response.status);
+      // Expect 401 Unauthorized (no token provided)
+      expect(response.status).toBe(401);
+      expect(response.body.error).toContain('No token provided');
     });
 
-    it('should attempt to proxy /api/inventory/* routes', async () => {
-      // This will fail with ECONNREFUSED since inventory-service is not running
-      // but it proves the proxy route is configured
+    it('should require authentication for /api/inventory/* routes', async () => {
+      // Without token, should return 401
       const response = await request(app).get('/api/inventory/test');
 
-      // Expect 503 Service Unavailable from our error handler
-      expect([503, 500]).toContain(response.status);
+      // Expect 401 Unauthorized (no token provided)
+      expect(response.status).toBe(401);
+      expect(response.body.error).toContain('No token provided');
     });
   });
 
