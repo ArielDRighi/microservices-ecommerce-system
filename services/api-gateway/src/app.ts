@@ -8,6 +8,7 @@ import { logger } from './logger';
 import { ordersProxy, inventoryProxy } from './middleware/proxy';
 import { authMiddleware } from './middleware/auth';
 import { rateLimiterMiddleware } from './middleware/rateLimiter';
+import { requestLoggingMiddleware } from './middleware/requestLogging';
 
 const app = express();
 
@@ -28,6 +29,9 @@ app.use(compression());
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request/Response logging with correlation IDs
+app.use(requestLoggingMiddleware);
 
 // HTTP logging
 app.use(
