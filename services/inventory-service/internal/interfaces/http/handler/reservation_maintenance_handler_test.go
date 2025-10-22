@@ -6,14 +6,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"context"
+
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/application/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
-
-import "context"
 
 // MockReleaseExpiredReservationsUseCase is a mock for testing
 type MockReleaseExpiredReservationsUseCase struct {

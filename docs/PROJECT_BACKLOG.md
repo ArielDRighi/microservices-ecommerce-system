@@ -1759,6 +1759,7 @@ Total: 46 tests passing (16 scheduler + 23 DLQ + 7 chaos)
 Commits: 42aeda7, d27efef, 61f3a88, 9b2ba8f, d14905d, ace5a3c, + integración en main.go
 
 Características implementadas:
+
 - Auto-release de reservas expiradas (batch 1000, cada 5-10 min)
 - **Scheduler integrado en main.go** con configuración vía `SCHEDULER_INTERVAL_MINUTES` (default: 10 min)
 - Admin endpoints para gestión de DLQ (list, count, retry)
@@ -1775,11 +1776,13 @@ Características implementadas:
 **🔧 Configuración del Scheduler:**
 
 Variables de entorno disponibles:
+
 ```env
 SCHEDULER_INTERVAL_MINUTES=10  # Intervalo de ejecución del scheduler (default: 10 minutos)
 ```
 
 El scheduler:
+
 - Se inicia automáticamente con la aplicación
 - Ejecuta en goroutine separada
 - Graceful shutdown incluido (se detiene con el servidor)
