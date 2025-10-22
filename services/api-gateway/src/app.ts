@@ -7,6 +7,7 @@ import { config } from './config';
 import { logger } from './logger';
 import { ordersProxy, inventoryProxy } from './middleware/proxy';
 import { authMiddleware } from './middleware/auth';
+import { rateLimiterMiddleware } from './middleware/rateLimiter';
 
 const app = express();
 
@@ -36,6 +37,9 @@ app.use(
     },
   }),
 );
+
+// Rate limiting (applied globally)
+app.use(rateLimiterMiddleware);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
