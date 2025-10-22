@@ -55,7 +55,7 @@ func (i *InventoryItem) CanReserve(quantity int) bool {
 // Returns an error if:
 // - quantity is negative or zero
 // - insufficient stock available
-// Updates Reserved field and Version for optimistic locking.
+// Updates Reserved field. Version is managed by repository layer for optimistic locking.
 func (i *InventoryItem) Reserve(quantity int) error {
 	if quantity <= 0 {
 		return errors.ErrInvalidQuantity
@@ -66,7 +66,6 @@ func (i *InventoryItem) Reserve(quantity int) error {
 	}
 
 	i.Reserved += quantity
-	i.Version++
 	i.UpdatedAt = time.Now()
 	return nil
 }
@@ -76,6 +75,7 @@ func (i *InventoryItem) Reserve(quantity int) error {
 // Returns an error if:
 // - quantity is negative or zero
 // - trying to release more than currently reserved
+// Version is managed by repository layer for optimistic locking.
 func (i *InventoryItem) ReleaseReservation(quantity int) error {
 	if quantity <= 0 {
 		return errors.ErrInvalidQuantity
@@ -86,7 +86,6 @@ func (i *InventoryItem) ReleaseReservation(quantity int) error {
 	}
 
 	i.Reserved -= quantity
-	i.Version++
 	i.UpdatedAt = time.Now()
 	return nil
 }
@@ -98,6 +97,7 @@ func (i *InventoryItem) ReleaseReservation(quantity int) error {
 // - quantity is negative or zero
 // - trying to confirm more than currently reserved
 // - resulting Quantity would be negative
+// Version is managed by repository layer for optimistic locking.
 func (i *InventoryItem) ConfirmReservation(quantity int) error {
 	if quantity <= 0 {
 		return errors.ErrInvalidQuantity
@@ -113,7 +113,6 @@ func (i *InventoryItem) ConfirmReservation(quantity int) error {
 
 	i.Reserved -= quantity
 	i.Quantity -= quantity
-	i.Version++
 	i.UpdatedAt = time.Now()
 	return nil
 }
@@ -121,13 +120,13 @@ func (i *InventoryItem) ConfirmReservation(quantity int) error {
 // AddStock increases the total quantity of inventory.
 // Used for restocking operations.
 // Returns an error if quantity is negative or zero.
+// Version is managed by repository layer for optimistic locking.
 func (i *InventoryItem) AddStock(quantity int) error {
 	if quantity <= 0 {
 		return errors.ErrInvalidQuantity
 	}
 
 	i.Quantity += quantity
-	i.Version++
 	i.UpdatedAt = time.Now()
 	return nil
 }
@@ -137,6 +136,7 @@ func (i *InventoryItem) AddStock(quantity int) error {
 // Returns an error if:
 // - quantity is negative or zero
 // - insufficient available stock
+// Version is managed by repository layer for optimistic locking.
 func (i *InventoryItem) DecrementStock(quantity int) error {
 	if quantity <= 0 {
 		return errors.ErrInvalidQuantity
@@ -147,7 +147,6 @@ func (i *InventoryItem) DecrementStock(quantity int) error {
 	}
 
 	i.Quantity -= quantity
-	i.Version++
 	i.UpdatedAt = time.Now()
 	return nil
 }

@@ -90,14 +90,13 @@ func TestInventoryItem_Reserve(t *testing.T) {
 
 	t.Run("should reserve valid quantity", func(t *testing.T) {
 		item, _ := NewInventoryItem(productID, 100)
-		initialVersion := item.Version
 
 		err := item.Reserve(30)
 
 		require.NoError(t, err)
 		assert.Equal(t, 30, item.Reserved)
 		assert.Equal(t, 70, item.Available())
-		assert.Equal(t, initialVersion+1, item.Version)
+		// Version increment is now handled by GORM in repository layer
 	})
 
 	t.Run("should allow multiple reservations", func(t *testing.T) {
@@ -110,7 +109,7 @@ func TestInventoryItem_Reserve(t *testing.T) {
 		require.NoError(t, err2)
 		assert.Equal(t, 50, item.Reserved)
 		assert.Equal(t, 50, item.Available())
-		assert.Equal(t, 3, item.Version) // Initial 1 + 2 reserves
+		// Version increment is now handled by GORM in repository layer
 	})
 
 	t.Run("should reject reservation when insufficient stock", func(t *testing.T) {
@@ -149,14 +148,13 @@ func TestInventoryItem_ReleaseReservation(t *testing.T) {
 	t.Run("should release valid reservation", func(t *testing.T) {
 		item, _ := NewInventoryItem(productID, 100)
 		item.Reserve(50)
-		initialVersion := item.Version
 
 		err := item.ReleaseReservation(30)
 
 		require.NoError(t, err)
 		assert.Equal(t, 20, item.Reserved)
 		assert.Equal(t, 80, item.Available())
-		assert.Equal(t, initialVersion+1, item.Version)
+		// Version increment is now handled by GORM in repository layer
 	})
 
 	t.Run("should release full reservation", func(t *testing.T) {
@@ -206,7 +204,6 @@ func TestInventoryItem_ConfirmReservation(t *testing.T) {
 	t.Run("should confirm valid reservation", func(t *testing.T) {
 		item, _ := NewInventoryItem(productID, 100)
 		item.Reserve(30)
-		initialVersion := item.Version
 
 		err := item.ConfirmReservation(30)
 
@@ -214,7 +211,7 @@ func TestInventoryItem_ConfirmReservation(t *testing.T) {
 		assert.Equal(t, 70, item.Quantity)
 		assert.Equal(t, 0, item.Reserved)
 		assert.Equal(t, 70, item.Available())
-		assert.Equal(t, initialVersion+1, item.Version)
+		// Version increment is now handled by GORM in repository layer
 	})
 
 	t.Run("should confirm partial reservation", func(t *testing.T) {
@@ -269,14 +266,13 @@ func TestInventoryItem_AddStock(t *testing.T) {
 
 	t.Run("should add stock successfully", func(t *testing.T) {
 		item, _ := NewInventoryItem(productID, 100)
-		initialVersion := item.Version
 
 		err := item.AddStock(50)
 
 		require.NoError(t, err)
 		assert.Equal(t, 150, item.Quantity)
 		assert.Equal(t, 150, item.Available())
-		assert.Equal(t, initialVersion+1, item.Version)
+		// Version increment is now handled by GORM in repository layer
 	})
 
 	t.Run("should add stock with existing reservations", func(t *testing.T) {
@@ -316,14 +312,13 @@ func TestInventoryItem_DecrementStock(t *testing.T) {
 
 	t.Run("should decrement stock successfully", func(t *testing.T) {
 		item, _ := NewInventoryItem(productID, 100)
-		initialVersion := item.Version
 
 		err := item.DecrementStock(30)
 
 		require.NoError(t, err)
 		assert.Equal(t, 70, item.Quantity)
 		assert.Equal(t, 70, item.Available())
-		assert.Equal(t, initialVersion+1, item.Version)
+		// Version increment is now handled by GORM in repository layer
 	})
 
 	t.Run("should respect reserved quantity when decrementing", func(t *testing.T) {
@@ -397,23 +392,29 @@ func TestInventoryItem_IsStockAvailable(t *testing.T) {
 func TestInventoryItem_VersionIncrement(t *testing.T) {
 	productID := uuid.New()
 
-	t.Run("should increment version on every mutation", func(t *testing.T) {
+	t.Run("version is managed by GORM optimistic locking", func(t *testing.T) {
 		item, _ := NewInventoryItem(productID, 100)
+		// Initial version is 1 when created
 		assert.Equal(t, 1, item.Version)
 
+		// Entity methods no longer increment version directly
+		// Version increment is handled by GORM in repository layer during Save()
 		item.Reserve(10)
-		assert.Equal(t, 2, item.Version)
+		assert.Equal(t, 1, item.Version) // Still 1 - not incremented by entity
 
 		item.AddStock(50)
-		assert.Equal(t, 3, item.Version)
+		assert.Equal(t, 1, item.Version) // Still 1 - not incremented by entity
 
 		item.ReleaseReservation(5)
-		assert.Equal(t, 4, item.Version)
+		assert.Equal(t, 1, item.Version) // Still 1 - not incremented by entity
 
 		item.ConfirmReservation(5)
-		assert.Equal(t, 5, item.Version)
+		assert.Equal(t, 1, item.Version) // Still 1 - not incremented by entity
 
 		item.DecrementStock(10)
-		assert.Equal(t, 6, item.Version)
+		assert.Equal(t, 1, item.Version) // Still 1 - not incremented by entity
+
+		// Version will be incremented by GORM's optimistic locking when calling repository.Save()
+		// See postgres_e2e_test.go for actual optimistic locking tests with DB
 	})
 }
