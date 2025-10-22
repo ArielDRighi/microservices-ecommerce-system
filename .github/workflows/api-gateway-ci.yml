@@ -55,14 +55,14 @@ jobs:
             - name: Install dependencies
               run: |
                   echo "📦 Installing dependencies..."
-                  npm ci --ignore-scripts
+                  npm install --ignore-scripts
                   echo "✅ Dependencies installed"
 
             - name: Build shared types package
               run: |
                   echo "📦 Building shared types package..."
                   cd ../../shared/types
-                  npm ci --ignore-scripts
+                  npm install --ignore-scripts
                   npm run build
                   echo "✅ Shared types built successfully"
 
@@ -140,14 +140,14 @@ jobs:
             - name: Install dependencies
               run: |
                   echo "📦 Installing dependencies..."
-                  npm ci --ignore-scripts
+                  npm install --ignore-scripts
                   echo "✅ Dependencies installed"
 
             - name: Build shared types package
               run: |
                   echo "📦 Building shared types package..."
                   cd ../../shared/types
-                  npm ci --ignore-scripts
+                  npm install --ignore-scripts
                   npm run build
                   echo "✅ Shared types built successfully"
 
@@ -189,14 +189,14 @@ jobs:
             - name: Install dependencies
               run: |
                   echo "📦 Installing dependencies..."
-                  npm ci --ignore-scripts
+                  npm install --ignore-scripts
                   echo "✅ Dependencies installed"
 
             - name: Build shared types package
               run: |
                   echo "📦 Building shared types package..."
                   cd ../../shared/types
-                  npm ci --ignore-scripts
+                  npm install --ignore-scripts
                   npm run build
                   echo "✅ Shared types built successfully"
 
