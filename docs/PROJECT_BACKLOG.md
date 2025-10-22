@@ -1671,7 +1671,7 @@ type ReservationRepository interface {
 
 ### Epic 3.3: Compensación Distribuida y Manejo de Fallos
 
-**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
+**Priority:** CRITICAL | **Status:** ✅ COMPLETADA
 
 **Contexto:** Implementar estrategias robustas de compensación para transacciones distribuidas y manejo de fallos de red entre servicios.
 
@@ -1756,15 +1756,35 @@ type ReservationRepository interface {
 **📝 Resumen de Implementación - Epic 3.3:**
 
 Total: 46 tests passing (16 scheduler + 23 DLQ + 7 chaos)
-Commits: 42aeda7, d27efef, 61f3a88, 9b2ba8f, d14905d, ace5a3c
+Commits: 42aeda7, d27efef, 61f3a88, 9b2ba8f, d14905d, ace5a3c, + integración en main.go
 
 Características implementadas:
 - Auto-release de reservas expiradas (batch 1000, cada 5-10 min)
+- **Scheduler integrado en main.go** con configuración vía `SCHEDULER_INTERVAL_MINUTES` (default: 10 min)
 - Admin endpoints para gestión de DLQ (list, count, retry)
-- Chaos tests validando tolerancia a fallos
+  - POST /admin/reservations/release-expired (trigger manual)
+  - GET /admin/dlq (paginación)
+  - GET /admin/dlq/count (threshold warning)
+  - POST /admin/dlq/:id/retry (reintentar mensaje específico)
+- Chaos tests validando tolerancia a fallos (7 escenarios)
 - Circuit breakers y retry con exponential backoff (ya existentes)
 - Compensaciones automáticas en saga pattern (ya existentes)
 - Graceful degradation y fast failure patterns
+- **Stub repositories** para permitir compilación sin PostgreSQL real (en `internal/infrastructure/repository/stub/`)
+
+**🔧 Configuración del Scheduler:**
+
+Variables de entorno disponibles:
+```env
+SCHEDULER_INTERVAL_MINUTES=10  # Intervalo de ejecución del scheduler (default: 10 minutos)
+```
+
+El scheduler:
+- Se inicia automáticamente con la aplicación
+- Ejecuta en goroutine separada
+- Graceful shutdown incluido (se detiene con el servidor)
+- Logs detallados de cada ejecución
+- Context timeout de 2 minutos por ejecución
 
 Epic 3.3 100% COMPLETADA
 

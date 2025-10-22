@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/application/usecase"
@@ -14,7 +15,7 @@ type ReservationMaintenanceHandler struct {
 
 // ReleaseExpiredReservationsUseCase interface for dependency injection
 type ReleaseExpiredReservationsUseCase interface {
-	Execute(ctx interface{}) (*usecase.ReleaseExpiredReservationsOutput, error)
+	Execute(ctx context.Context) (*usecase.ReleaseExpiredReservationsOutput, error)
 }
 
 // NewReservationMaintenanceHandler creates a new instance

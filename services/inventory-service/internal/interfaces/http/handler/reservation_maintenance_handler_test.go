@@ -13,12 +13,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+import "context"
+
 // MockReleaseExpiredReservationsUseCase is a mock for testing
 type MockReleaseExpiredReservationsUseCase struct {
 	mock.Mock
 }
 
-func (m *MockReleaseExpiredReservationsUseCase) Execute(ctx interface{}) (*usecase.ReleaseExpiredReservationsOutput, error) {
+func (m *MockReleaseExpiredReservationsUseCase) Execute(ctx context.Context) (*usecase.ReleaseExpiredReservationsOutput, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
