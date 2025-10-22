@@ -13,9 +13,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/application/usecase"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/config"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/database"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/persistence/repository"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/repository/stub"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/scheduler"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/interfaces/http/handler"
@@ -27,14 +31,27 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
+	// 2. Cargar configuración
+	var cfg config.Config
+	if err := envconfig.Process("", &cfg); err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
 	port := getEnv("PORT", "8080")
 	schedulerIntervalMinutes := getEnvAsInt("SCHEDULER_INTERVAL_MINUTES", 10)
+	env := getEnv("ENV", "development")
 
-	// 2. Initialize repositories (stub implementations for now)
-	// TODO: Replace with real PostgreSQL implementations
-	reservationRepo := stub.NewReservationRepositoryStub()
-	inventoryRepo := stub.NewInventoryRepositoryStub()
-	dlqRepo := stub.NewDLQRepositoryStub()
+	// 3. Conectar a PostgreSQL
+	db, err := database.NewPostgresDB(&cfg.Database, env)
+	if err != nil {
+		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
+	}
+	log.Println("Successfully connected to PostgreSQL")
+
+	// 4. Initialize repositories (PostgreSQL implementations)
+	inventoryRepo := repository.NewInventoryRepository(db)
+	reservationRepo := repository.NewReservationRepository(db)
+	dlqRepo := stub.NewDLQRepositoryStub() // TODO: Replace with PostgreSQL implementation in Epic 3.5
 
 	// 3. Initialize use cases
 	// Note: Publisher is nil for now (will be integrated with RabbitMQ later)
@@ -131,6 +148,14 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("❌ Server forced to shutdown: %v", err)
+	}
+
+	// Close database connection
+	log.Println("⏳ Closing database connection...")
+	if err := database.CloseDB(db); err != nil {
+		log.Printf("⚠️  Error closing database: %v", err)
+	} else {
+		log.Println("✅ Database connection closed")
 	}
 
 	log.Println("✅ Server exited gracefully")
