@@ -145,11 +145,15 @@ func getEnv(key, defaultValue string) string {
 }
 
 // getEnvAsInt obtiene una variable de entorno como int o retorna un valor por defecto
+// Si la variable existe pero no puede parsearse, loguea un warning para facilitar troubleshooting
 func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
-		if intValue, err := strconv.Atoi(value); err == nil {
-			return intValue
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			log.Printf("Warning: Invalid value for %s: '%s' (error: %v), using default: %d", key, value, err, defaultValue)
+			return defaultValue
 		}
+		return intValue
 	}
 	return defaultValue
 }
