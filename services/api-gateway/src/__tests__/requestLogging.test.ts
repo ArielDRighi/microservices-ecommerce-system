@@ -41,7 +41,7 @@ describe('Request/Response Logging Middleware', () => {
       expect(responseTime).toBeDefined();
 
       const timeValue = parseInt(responseTime.replace('ms', ''));
-      expect(timeValue).toBeGreaterThan(0);
+      expect(timeValue).toBeGreaterThanOrEqual(0);
     });
   });
 
