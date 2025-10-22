@@ -860,6 +860,7 @@ type ReservationRepository interface {
 - [x] CachedInventoryRepository decorator implementado con patrón cache-aside
 - [x] Quality gates passed: gofmt, go vet, go build exitosos
 - [x] 6 commits realizados (5 planeados + 1 extra ReservationRepository)
+- [ ] **PENDIENTE (Epic 3.4):** Repositorios PostgreSQL conectados en `main.go` (actualmente usando stubs)
 
 **📊 Métricas Finales:**
 
@@ -1793,24 +1794,26 @@ Epic 3.3 100% COMPLETADA
 
 ---
 
-### Epic 3.4: Integración con Base de Datos Real (PostgreSQL)
+### Epic 3.4: Integración con PostgreSQL Real
 
-**Priority:** MEDIUM | **Status:** ⏳ PENDIENTE
+**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
+**Effort:** ~6 horas
+**Dependencies:** Epic 2.3 (Repositorios PostgreSQL), Epic 2.7 (Migraciones), Epic 3.3 (Scheduler/DLQ)
+**Blocks:** Epic 5.2 (Tests E2E), Epic 6.2 (Métricas con datos reales), Epic 7.1 (Demos finales)
 
-**Contexto:** Epic 3.3 se completó exitosamente usando stub repositories para enfocarse en lógica de negocio (scheduler, DLQ, compensaciones). Este Epic conecta el Inventory Service con PostgreSQL real y prepara el sistema para demos end-to-end completas.
+**Contexto:** Conectar Inventory Service con PostgreSQL real para arquitectura completa de microservicios. Los repositorios fueron implementados en Epic 2.3 pero nunca conectados en `main.go`. Esta epic elimina los stub repositories y establece la arquitectura definitiva con Database per Service pattern.
 
-**Estrategia:** El proyecto soportará **2 modos de operación** para flexibilidad en demos:
-- **Demo Mode**: Solo Orders Service (mocks de Inventory) - Setup 30 segundos
-- **Full Stack Mode**: Ecosistema completo con Inventory Service real - Setup 2 minutos
+**Nota Arquitectónica:** El proyecto mantiene una única arquitectura (Full Stack) con todos los servicios conectados a bases de datos reales. No se implementan modos alternativos para mantener el código limpio y alineado con estándares de microservicios.
 
 **Nota:** Los repositorios PostgreSQL reales ya fueron implementados en Epic 2.3 (1,410 LOC, 55 tests). Solo falta conectarlos en `main.go`.
 
 ---
 
-#### ⏳ T3.4.1: Reemplazar Stub Repositories con implementaciones PostgreSQL
+#### ⏳ T3.4.1: Conectar Repositorios PostgreSQL en main.go
 
 - **Status:** ⏳ PENDIENTE
-- **Descripción:** Actualizar `cmd/api/main.go` para usar repositorios reales con GORM
+- **Effort:** 2 horas
+- **Descripción:** Reemplazar stub repositories con implementaciones PostgreSQL reales
 - **Checklist:**
   - [ ] Configurar conexión a PostgreSQL con GORM (usar config existente de Epic 2.3.1)
   - [ ] Reemplazar `stub.NewInventoryRepositoryStub()` con `postgres.NewInventoryRepositoryImpl(db)`
@@ -1824,6 +1827,7 @@ Epic 3.3 100% COMPLETADA
     - `DB_USER=postgres`
     - `DB_PASSWORD=microservices_pass_2024`
     - `DB_SSLMODE=disable`
+  - [ ] **NO incluir:** Flags de modo demo, condicionales de configuración dual, lógica alternativa
 - **Archivos a modificar:**
   - `cmd/api/main.go` (~50 líneas de cambios)
   - `.env.example` (añadir variables DB)
@@ -1835,7 +1839,8 @@ Epic 3.3 100% COMPLETADA
 #### ⏳ T3.4.2: Aplicar Migraciones SQL
 
 - **Status:** ⏳ PENDIENTE
-- **Descripción:** Ejecutar migraciones para crear tablas en `microservices_inventory` database
+- **Effort:** 1 hora
+- **Descripción:** Ejecutar migraciones para crear esquema en `microservices_inventory` database
 - **Checklist:**
   - [ ] Verificar existencia de migraciones (ya creadas en Epic 2.3.4):
     - `001_create_inventory_items_table.up.sql`
@@ -1859,22 +1864,23 @@ Epic 3.3 100% COMPLETADA
 
 ---
 
-#### ⏳ T3.4.3: Seed Data de Prueba para Demos
+#### ⏳ T3.4.3: Seed Data de Prueba
 
 - **Status:** ⏳ PENDIENTE
-- **Descripción:** Crear script de seed con datos realistas para demos convincentes
+- **Effort:** 2 horas
+- **Descripción:** Crear seed script con datos realistas para demos y testing
 - **Checklist:**
-  - [ ] Crear archivo `cmd/seed/main.go` con datos de ejemplo
-  - [ ] **Dataset 1 - E-commerce Realista** (50 productos):
-    - Categorías: Electronics (10), Clothing (15), Books (10), Home (10), Sports (5)
-    - Stock levels variados: 0 (out of stock), 1-5 (low), 10-50 (medium), 100+ (high)
-    - Nombres descriptivos: "MacBook Pro 16", "Nike Air Max 90", "Clean Code Book"
-    - UUIDs válidos que puedan correlacionar con Orders Service
-  - [ ] **Dataset 2 - Escenarios de Demo** (10 productos):
-    - Producto con stock=0 (para demo de "insufficient stock")
-    - Producto con stock=1 (para demo de concurrencia)
-    - Producto con stock=5 y reserved=3 (para demo de reservas activas)
-    - Producto con stock=1000 (para load testing)
+  - [ ] Crear archivo `cmd/seed/main.go` con 2 datasets:
+    - **Realistic (50 productos):**
+      - Categorías: Electronics (10), Clothing (15), Books (10), Home (10), Sports (5)
+      - Stock levels variados: 0 (out of stock), 1-5 (low), 10-50 (medium), 100+ (high)
+      - Nombres descriptivos: "MacBook Pro 16", "Nike Air Max 90", "Clean Code Book"
+      - UUIDs válidos que puedan correlacionar con Orders Service
+    - **Testing (10 productos):**
+      - Producto con stock=0 (para demo de "insufficient stock")
+      - Producto con stock=1 (para demo de concurrencia)
+      - Producto con stock=5 y reserved=3 (para demo de reservas activas)
+      - Producto con stock=1000 (para load testing)
   - [ ] Script debe ser idempotente (verificar si ya existe antes de insertar)
   - [ ] Incluir flag `--clean` para limpiar datos previos
   - [ ] Logging detallado de productos insertados
@@ -1894,45 +1900,11 @@ Epic 3.3 100% COMPLETADA
 
 ---
 
-#### ⏳ T3.4.4: Documentar Modos de Operación en README
+#### ⏳ T3.4.4: Tests E2E con PostgreSQL Real
 
 - **Status:** ⏳ PENDIENTE
-- **Descripción:** Actualizar README principal con instrucciones claras para ambos modos
-- **Checklist:**
-  - [ ] Añadir sección "🚀 Modos de Inicio" después de Quick Start
-  - [ ] **Demo Mode (Solo Orders - 30 segundos):**
-    - Comandos: `docker-compose up -d postgres redis orders-service`
-    - Explicar que Inventory usa mocks (InventoryHttpClient con axios-retry)
-    - Ideal para: Live coding, demos rápidas, laptops con recursos limitados
-    - Servicios: Orders API (3001), PostgreSQL, Redis
-  - [ ] **Full Stack Mode (Ecosistema Completo - 2 minutos):**
-    - Comandos: `docker-compose up -d`
-    - Explicar que Inventory Service funciona con PostgreSQL real
-    - Ideal para: Entrevistas técnicas, arquitectura distribuida, portfolio avanzado
-    - Servicios: Orders (3001), Inventory (8080), RabbitMQ (15672), PostgreSQL, Redis
-  - [ ] Añadir tabla comparativa de ambos modos
-  - [ ] Incluir health checks para verificar servicios levantados
-  - [ ] Documentar URLs de cada servicio
-  - [ ] Añadir sección de troubleshooting (puertos ocupados, permisos Docker)
-- **Archivos a modificar:**
-  - `README.md` (sección Quick Start ampliada)
-- **Formato esperado:**
-  ```markdown
-  ## 🚀 Modos de Inicio
-  
-  ### ⚡ Demo Mode (Solo Orders - 30 seg)
-  Perfecto para demos rápidas. Inventory Service usa mocks.
-  
-  ### 🌐 Full Stack Mode (Completo - 2 min)
-  Sistema distribuido real con Inventory Service en Go + PostgreSQL.
-  ```
-
----
-
-#### ⏳ T3.4.5: Tests de Integración End-to-End con DB Real
-
-- **Status:** ⏳ PENDIENTE
-- **Descripción:** Validar flujo completo con PostgreSQL real en ambos servicios
+- **Effort:** 2 horas
+- **Descripción:** Validar flujo completo con bases de datos reales
 - **Checklist:**
   - [ ] Crear test file: `tests/e2e/inventory_postgres_integration_test.go`
   - [ ] **Test 1: Create Order → Reserve Stock (PostgreSQL)**
@@ -1968,35 +1940,35 @@ Epic 3.3 100% COMPLETADA
 
 **✅ Definition of Done - Epic 3.4:**
 
-- [ ] Inventory Service conectado a PostgreSQL real (sin stubs)
+- [ ] Inventory Service conectado a PostgreSQL real (sin stubs en `main.go`)
 - [ ] Migraciones aplicadas correctamente en `microservices_inventory` database
-- [ ] Seed data cargado y funcional (50+ productos realistas)
-- [ ] README actualizado con 2 modos de operación claramente documentados
+- [ ] Seed data funcional (50+ productos realistas + 10 testing scenarios)
 - [ ] Tests E2E con PostgreSQL pasando exitosamente (>80% coverage)
 - [ ] Docker Compose levanta todos los servicios sin errores
-- [ ] Health checks verifican conectividad a PostgreSQL
+- [ ] Health checks verifican conectividad PostgreSQL
 - [ ] DLQ table creada y funcional
-- [ ] Ambos modos (Demo y Full Stack) verificados y documentados
+- [ ] README actualizado con Quick Start simplificado (arquitectura única)
 - [ ] Rollback procedure documentado para migraciones
+- [ ] Código libre de condicionales de "modo demo" o configuración dual
 
 **📊 Métricas Esperadas Epic 3.4:**
 
-- **Líneas de código:** ~800 LOC (main.go changes + migrations + seed + tests)
-- **Tests E2E:** 5+ integration tests con Testcontainers
-- **Tiempo de setup:**
-  - Demo Mode: <30 segundos
-  - Full Stack Mode: <2 minutos (health checks incluidos)
-- **Documentación:** README ampliado con tabla comparativa y troubleshooting
-- **Commits esperados:** 5 (1 por tarea)
+- **Líneas de código:** ~750 LOC (main.go changes + migrations + seed + tests)
+- **Tests E2E:** 5 integration tests con Testcontainers
+- **Tiempo de setup:** <2 minutos (health checks incluidos)
+- **Documentación:** README simplificado con Quick Start único
+- **Commits esperados:** 4 (1 por tarea)
 
 **🎯 Valor para Portfolio:**
 
 Esta epic demuestra:
-- ✅ **Flexibilidad arquitectónica**: Misma codebase, múltiples modos de deployment
-- ✅ **Pragmatismo**: Stubs para desarrollo rápido, PostgreSQL para producción
-- ✅ **DevX (Developer Experience)**: Setup rápido para diferentes audiencias
-- ✅ **Testing Strategy**: Unit tests (stubs) + Integration tests (Testcontainers) + E2E (PostgreSQL real)
-- ✅ **Portfolio Storytelling**: "Diseñé 2 modos para diferentes contextos de demo..."
+
+- ✅ **Database per Service pattern**: Arquitectura microservicios estándar industry
+- ✅ **Optimistic Locking funcional**: Con transacciones ACID reales
+- ✅ **Migraciones versionadas**: Proceso de deployment profesional
+- ✅ **Testing Strategy completa**: Testcontainers + E2E + race conditions
+- ✅ **Arquitectura production-ready**: Sin shortcuts ni mocks en producción
+- ✅ **Código limpio**: Una sola arquitectura, sin condicionales innecesarios
 
 **🔗 Referencias:**
 
@@ -2640,6 +2612,14 @@ Esta epic demuestra:
 - [x] Documentación de infraestructura (Epic 1.5 - parcial)
 - [x] Makefile raíz
 
+### ⚠️ Gap Arquitectónico Identificado
+
+- [ ] **Epic 3.4 (CRÍTICO)**: Inventory Service actualmente usa stub repositories en `main.go`. Debe conectarse a PostgreSQL real para cumplir arquitectura completa de microservicios según consigna del proyecto.
+  - **Impacto:** Sin Epic 3.4, el sistema es un "monolito distribuido" (sin Database per Service pattern)
+  - **Bloqueante para:** Tests E2E reales, demos de portfolio, documentación final
+  - **Repositorios PostgreSQL:** Ya implementados en Epic 2.3 (1,410 LOC, 55 tests)
+  - **Trabajo restante:** Conectar en main.go + migraciones + seed + tests E2E (~6 horas)
+
 ### 🔄 En Progreso - Fase 1
 
 - [ ] **Epic 1.1**: Completar README principal y ADR-026
@@ -2650,12 +2630,22 @@ Esta epic demuestra:
 
 ### ⏳ Próximos Pasos Inmediatos
 
-1. **Fase 0**: Ejecutar Technical Spikes (decisiones arquitectónicas críticas)
-2. **Completar Fase 1**: Todas las épicas 1.1 - 1.6
-3. **Tag v3.0.0-phase-1**: Marcar finalización de setup inicial
-4. **Empezar Fase 2**: Domain Layer del Inventory Service
+1. **CRÍTICO - Completar Epic 3.4**: Conectar Inventory Service con PostgreSQL real
+   - Sin esto, el proyecto no cumple la consigna de "servicios independientes"
+   - Bloqueante para demos finales y documentación
+   - Tiempo estimado: ~6 horas
+2. **Fase 5**: Completar suite de tests (E2E con PostgreSQL real)
+3. **Fase 6**: Observabilidad y monitoreo (métricas con datos reales)
+4. **Fase 7**: Documentación final y deployment
 
 ### 🚨 Cambios Importantes en este Backlog
+
+**📌 Actualización más reciente (2025-01-21):**
+
+- ✅ **Epic 3.4 simplificada**: Eliminado "Demo Mode" para mantener código limpio
+- ✅ **Prioridad Epic 3.4**: Cambiada de MEDIUM a CRITICAL
+- ✅ **Gap arquitectónico documentado**: Inventory Service debe conectarse a PostgreSQL real
+- ✅ **Dependencias clarificadas**: Epic 3.4 bloqueante para Fase 5, 6 y 7
 
 **Actualización basada en análisis exhaustivo de gaps (ver GAPS_backlog.md):**
 
@@ -2698,12 +2688,17 @@ Esta epic demuestra:
 | **RabbitMQ**       | N/A                                | **5672** (AMQP), **15672** (UI)                     |
 | **Bases de Datos** | `ecommerce_async`                  | `microservices_orders`<br>`microservices_inventory` |
 | **Contenedores**   | `ecommerce-*`                      | `microservices-*`                                   |
+| **Arquitectura**   | Monolito asíncrono                 | **Microservicios con Database per Service**         |
 
 ### Documentación de Referencia
 
 - [INFRASTRUCTURE_REFERENCE.md](docs/INFRASTRUCTURE_REFERENCE.md) - Puertos, BDs, credenciales
 - [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Guía rápida de comandos
 - [GAPS_backlog.md](docs/GAPS_backlog.md) - Análisis detallado de gaps identificados
+- [ADR-026](adr/026-api-gateway-express-custom.md) - Decisión API Gateway
+- [ADR-027](adr/027-testcontainers-vs-mocks.md) - Estrategia de testing
+- [ADR-028](adr/028-rest-synchronous-communication.md) - Comunicación HTTP entre servicios
+- [ADR-029](adr/029-message-broker-rabbitmq-vs-redis-pubsub.md) - Message broker selection
 
 ---
 
