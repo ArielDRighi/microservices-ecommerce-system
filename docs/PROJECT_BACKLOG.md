@@ -1793,6 +1793,219 @@ Epic 3.3 100% COMPLETADA
 
 ---
 
+### Epic 3.4: Integración con Base de Datos Real (PostgreSQL)
+
+**Priority:** MEDIUM | **Status:** ⏳ PENDIENTE
+
+**Contexto:** Epic 3.3 se completó exitosamente usando stub repositories para enfocarse en lógica de negocio (scheduler, DLQ, compensaciones). Este Epic conecta el Inventory Service con PostgreSQL real y prepara el sistema para demos end-to-end completas.
+
+**Estrategia:** El proyecto soportará **2 modos de operación** para flexibilidad en demos:
+- **Demo Mode**: Solo Orders Service (mocks de Inventory) - Setup 30 segundos
+- **Full Stack Mode**: Ecosistema completo con Inventory Service real - Setup 2 minutos
+
+**Nota:** Los repositorios PostgreSQL reales ya fueron implementados en Epic 2.3 (1,410 LOC, 55 tests). Solo falta conectarlos en `main.go`.
+
+---
+
+#### ⏳ T3.4.1: Reemplazar Stub Repositories con implementaciones PostgreSQL
+
+- **Status:** ⏳ PENDIENTE
+- **Descripción:** Actualizar `cmd/api/main.go` para usar repositorios reales con GORM
+- **Checklist:**
+  - [ ] Configurar conexión a PostgreSQL con GORM (usar config existente de Epic 2.3.1)
+  - [ ] Reemplazar `stub.NewInventoryRepositoryStub()` con `postgres.NewInventoryRepositoryImpl(db)`
+  - [ ] Reemplazar `stub.NewReservationRepositoryStub()` con `postgres.NewReservationRepositoryImpl(db)`
+  - [ ] Implementar `DLQRepositoryPostgreSQL` (conectar con RabbitMQ DLQ o tabla `dlq_messages`)
+  - [ ] Añadir graceful shutdown para GORM connection pool
+  - [ ] Configurar variables de entorno:
+    - `DB_HOST=postgres`
+    - `DB_PORT=5432`
+    - `DB_NAME=microservices_inventory`
+    - `DB_USER=postgres`
+    - `DB_PASSWORD=microservices_pass_2024`
+    - `DB_SSLMODE=disable`
+- **Archivos a modificar:**
+  - `cmd/api/main.go` (~50 líneas de cambios)
+  - `.env.example` (añadir variables DB)
+- **Tests:** Ejecutar tests de integración con Testcontainers (ya existen de Epic 2.3)
+- **Referencia:** Epic 2.3.1 para código de conexión PostgreSQL
+
+---
+
+#### ⏳ T3.4.2: Aplicar Migraciones SQL
+
+- **Status:** ⏳ PENDIENTE
+- **Descripción:** Ejecutar migraciones para crear tablas en `microservices_inventory` database
+- **Checklist:**
+  - [ ] Verificar existencia de migraciones (ya creadas en Epic 2.3.4):
+    - `001_create_inventory_items_table.up.sql`
+    - `002_create_reservations_table.up.sql`
+  - [ ] Crear migración para DLQ: `003_create_dlq_messages_table.up.sql`
+    - Campos: id, event_type, payload, error_message, retry_count, created_at, last_retry_at
+  - [ ] Ejecutar migraciones con uno de estos métodos:
+    - **Opción A:** golang-migrate CLI (recomendado para CI/CD)
+    - **Opción B:** GORM AutoMigrate en startup (dev mode)
+    - **Opción C:** Script SQL manual (docker exec)
+  - [ ] Verificar tablas creadas correctamente con índices y constraints
+  - [ ] Documentar rollback procedure (usar `.down.sql` existentes)
+- **Comando ejemplo:**
+  ```bash
+  migrate -path migrations -database "postgres://postgres:microservices_pass_2024@localhost:5433/microservices_inventory?sslmode=disable" up
+  ```
+- **Archivos a crear:**
+  - `migrations/003_create_dlq_messages_table.up.sql`
+  - `migrations/003_create_dlq_messages_table.down.sql`
+- **Referencia:** Epic 2.3.4 (migraciones 001 y 002 ya existen)
+
+---
+
+#### ⏳ T3.4.3: Seed Data de Prueba para Demos
+
+- **Status:** ⏳ PENDIENTE
+- **Descripción:** Crear script de seed con datos realistas para demos convincentes
+- **Checklist:**
+  - [ ] Crear archivo `cmd/seed/main.go` con datos de ejemplo
+  - [ ] **Dataset 1 - E-commerce Realista** (50 productos):
+    - Categorías: Electronics (10), Clothing (15), Books (10), Home (10), Sports (5)
+    - Stock levels variados: 0 (out of stock), 1-5 (low), 10-50 (medium), 100+ (high)
+    - Nombres descriptivos: "MacBook Pro 16", "Nike Air Max 90", "Clean Code Book"
+    - UUIDs válidos que puedan correlacionar con Orders Service
+  - [ ] **Dataset 2 - Escenarios de Demo** (10 productos):
+    - Producto con stock=0 (para demo de "insufficient stock")
+    - Producto con stock=1 (para demo de concurrencia)
+    - Producto con stock=5 y reserved=3 (para demo de reservas activas)
+    - Producto con stock=1000 (para load testing)
+  - [ ] Script debe ser idempotente (verificar si ya existe antes de insertar)
+  - [ ] Incluir flag `--clean` para limpiar datos previos
+  - [ ] Logging detallado de productos insertados
+- **Uso:**
+  ```bash
+  go run cmd/seed/main.go --dataset=realistic
+  go run cmd/seed/main.go --dataset=demo --clean
+  ```
+- **Archivos a crear:**
+  - `cmd/seed/main.go` (~200 líneas)
+  - `cmd/seed/datasets.go` (definición de productos)
+- **Output esperado:**
+  ```
+  ✅ Seeded 50 products in microservices_inventory
+  ✅ Categories: Electronics (10), Clothing (15), Books (10), Home (10), Sports (5)
+  ```
+
+---
+
+#### ⏳ T3.4.4: Documentar Modos de Operación en README
+
+- **Status:** ⏳ PENDIENTE
+- **Descripción:** Actualizar README principal con instrucciones claras para ambos modos
+- **Checklist:**
+  - [ ] Añadir sección "🚀 Modos de Inicio" después de Quick Start
+  - [ ] **Demo Mode (Solo Orders - 30 segundos):**
+    - Comandos: `docker-compose up -d postgres redis orders-service`
+    - Explicar que Inventory usa mocks (InventoryHttpClient con axios-retry)
+    - Ideal para: Live coding, demos rápidas, laptops con recursos limitados
+    - Servicios: Orders API (3001), PostgreSQL, Redis
+  - [ ] **Full Stack Mode (Ecosistema Completo - 2 minutos):**
+    - Comandos: `docker-compose up -d`
+    - Explicar que Inventory Service funciona con PostgreSQL real
+    - Ideal para: Entrevistas técnicas, arquitectura distribuida, portfolio avanzado
+    - Servicios: Orders (3001), Inventory (8080), RabbitMQ (15672), PostgreSQL, Redis
+  - [ ] Añadir tabla comparativa de ambos modos
+  - [ ] Incluir health checks para verificar servicios levantados
+  - [ ] Documentar URLs de cada servicio
+  - [ ] Añadir sección de troubleshooting (puertos ocupados, permisos Docker)
+- **Archivos a modificar:**
+  - `README.md` (sección Quick Start ampliada)
+- **Formato esperado:**
+  ```markdown
+  ## 🚀 Modos de Inicio
+  
+  ### ⚡ Demo Mode (Solo Orders - 30 seg)
+  Perfecto para demos rápidas. Inventory Service usa mocks.
+  
+  ### 🌐 Full Stack Mode (Completo - 2 min)
+  Sistema distribuido real con Inventory Service en Go + PostgreSQL.
+  ```
+
+---
+
+#### ⏳ T3.4.5: Tests de Integración End-to-End con DB Real
+
+- **Status:** ⏳ PENDIENTE
+- **Descripción:** Validar flujo completo con PostgreSQL real en ambos servicios
+- **Checklist:**
+  - [ ] Crear test file: `tests/e2e/inventory_postgres_integration_test.go`
+  - [ ] **Test 1: Create Order → Reserve Stock (PostgreSQL)**
+    - POST /api/orders → Orders Service
+    - Orders llama GET /api/inventory/:productId → Inventory (PostgreSQL query)
+    - Orders llama POST /api/inventory/reserve → Inventory (INSERT en reservations table)
+    - Verificar en BD: `reserved` incrementado, nueva fila en `reservations`
+  - [ ] **Test 2: Confirm Reservation → Decrement Stock**
+    - POST /api/inventory/confirm/:reservationId
+    - Verificar en BD: `quantity` decrementado, `reserved` decrementado, `status=confirmed`
+  - [ ] **Test 3: Release Reservation → Restore Stock**
+    - DELETE /api/inventory/reserve/:reservationId
+    - Verificar en BD: `reserved` decrementado, `status=released`
+  - [ ] **Test 4: Concurrent Reservations (Race Condition)**
+    - 10 goroutines intentan reservar último ítem simultáneamente
+    - Solo 1 debe tener éxito (optimistic locking con `version` field)
+    - Verificar en BD: `reserved=1`, no inconsistencias
+  - [ ] **Test 5: Scheduler Auto-Release**
+    - Crear reserva con expires_at=now-1min
+    - Ejecutar scheduler manualmente
+    - Verificar en BD: `status=expired`, `reserved` decrementado
+  - [ ] Usar Testcontainers para PostgreSQL (ya configurado en Epic 2.3)
+  - [ ] Coverage target: >80% de flujos críticos
+- **Herramientas:**
+  - Testcontainers para PostgreSQL 16-alpine
+  - httptest para HTTP requests
+  - GORM para queries de verificación
+- **Archivos a crear:**
+  - `tests/e2e/inventory_postgres_integration_test.go` (~500 líneas)
+- **Tiempo de ejecución:** <60 segundos (Testcontainers setup ~30s + tests ~30s)
+
+---
+
+**✅ Definition of Done - Epic 3.4:**
+
+- [ ] Inventory Service conectado a PostgreSQL real (sin stubs)
+- [ ] Migraciones aplicadas correctamente en `microservices_inventory` database
+- [ ] Seed data cargado y funcional (50+ productos realistas)
+- [ ] README actualizado con 2 modos de operación claramente documentados
+- [ ] Tests E2E con PostgreSQL pasando exitosamente (>80% coverage)
+- [ ] Docker Compose levanta todos los servicios sin errores
+- [ ] Health checks verifican conectividad a PostgreSQL
+- [ ] DLQ table creada y funcional
+- [ ] Ambos modos (Demo y Full Stack) verificados y documentados
+- [ ] Rollback procedure documentado para migraciones
+
+**📊 Métricas Esperadas Epic 3.4:**
+
+- **Líneas de código:** ~800 LOC (main.go changes + migrations + seed + tests)
+- **Tests E2E:** 5+ integration tests con Testcontainers
+- **Tiempo de setup:**
+  - Demo Mode: <30 segundos
+  - Full Stack Mode: <2 minutos (health checks incluidos)
+- **Documentación:** README ampliado con tabla comparativa y troubleshooting
+- **Commits esperados:** 5 (1 por tarea)
+
+**🎯 Valor para Portfolio:**
+
+Esta epic demuestra:
+- ✅ **Flexibilidad arquitectónica**: Misma codebase, múltiples modos de deployment
+- ✅ **Pragmatismo**: Stubs para desarrollo rápido, PostgreSQL para producción
+- ✅ **DevX (Developer Experience)**: Setup rápido para diferentes audiencias
+- ✅ **Testing Strategy**: Unit tests (stubs) + Integration tests (Testcontainers) + E2E (PostgreSQL real)
+- ✅ **Portfolio Storytelling**: "Diseñé 2 modos para diferentes contextos de demo..."
+
+**🔗 Referencias:**
+
+- Epic 2.3: Repositorios PostgreSQL ya implementados
+- Epic 2.7: Migraciones y seed strategy
+- ADR-027: Testcontainers vs Mocks
+
+---
+
 ## 🔶 FASE 4: API Gateway
 
 **Objetivo:** Implementar punto de entrada único con enrutamiento inteligente, funcionalidades avanzadas de nivel empresarial y seguridad robusta.
