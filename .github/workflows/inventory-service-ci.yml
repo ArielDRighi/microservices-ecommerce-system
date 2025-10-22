@@ -1,264 +1,264 @@
 name: CI - Inventory Service (Go)
 
 on:
-    push:
-        branches:
-            - main
-            - develop
-            - "feature/**"
-        paths:
-            - "services/inventory-service/**"
-            - ".github/workflows/inventory-service-ci.yml"
-    pull_request:
-        branches:
-            - main
-            - develop
-        paths:
-            - "services/inventory-service/**"
-            - ".github/workflows/inventory-service-ci.yml"
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+    paths:
+      - "services/inventory-service/**"
+      - ".github/workflows/inventory-service-ci.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "services/inventory-service/**"
+      - ".github/workflows/inventory-service-ci.yml"
 
 env:
-    GO_VERSION: "1.23" # Updated from 1.21 (covdata tool requires 1.23+)
-    WORKING_DIR: ./services/inventory-service
+  GO_VERSION: "1.23" # Updated from 1.21 (covdata tool requires 1.23+)
+  WORKING_DIR: ./services/inventory-service
 
 jobs:
-    # ============================================================================
-    # Job 1: Build & Unit Tests
-    # ============================================================================
-    build-and-test:
-        name: Build & Unit Tests
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ./services/inventory-service
+  # ============================================================================
+  # Job 1: Build & Unit Tests
+  # ============================================================================
+  build-and-test:
+    name: Build & Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/inventory-service
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Setup Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: ${{ env.GO_VERSION }}
-                  cache: true
-                  cache-dependency-path: services/inventory-service/go.sum
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: services/inventory-service/go.sum
 
-            - name: Download dependencies
-              run: go mod download
+      - name: Download dependencies
+        run: go mod download
 
-            - name: Verify dependencies
-              run: go mod verify
+      - name: Verify dependencies
+        run: go mod verify
 
-            - name: Build application
-              run: |
-                  echo "🔨 Building Inventory Service..."
-                  go build -v -o bin/inventory-service cmd/api/main.go
-                  go build -v -o bin/seed cmd/seed/main.go
-                  echo "✅ Build successful"
+      - name: Build application
+        run: |
+          echo "🔨 Building Inventory Service..."
+          go build -v -o bin/inventory-service cmd/api/main.go
+          go build -v -o bin/seed cmd/seed/main.go
+          echo "✅ Build successful"
 
-            - name: Run unit tests
-              run: |
-                  echo "🧪 Running unit tests..."
-                  go test ./internal/domain/... -v -race -short -coverprofile=coverage.out -covermode=atomic
-                  echo "✅ Unit tests completed"
+      - name: Run unit tests
+        run: |
+          echo "🧪 Running unit tests..."
+          go test ./internal/domain/... -v -race -short -coverprofile=coverage.out -covermode=atomic
+          echo "✅ Unit tests completed"
 
-            - name: Generate coverage report
-              run: |
-                  echo "📊 Generating coverage report..."
-                  go tool cover -func=coverage.out
-                  COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
-                  echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
-                  echo "✅ Coverage: $COVERAGE%"
+      - name: Generate coverage report
+        run: |
+          echo "📊 Generating coverage report..."
+          go tool cover -func=coverage.out
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "✅ Coverage: $COVERAGE%"
 
-            - name: Check coverage threshold
-              run: |
-                  echo "🎯 Checking coverage threshold (target: >70%)..."
-                  COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
-                  if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-                    echo "⚠️ Coverage $COVERAGE% is below 70% threshold (non-blocking)"
-                  else
-                    echo "✅ Coverage $COVERAGE% meets threshold"
-                  fi
+      - name: Check coverage threshold
+        run: |
+          echo "🎯 Checking coverage threshold (target: >70%)..."
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "⚠️ Coverage $COVERAGE% is below 70% threshold (non-blocking)"
+          else
+            echo "✅ Coverage $COVERAGE% meets threshold"
+          fi
 
-            - name: Upload coverage artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: coverage-report
-                  path: services/inventory-service/coverage.out
-                  retention-days: 7
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: services/inventory-service/coverage.out
+          retention-days: 7
 
-    # ============================================================================
-    # Job 2: E2E Tests (with Testcontainers + PostgreSQL)
-    # ============================================================================
-    e2e-tests:
-        name: E2E Tests (Testcontainers)
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ./services/inventory-service
+  # ============================================================================
+  # Job 2: E2E Tests (with Testcontainers + PostgreSQL)
+  # ============================================================================
+  e2e-tests:
+    name: E2E Tests (Testcontainers)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/inventory-service
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Setup Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: ${{ env.GO_VERSION }}
-                  cache: true
-                  cache-dependency-path: services/inventory-service/go.sum
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: services/inventory-service/go.sum
 
-            - name: Download dependencies
-              run: go mod download
+      - name: Download dependencies
+        run: go mod download
 
-            - name: Run E2E tests with Testcontainers
-              run: |
-                  echo "🐳 Running E2E tests with Testcontainers (PostgreSQL)..."
-                  go test -v -tags=e2e ./internal/tests/e2e -timeout 10m
-                  echo "✅ E2E tests completed"
+      - name: Run E2E tests with Testcontainers
+        run: |
+          echo "🐳 Running E2E tests with Testcontainers (PostgreSQL)..."
+          go test -v -tags=e2e ./internal/tests/e2e -timeout 10m
+          echo "✅ E2E tests completed"
 
-    # ============================================================================
-    # Job 3: Linting (golangci-lint)
-    # ============================================================================
-    lint:
-        name: Linting & Code Quality
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ./services/inventory-service
+  # ============================================================================
+  # Job 3: Linting (golangci-lint)
+  # ============================================================================
+  lint:
+    name: Linting & Code Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/inventory-service
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Setup Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: ${{ env.GO_VERSION }}
-                  cache: true
-                  cache-dependency-path: services/inventory-service/go.sum
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: services/inventory-service/go.sum
 
-            - name: Download dependencies
-              run: go mod download
+      - name: Download dependencies
+        run: go mod download
 
-            - name: Run golangci-lint
-              uses: golangci/golangci-lint-action@v6
-              with:
-                  version: latest
-                  working-directory: services/inventory-service
-                  args: --timeout=5m --config=.golangci.yml
-              continue-on-error: true # Non-blocking for Epic 1.3
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: services/inventory-service
+          args: --timeout=5m --config=.golangci.yml
+        continue-on-error: true # Non-blocking for Epic 1.3
 
-            - name: Check Go formatting
-              run: |
-                  echo "🎨 Checking Go formatting..."
-                  UNFORMATTED=$(gofmt -l .)
-                  if [ -n "$UNFORMATTED" ]; then
-                    echo "⚠️ The following files need formatting:"
-                    echo "$UNFORMATTED"
-                    echo "⚠️ Non-blocking for Epic 1.3"
-                  else
-                    echo "✅ All files are properly formatted"
-                  fi
+      - name: Check Go formatting
+        run: |
+          echo "🎨 Checking Go formatting..."
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "⚠️ The following files need formatting:"
+            echo "$UNFORMATTED"
+            echo "⚠️ Non-blocking for Epic 1.3"
+          else
+            echo "✅ All files are properly formatted"
+          fi
 
-            - name: Run go vet
-              run: |
-                  echo "🔍 Running go vet..."
-                  go vet ./... || echo "⚠️ go vet issues found (non-blocking for Epic 1.3)"
-                  echo "✅ go vet completed"
+      - name: Run go vet
+        run: |
+          echo "🔍 Running go vet..."
+          go vet ./... || echo "⚠️ go vet issues found (non-blocking for Epic 1.3)"
+          echo "✅ go vet completed"
 
-    # ============================================================================
-    # Job 4: Security Scan (gosec)
-    # ============================================================================
-    security:
-        name: Security Scan
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ./services/inventory-service
+  # ============================================================================
+  # Job 4: Security Scan (gosec)
+  # ============================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/inventory-service
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Setup Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: ${{ env.GO_VERSION }}
-                  cache: true
-                  cache-dependency-path: services/inventory-service/go.sum
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: services/inventory-service/go.sum
 
-            - name: Run gosec security scanner
-              run: |
-                  echo "🔒 Running gosec security scanner..."
-                  go install github.com/securego/gosec/v2/cmd/gosec@latest
-                  gosec -fmt=text ./... || echo "⚠️  Security issues found (non-blocking)"
-                  echo "✅ Security scan completed"
+      - name: Run gosec security scanner
+        run: |
+          echo "🔒 Running gosec security scanner..."
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt=text ./... || echo "⚠️  Security issues found (non-blocking)"
+          echo "✅ Security scan completed"
 
-            - name: Upload SARIF file
-              if: false # Disabled - requires write permissions not available on forks
-              uses: github/codeql-action/upload-sarif@v3
-              with:
-                  sarif_file: results.sarif
+      - name: Upload SARIF file
+        if: false # Disabled - requires write permissions not available on forks
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
 
-    # ============================================================================
-    # Job 5: Summary & Status
-    # ============================================================================
-    summary:
-        name: CI Summary
-        runs-on: ubuntu-latest
-        needs: [build-and-test, e2e-tests, lint, security]
-        if: always()
+  # ============================================================================
+  # Job 5: Summary & Status
+  # ============================================================================
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [build-and-test, e2e-tests, lint, security]
+    if: always()
 
-        steps:
-            - name: Check results
-              run: |
-                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  echo "📊 CI Pipeline Summary - Inventory Service"
-                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  echo ""
-                  echo "Build & Tests:      ${{ needs.build-and-test.result }}"
-                  echo "E2E Tests:          ${{ needs.e2e-tests.result }}"
-                  echo "Linting:            ${{ needs.lint.result }}"
-                  echo "Security Scan:      ${{ needs.security.result }}"
-                  echo ""
+    steps:
+      - name: Check results
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 CI Pipeline Summary - Inventory Service"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Build & Tests:      ${{ needs.build-and-test.result }}"
+          echo "E2E Tests:          ${{ needs.e2e-tests.result }}"
+          echo "Linting:            ${{ needs.lint.result }}"
+          echo "Security Scan:      ${{ needs.security.result }}"
+          echo ""
 
-                  if [ "${{ needs.build-and-test.result }}" == "success" ] && \
-                     [ "${{ needs.e2e-tests.result }}" == "success" ] && \
-                     [ "${{ needs.lint.result }}" == "success" ] && \
-                     [ "${{ needs.security.result }}" == "success" ]; then
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "✅ All checks passed! Pipeline successful."
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    exit 0
-                  else
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "⚠️ Some checks failed (see details above)"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    exit 1
-                  fi
+          if [ "${{ needs.build-and-test.result }}" == "success" ] && \
+             [ "${{ needs.e2e-tests.result }}" == "success" ] && \
+             [ "${{ needs.lint.result }}" == "success" ] && \
+             [ "${{ needs.security.result }}" == "success" ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ All checks passed! Pipeline successful."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 0
+          else
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "⚠️ Some checks failed (see details above)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
+          fi
 
-            - name: Post summary to PR (DISABLED - Permission issues)
-              if: false  # Requires write permissions not available
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const summary = `
-                      ## 🚀 Inventory Service CI Results
+      - name: Post summary to PR (DISABLED - Permission issues)
+        if: false # Requires write permissions not available
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = `
+            ## 🚀 Inventory Service CI Results
 
-                      | Check | Status |
-                      |-------|--------|
-                      | Build & Tests | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
-                      | E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |
-                      | Linting | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |
-                      | Security Scan | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Check | Status |
+            |-------|--------|
+            | Build & Tests | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Linting | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Security Scan | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |
 
-                      **Coverage:** \`${{ env.COVERAGE }}%\` (threshold: 70%)
-                      `;
+            **Coverage:** \`${{ env.COVERAGE }}%\` (threshold: 70%)
+            `;
 
-                      github.rest.issues.createComment({
-                          issue_number: context.issue.number,
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          body: summary
-                      });
+            github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary
+            });
