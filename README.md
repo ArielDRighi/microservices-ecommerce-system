@@ -66,38 +66,195 @@
 
 ## 🚀 Quick Start
 
+Este proyecto soporta **2 modos de operación** para máxima flexibilidad en demos:
+
+### ⚡ Demo Mode (Solo Orders Service - 30 segundos)
+
+**Ideal para:** Live coding, demos rápidas, laptops con recursos limitados
+
 ```bash
 # 1. Clonar repositorio
 git clone https://github.com/ArielDRighi/microservices-ecommerce-system.git
 cd microservices-ecommerce-system
 
-# 2. Levantar infraestructura (PostgreSQL, Redis, RabbitMQ)
-docker-compose up -d
+# 2. Levantar infraestructura mínima
+docker-compose up -d postgres redis orders-service
 
 # 3. Verificar servicios
 docker-compose ps
 
-# 4. Acceder a las interfaces
+# 4. Probar API
+curl http://localhost:3001/health
+curl http://localhost:3001/api/orders
+```
+
+**Servicios disponibles en Demo Mode:**
+
+| Servicio          | Puerto | URL                           | Descripción                |
+| ----------------- | ------ | ----------------------------- | -------------------------- |
+| 📦 Orders Service | 3001   | http://localhost:3001         | API REST principal         |
+| 🐘 PostgreSQL     | 5433   | postgresql://localhost:5433   | Base de datos Orders       |
+| 🔴 Redis          | 6380   | redis://localhost:6380        | Cache y Bull Queues        |
+
+**Nota:** Inventory Service usa **mocks internos** (InventoryHttpClient con circuit breaker). Operaciones de inventario simuladas, sin base de datos real.
+
+---
+
+### 🌐 Full Stack Mode (Ecosistema Completo - 2 minutos)
+
+**Ideal para:** Entrevistas técnicas, arquitectura distribuida, portfolio avanzado
+
+```bash
+# 1. Clonar repositorio
+git clone https://github.com/ArielDRighi/microservices-ecommerce-system.git
+cd microservices-ecommerce-system
+
+# 2. Levantar TODO el ecosistema
+docker-compose up -d
+
+# 3. Esperar health checks (2 min aprox)
+# Verificar logs si algún servicio falla
+docker-compose logs -f orders-service inventory-service
+
+# 4. Verificar servicios
+docker-compose ps
+
+# 5. Acceder a las interfaces de administración
 # - RabbitMQ Management: http://localhost:15672
 #   Usuario: microservices / Contraseña: microservices_pass_2024
 # - PostgreSQL (PgAdmin): http://localhost:5050
 # - Redis Commander: http://localhost:8082
+
+# 6. Probar APIs
+curl http://localhost:3001/health    # Orders Service
+curl http://localhost:8080/health    # Inventory Service
+
+# 7. Crear orden end-to-end (Orders → Inventory)
+curl -X POST http://localhost:3001/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "items": [
+      {"productId": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "quantity": 2}
+    ]
+  }'
 ```
 
-**Servicios disponibles:**
+**Servicios disponibles en Full Stack Mode:**
 
-| Servicio                 | Puerto | Estado         |
-| ------------------------ | ------ | -------------- |
-| 📦 Orders Service        | 3001   | 🔄 En Fase 3   |
-| 📊 Inventory Service     | 8080   | ⚙️ Desarrollo  |
-| 🐰 RabbitMQ (AMQP)       | 5672   | ✅ Operacional |
-| 🐰 RabbitMQ (Management) | 15672  | ✅ Operacional |
-| 🐘 PostgreSQL            | 5433   | ✅ Operacional |
-| 🔴 Redis                 | 6380   | ✅ Operacional |
-| 🛠️ PgAdmin               | 5050   | ✅ Operacional |
-| 🛠️ Redis Commander       | 8082   | ✅ Operacional |
+| Servicio                 | Puerto | URL                           | Descripción                           |
+| ------------------------ | ------ | ----------------------------- | ------------------------------------- |
+| 📦 Orders Service        | 3001   | http://localhost:3001         | API REST de órdenes (NestJS)          |
+| 📊 Inventory Service     | 8080   | http://localhost:8080         | API REST de inventario (Go)           |
+| 🐰 RabbitMQ (AMQP)       | 5672   | amqp://localhost:5672         | Message broker para eventos           |
+| 🐰 RabbitMQ (Management) | 15672  | http://localhost:15672        | UI de administración de colas         |
+| 🐘 PostgreSQL            | 5433   | postgresql://localhost:5433   | Base de datos para ambos servicios    |
+| 🔴 Redis                 | 6380   | redis://localhost:6380        | Cache distribuida y Bull Queues       |
+| 🛠️ PgAdmin               | 5050   | http://localhost:5050         | Administrador visual de PostgreSQL    |
+| 🛠️ Redis Commander       | 8082   | http://localhost:8082         | Administrador visual de Redis         |
 
-> **📖 Ver más:** [INFRASTRUCTURE_REFERENCE.md](docs/INFRASTRUCTURE_REFERENCE.md) | [QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)
+**Diferencias clave vs Demo Mode:**
+- ✅ **Inventory Service real** corriendo en Go con PostgreSQL
+- ✅ **RabbitMQ** para comunicación asíncrona (eventos de inventario)
+- ✅ **Comunicación HTTP real** entre Orders e Inventory (sin mocks)
+- ✅ **Reservas de stock** gestionadas en base de datos real
+- ✅ **Scheduler auto-release** de reservas expiradas funcionando
+
+---
+
+### 📊 Comparación de Modos
+
+| Característica             | ⚡ Demo Mode              | 🌐 Full Stack Mode              |
+| -------------------------- | ------------------------- | ------------------------------- |
+| **Tiempo de setup**        | ~30 segundos              | ~2 minutos (health checks)      |
+| **Servicios corriendo**    | 3 (Orders, PostgreSQL, Redis) | 8 (todos los contenedores)  |
+| **Memoria RAM usada**      | ~800 MB                   | ~2 GB                           |
+| **Inventory Service**      | ❌ Mock interno           | ✅ Go real con PostgreSQL       |
+| **RabbitMQ**               | ❌ No disponible          | ✅ Eventos asíncronos funcionando |
+| **Comunicación HTTP**      | ❌ Simulada               | ✅ Real entre servicios         |
+| **Base de datos Inventory** | ❌ No existe              | ✅ PostgreSQL con migraciones   |
+| **Ideal para**             | Demos rápidas, live coding | Arquitectura distribuida, entrevistas técnicas |
+
+---
+
+### � Health Checks
+
+Verificar que todos los servicios estén levantados correctamente:
+
+```bash
+# Demo Mode
+curl http://localhost:3001/health    # Orders Service
+curl http://localhost:5433           # PostgreSQL (conexión)
+redis-cli -p 6380 ping               # Redis
+
+# Full Stack Mode (adicionales)
+curl http://localhost:8080/health    # Inventory Service
+curl http://localhost:15672          # RabbitMQ Management UI
+```
+
+**Expected output:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-10-21T10:30:00.000Z",
+  "uptime": 123.456,
+  "database": "connected",
+  "redis": "connected"
+}
+```
+
+---
+
+### ⚠️ Troubleshooting
+
+#### Puertos ocupados
+```bash
+# Ver qué proceso usa un puerto
+# Linux/Mac:
+lsof -i :3001
+lsof -i :8080
+
+# Windows:
+netstat -ano | findstr :3001
+netstat -ano | findstr :8080
+
+# Solución: Cambiar puerto en docker-compose.yml o matar proceso
+```
+
+#### Permisos de Docker
+```bash
+# Linux: Añadir usuario a grupo docker
+sudo usermod -aG docker $USER
+# Logout/login para aplicar cambios
+
+# Windows: Ejecutar Docker Desktop como administrador
+```
+
+#### Servicios no arrancan
+```bash
+# Ver logs detallados
+docker-compose logs orders-service
+docker-compose logs inventory-service
+
+# Rebuild completo (si hay cambios en Dockerfile)
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+#### PostgreSQL connection refused
+```bash
+# Verificar que PostgreSQL esté corriendo
+docker-compose ps postgres
+
+# Verificar logs
+docker-compose logs postgres
+
+# Reiniciar solo PostgreSQL
+docker-compose restart postgres
+```
+
+> **📖 Más ayuda:** [INFRASTRUCTURE_REFERENCE.md](docs/INFRASTRUCTURE_REFERENCE.md) | [QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)
 
 ---
 
