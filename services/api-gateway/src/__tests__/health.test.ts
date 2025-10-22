@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app } from '../index';
+import { app } from '../app';
 
 describe('Health Check Endpoints', () => {
   describe('GET /health', () => {
