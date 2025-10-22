@@ -97,9 +97,73 @@ npm start
 ### 3. Observability
 
 - **Structured Logging**: Winston with JSON format
-- **HTTP Logging**: Morgan for access logs
+- **HTTP Logging**: Morgan for access logs with correlation IDs
+- **Correlation IDs**: Request tracing across services (X-Correlation-ID)
+- **Response Time Tracking**: Automated latency metrics
 - **Metrics**: Prometheus metrics endpoint
 - **Health Checks**: Liveness and readiness probes
+
+## Middleware Stack
+
+The gateway processes requests through the following middleware chain (in order):
+
+1. **Helmet** → Security headers (XSS, CSP, HSTS)
+2. **CORS** → Cross-origin resource sharing policies
+3. **Compression** → Gzip response compression
+4. **Body Parsing** → JSON/URL-encoded request parsing
+5. **Request Logging** → Correlation ID generation & response time tracking
+6. **Morgan** → HTTP access logs
+7. **Rate Limiter** → Redis-backed rate limiting (100 req/min per IP)
+8. **Auth Middleware** → JWT validation
+9. **Circuit Breaker Proxy** → Opossum-protected service routing
+
+**Request Flow:**
+```
+Client Request
+    ↓
+[Security: Helmet + CORS]
+    ↓
+[Compression + Body Parsing]
+    ↓
+[Logging: Correlation ID + Morgan]
+    ↓
+[Rate Limiting: Redis Check]
+    ↓
+[Authentication: JWT Validation]
+    ↓
+[Circuit Breaker: Health Check]
+    ↓
+Upstream Service (Orders/Inventory)
+    ↓
+[Response Logging: Time Tracking]
+    ↓
+Client Response
+```
+
+## Advanced Features
+
+### Rate Limiting Strategy
+
+- **Algorithm**: Token bucket with Redis
+- **Limit**: 100 requests per minute per IP
+- **Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- **Fail-Open**: Allows requests if Redis is unavailable
+- **IP Detection**: X-Forwarded-For → X-Real-IP → req.ip
+
+### Circuit Breaker Configuration
+
+- **Library**: Opossum 8.1
+- **Timeout**: 5000ms
+- **Error Threshold**: 50% (opens after 50% failure rate)
+- **Reset Timeout**: 30 seconds (half-open retry)
+- **States**: Closed (healthy) → Open (failing) → Half-Open (testing)
+
+### Correlation ID System
+
+- **Generation**: crypto.randomUUID() for new requests
+- **Header**: `X-Correlation-ID`
+- **Propagation**: Preserved from upstream requests, forwarded to downstream services
+- **Use Cases**: Distributed tracing, log aggregation, debugging multi-service flows
 
 ## Testing
 
