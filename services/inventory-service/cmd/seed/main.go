@@ -64,6 +64,9 @@ func main() {
 	products := getRealisticProducts()
 	ctx := context.Background()
 
+	// Map ProductID -> InventoryItem for reservations
+	itemsByProductID := make(map[uuid.UUID]*entity.InventoryItem)
+
 	for _, p := range products {
 		item, err := entity.NewInventoryItem(p.ProductID, p.Quantity)
 		if err != nil {
@@ -83,13 +86,16 @@ func main() {
 			continue
 		}
 
+		// Store item for reservation creation
+		itemsByProductID[p.ProductID] = item
+
 		log.Printf("  ✅ %s (ProductID: %s) - Quantity: %d, Reserved: %d, Available: %d",
 			p.Name, p.ProductID, item.Quantity, item.Reserved, item.Available())
 	}
 
 	// 7. Seed some reservations
 	log.Println("🔒 Seeding reservations...")
-	if err := seedReservations(ctx, reservationRepo, products); err != nil {
+	if err := seedReservations(ctx, reservationRepo, products, itemsByProductID); err != nil {
 		log.Printf("⚠️  Failed to seed reservations: %v", err)
 	}
 
@@ -219,14 +225,22 @@ func getRealisticProducts() []SeedProduct {
 }
 
 // seedReservations creates some sample reservations
-func seedReservations(ctx context.Context, repo *repository.ReservationRepositoryImpl, products []SeedProduct) error {
+func seedReservations(ctx context.Context, repo *repository.ReservationRepositoryImpl, products []SeedProduct, itemsByProductID map[uuid.UUID]*entity.InventoryItem) error {
 	// Create reservations for products that have reserved quantity
 	for _, p := range products {
 		if p.Reserved > 0 {
+			// Get the actual inventory item from DB
+			item, exists := itemsByProductID[p.ProductID]
+			if !exists {
+				log.Printf("⚠️  Skipping reservation for %s - inventory item not found", p.Name)
+				continue
+			}
+
 			// Create a reservation expiring in 24 hours
+			// CRITICAL: Use item.ID (inventory_items.id) NOT p.ProductID
 			reservation := &entity.Reservation{
 				ID:              uuid.New(),
-				InventoryItemID: p.ProductID,
+				InventoryItemID: item.ID, // ✅ Use DB-generated inventory item ID
 				OrderID:         uuid.New(),
 				Quantity:        p.Reserved,
 				Status:          entity.ReservationPending,
@@ -245,9 +259,16 @@ func seedReservations(ctx context.Context, repo *repository.ReservationRepositor
 	}
 
 	// Add some expired reservations for testing cleanup
+	// Use first product's inventory item ID (iPhone)
+	firstItem, exists := itemsByProductID[products[0].ProductID]
+	if !exists {
+		log.Printf("⚠️  Skipping expired reservation - first inventory item not found")
+		return nil
+	}
+
 	expiredReservation := &entity.Reservation{
 		ID:              uuid.New(),
-		InventoryItemID: products[0].ProductID, // iPhone
+		InventoryItemID: firstItem.ID, // ✅ Use DB-generated inventory item ID
 		OrderID:         uuid.New(),
 		Quantity:        2,
 		Status:          entity.ReservationPending,

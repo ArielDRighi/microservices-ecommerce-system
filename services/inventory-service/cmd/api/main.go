@@ -26,12 +26,12 @@ import (
 )
 
 func main() {
-	// 1. Cargar variables de entorno
+	// 1. Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
 
-	// 2. Cargar configuración
+	// 2. Load configuration
 	var cfg config.Config
 	if err := envconfig.Process("", &cfg); err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -41,7 +41,7 @@ func main() {
 	schedulerIntervalMinutes := getEnvAsInt("SCHEDULER_INTERVAL_MINUTES", 10)
 	env := getEnv("ENV", "development")
 
-	// 3. Conectar a PostgreSQL
+	// 3. Connect to PostgreSQL
 	db, err := database.NewPostgresDB(&cfg.Database, env)
 	if err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)

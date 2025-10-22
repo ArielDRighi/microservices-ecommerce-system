@@ -53,28 +53,34 @@ jobs:
               run: |
                   echo "🔨 Building Inventory Service..."
                   go build -v -o bin/inventory-service cmd/api/main.go
+                  go build -v -o bin/seed cmd/seed/main.go
                   echo "✅ Build successful"
 
-            - name: Run unit tests (DISABLED - Epic 1.3)
+            - name: Run unit tests
               run: |
-                  echo "⏸️ Unit tests DISABLED during Epic 1.3 (CI/CD setup phase)"
-                  echo "📝 Reason: Database not configured yet (pending Epic 1.4)"
-                  echo "✅ Will be enabled after Epic 1.4 (Docker & DB setup)"
-                  # go test ./internal/... -v -race -short -coverprofile=coverage.out -covermode=atomic
+                  echo "🧪 Running unit tests..."
+                  go test ./internal/domain/... -v -race -short -coverprofile=coverage.out -covermode=atomic
+                  echo "✅ Unit tests completed"
 
-            - name: Generate coverage report (DISABLED)
+            - name: Generate coverage report
               run: |
-                  echo "⏸️ Coverage reporting DISABLED during Epic 1.3"
-                  # COVERAGE will be tracked starting Epic 2.x (feature implementation)
-                  echo "COVERAGE=0" >> $GITHUB_ENV
+                  echo "📊 Generating coverage report..."
+                  go tool cover -func=coverage.out
+                  COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+                  echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+                  echo "✅ Coverage: $COVERAGE%"
 
-            - name: Check coverage threshold (DISABLED)
+            - name: Check coverage threshold
               run: |
-                  echo "⏸️ Coverage threshold check DISABLED during Epic 1.3"
-                  echo "✅ Will be enforced (>70%) starting Epic 2.x"
+                  echo "🎯 Checking coverage threshold (target: >70%)..."
+                  COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+                  if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+                    echo "⚠️ Coverage $COVERAGE% is below 70% threshold (non-blocking)"
+                  else
+                    echo "✅ Coverage $COVERAGE% meets threshold"
+                  fi
 
-            - name: Upload coverage artifact (DISABLED)
-              if: false
+            - name: Upload coverage artifact
               uses: actions/upload-artifact@v4
               with:
                   name: coverage-report
@@ -82,10 +88,10 @@ jobs:
                   retention-days: 7
 
     # ============================================================================
-    # Job 2: Integration Tests (with Testcontainers)
+    # Job 2: E2E Tests (with Testcontainers + PostgreSQL)
     # ============================================================================
-    integration-tests:
-        name: Integration Tests
+    e2e-tests:
+        name: E2E Tests (Testcontainers)
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -105,13 +111,11 @@ jobs:
             - name: Download dependencies
               run: go mod download
 
-            - name: Run integration tests
+            - name: Run E2E tests with Testcontainers
               run: |
-                  echo "🔗 Running integration tests with Testcontainers..."
-                  echo "⚠️  Skipping integration tests for now (requires Docker setup)"
-                  echo "Tests will be enabled after Epic 1.4 (Docker & Orchestration)"
-                  # go test ./tests/integration/... -v -race -timeout 5m
-                  echo "✅ Integration tests skipped"
+                  echo "🐳 Running E2E tests with Testcontainers (PostgreSQL)..."
+                  go test -v -tags=e2e ./internal/tests/e2e -timeout 10m
+                  echo "✅ E2E tests completed"
 
     # ============================================================================
     # Job 3: Linting (golangci-lint)
@@ -203,7 +207,7 @@ jobs:
     summary:
         name: CI Summary
         runs-on: ubuntu-latest
-        needs: [build-and-test, integration-tests, lint, security]
+        needs: [build-and-test, e2e-tests, lint, security]
         if: always()
 
         steps:
@@ -214,13 +218,13 @@ jobs:
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   echo ""
                   echo "Build & Tests:      ${{ needs.build-and-test.result }}"
-                  echo "Integration Tests:  ${{ needs.integration-tests.result }}"
+                  echo "E2E Tests:          ${{ needs.e2e-tests.result }}"
                   echo "Linting:            ${{ needs.lint.result }}"
                   echo "Security Scan:      ${{ needs.security.result }}"
                   echo ""
 
                   if [ "${{ needs.build-and-test.result }}" == "success" ] && \
-                     [ "${{ needs.integration-tests.result }}" == "success" ] && \
+                     [ "${{ needs.e2e-tests.result }}" == "success" ] && \
                      [ "${{ needs.lint.result }}" == "success" ] && \
                      [ "${{ needs.security.result }}" == "success" ]; then
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -229,7 +233,7 @@ jobs:
                     exit 0
                   else
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "❌ Some checks failed. Please review."
+                    echo "⚠️ Some checks failed (see details above)"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     exit 1
                   fi
@@ -245,7 +249,7 @@ jobs:
                       | Check | Status |
                       |-------|--------|
                       | Build & Tests | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
-                      | Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+                      | E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |
                       | Linting | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |
                       | Security Scan | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |
 
