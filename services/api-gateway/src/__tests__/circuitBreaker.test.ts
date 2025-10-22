@@ -22,7 +22,7 @@ describe('Circuit Breaker Middleware', () => {
         .get('/api/orders/test')
         .set('Authorization', `Bearer ${validToken}`);
 
-      // 503 porque el servicio real no está corriendo, pero el circuit breaker permite el intento
+      // 503 because the actual service is not running, but the circuit breaker allows the attempt
       expect([200, 503]).toContain(response.status);
     });
 
@@ -31,7 +31,7 @@ describe('Circuit Breaker Middleware', () => {
         .get('/api/orders/health')
         .set('Authorization', `Bearer ${validToken}`);
 
-      // Verificar que la respuesta incluye headers esperados
+      // Verify that the response includes expected headers
       expect(response.headers).toHaveProperty('x-correlation-id');
     });
 
@@ -46,17 +46,17 @@ describe('Circuit Breaker Middleware', () => {
 
   describe('Configuration', () => {
     it('should have proper timeout configured', async () => {
-      // Circuit breaker debería tener timeout de 5000ms según config
+      // Circuit breaker should have 5000ms timeout according to config
       expect(config.circuitBreaker.timeout).toBe(5000);
     });
 
     it('should have proper error threshold configured', async () => {
-      // Error threshold debería ser 50%
+      // Error threshold should be 50%
       expect(config.circuitBreaker.errorThresholdPercentage).toBe(50);
     });
 
     it('should have proper reset timeout configured', async () => {
-      // Reset timeout debería ser 30000ms (30s)
+      // Reset timeout should be 30000ms (30s)
       expect(config.circuitBreaker.resetTimeout).toBe(30000);
     });
   });

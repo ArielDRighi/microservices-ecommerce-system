@@ -118,6 +118,7 @@ The gateway processes requests through the following middleware chain (in order)
 9. **Circuit Breaker Proxy** → Opossum-protected service routing
 
 **Request Flow:**
+
 ```
 Client Request
     ↓

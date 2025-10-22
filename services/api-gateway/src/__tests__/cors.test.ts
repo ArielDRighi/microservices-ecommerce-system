@@ -48,7 +48,7 @@ describe('CORS Configuration', () => {
     it('should expose custom headers', async () => {
       const response = await request(app).get('/health');
 
-      // Verificar que headers custom como X-Correlation-ID están expuestos
+      // Verify that custom headers like X-Correlation-ID are exposed
       expect(response.headers).toHaveProperty('x-correlation-id');
     });
   });
@@ -57,7 +57,7 @@ describe('CORS Configuration', () => {
     it('should accept requests from any origin when configured as wildcard', async () => {
       const response = await request(app).get('/health').set('Origin', 'http://example.com');
 
-      // Con config.cors.origin = '*', debería permitir cualquier origen
+      // With config.cors.origin = '*', should allow any origin
       expect([200, 204]).toContain(response.status);
     });
 

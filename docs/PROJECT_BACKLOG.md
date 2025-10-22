@@ -2203,7 +2203,7 @@ Esta epic demuestra:
 #### ✅ T4.2.4: Configurar CORS policies
 
 - **Status:** ✅ COMPLETADA (Commit: c22f088)
-- ✅ Permitir orígenes específicos (wildcard '*' configurado, configurable vía env)
+- ✅ Permitir orígenes específicos (wildcard '\*' configurado, configurable vía env)
 - ✅ Configurar métodos HTTP permitidos (GET, POST, PUT, DELETE, PATCH, OPTIONS)
 - ✅ Configurar headers permitidos y expuestos (Authorization, Content-Type, X-Correlation-ID, etc.)
 - ✅ Preflight requests (OPTIONS) manejados correctamente
