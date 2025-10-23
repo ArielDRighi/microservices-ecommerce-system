@@ -17,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/application/usecase"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/cache"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/config"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/database"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/persistence/repository"
@@ -55,6 +56,24 @@ func main() {
 	}
 	log.Println("Successfully connected to PostgreSQL")
 
+	// 3.5. Connect to Redis (optional - for rate limiting and caching)
+	var redisClient *cache.RedisClient
+	redisConfig := &cache.RedisConfig{
+		Host:     getEnv("REDIS_HOST", "localhost"),
+		Port:     getEnvAsInt("REDIS_PORT", 6379),
+		Password: getEnv("REDIS_PASSWORD", ""),
+		DB:       getEnvAsInt("REDIS_DB", 0),
+	}
+
+	redisClient, err = cache.NewRedisClient(redisConfig, 5*time.Minute)
+	if err != nil {
+		log.Printf("⚠️  WARNING: Redis connection failed: %v", err)
+		log.Println("⚠️  Rate limiting will be disabled (fail-open mode)")
+		redisClient = nil // Ensure it's nil for fail-open behavior
+	} else {
+		log.Println("✅ Successfully connected to Redis")
+	}
+
 	// 4. Initialize repositories (PostgreSQL implementations)
 	inventoryRepo := repository.NewInventoryRepository(db)
 	reservationRepo := repository.NewReservationRepository(db)
@@ -78,6 +97,22 @@ func main() {
 	// 6. Configurar Gin
 	gin.SetMode(getEnv("GIN_MODE", gin.DebugMode))
 	router := gin.Default()
+
+	// 6.5. Configure rate limiting middleware (T4.3.3)
+	if redisClient != nil {
+		redisAdapter := middleware.NewRedisClientAdapter(redisClient)
+		rateLimiterConfig := middleware.MethodBasedRateLimiterConfig{
+			Redis:      redisAdapter,
+			GetLimit:   200, // 200 requests per minute for GET/HEAD
+			WriteLimit: 100, // 100 requests per minute for POST/PUT/PATCH/DELETE
+			Window:     time.Minute,
+		}
+		rateLimiter := middleware.NewMethodBasedRateLimiter(rateLimiterConfig)
+		router.Use(rateLimiter.Middleware())
+		log.Println("🚦 Method-based rate limiting enabled (GET: 200/min, POST: 100/min)")
+	} else {
+		log.Println("⚠️  Rate limiting disabled (Redis unavailable)")
+	}
 
 	// 7. Health check básico (public endpoint - no auth required)
 	router.GET("/health", func(c *gin.Context) {
@@ -182,6 +217,16 @@ func main() {
 		log.Printf("⚠️  Error closing database: %v", err)
 	} else {
 		log.Println("✅ Database connection closed")
+	}
+
+	// Close Redis connection
+	if redisClient != nil {
+		log.Println("⏳ Closing Redis connection...")
+		if err := redisClient.Close(); err != nil {
+			log.Printf("⚠️  Error closing Redis: %v", err)
+		} else {
+			log.Println("✅ Redis connection closed")
+		}
 	}
 
 	log.Println("✅ Server exited gracefully")
