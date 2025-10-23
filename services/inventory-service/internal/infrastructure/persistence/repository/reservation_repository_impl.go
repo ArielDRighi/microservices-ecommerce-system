@@ -70,7 +70,7 @@ func (r *ReservationRepositoryImpl) Save(ctx context.Context, reservation *entit
 		}
 		// Also check for GORM wrapping by checking error string
 		if errMsg := result.Error.Error(); errMsg != "" {
-			if pgErr != nil || containsReservationConstraintViolation(errMsg) {
+			if containsReservationConstraintViolation(errMsg) {
 				return domainErrors.ErrReservationAlreadyExists
 			}
 		}

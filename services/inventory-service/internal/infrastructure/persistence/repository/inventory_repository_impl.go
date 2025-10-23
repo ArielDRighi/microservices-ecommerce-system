@@ -70,7 +70,7 @@ func (r *InventoryRepositoryImpl) Save(ctx context.Context, item *entity.Invento
 		}
 		// Also check for GORM wrapping by checking error string
 		if errMsg := result.Error.Error(); errMsg != "" {
-			if pgErr != nil || containsConstraintViolation(errMsg) {
+			if containsConstraintViolation(errMsg) {
 				return domainErrors.ErrInventoryItemAlreadyExists
 			}
 		}
@@ -82,9 +82,8 @@ func (r *InventoryRepositoryImpl) Save(ctx context.Context, item *entity.Invento
 
 // containsConstraintViolation checks if error message contains PostgreSQL duplicate key constraint
 func containsConstraintViolation(errMsg string) bool {
-	return strings.Contains(errMsg, "duplicate key value violates unique constraint") ||
-		strings.Contains(errMsg, "idx_inventory_product") ||
-		strings.Contains(errMsg, "SQLSTATE 23505")
+	return strings.Contains(errMsg, "duplicate key value violates unique constraint") &&
+		(strings.Contains(errMsg, "idx_inventory_product") || strings.Contains(errMsg, "SQLSTATE 23505"))
 }
 
 // Update updates an existing inventory item using optimistic locking
