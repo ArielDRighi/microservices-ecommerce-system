@@ -9,8 +9,8 @@ import (
 
 // ServiceAuthMiddleware validates service-to-service authentication using API keys.
 // It supports two authentication methods:
-//   1. X-API-Key header with the API key directly
-//   2. Authorization header with "Bearer <api-key>" format
+//  1. X-API-Key header with the API key directly
+//  2. Authorization header with "Bearer <api-key>" format
 //
 // The middleware also extracts the source service name from X-Source-Service header
 // for logging and audit purposes.
