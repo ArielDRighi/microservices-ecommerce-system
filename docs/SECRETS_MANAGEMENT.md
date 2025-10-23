@@ -138,7 +138,7 @@ docker secret inspect db_password
 **File:** `docker-compose.prod.yml`
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   inventory-service:
@@ -179,7 +179,7 @@ import (
 func LoadSecretFromFile(envVar string) string {
     fileEnvVar := envVar + "_FILE"
     secretFile := os.Getenv(fileEnvVar)
-    
+
     if secretFile != "" {
         content, err := os.ReadFile(secretFile)
         if err == nil {
@@ -187,7 +187,7 @@ func LoadSecretFromFile(envVar string) string {
         }
         log.Printf("Warning: Failed to read secret file %s: %v", secretFile, err)
     }
-    
+
     // Fallback to environment variable
     return os.Getenv(envVar)
 }
@@ -205,7 +205,7 @@ func main() {
 For local development with Docker Compose (non-swarm mode):
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   inventory-service:
@@ -217,7 +217,7 @@ services:
 
 secrets:
   db_password:
-    file: ./secrets/db_password.txt  # Local file (not committed)
+    file: ./secrets/db_password.txt # Local file (not committed)
 ```
 
 ---
@@ -226,14 +226,14 @@ secrets:
 
 ### Rotation Schedule
 
-| Secret Type | Rotation Frequency | Criticality |
-|-------------|-------------------|-------------|
-| Database passwords | Every 90 days | High |
-| API keys (service-to-service) | Every 180 days | High |
-| JWT signing secrets | Every 365 days | Critical |
-| External API keys | As required by provider | Medium |
-| Redis passwords | Every 90 days | Medium |
-| RabbitMQ credentials | Every 90 days | Medium |
+| Secret Type                   | Rotation Frequency      | Criticality |
+| ----------------------------- | ----------------------- | ----------- |
+| Database passwords            | Every 90 days           | High        |
+| API keys (service-to-service) | Every 180 days          | High        |
+| JWT signing secrets           | Every 365 days          | Critical    |
+| External API keys             | As required by provider | Medium      |
+| Redis passwords               | Every 90 days           | Medium      |
+| RabbitMQ credentials          | Every 90 days           | Medium      |
 
 ### Database Password Rotation Procedure
 
@@ -367,19 +367,19 @@ type JWTConfig struct {
 
 func (j *JWTConfig) ValidateToken(tokenString string) (*jwt.Token, error) {
     var lastErr error
-    
+
     // Try each valid secret
     for _, secret := range j.ValidSecrets {
         token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
             return []byte(secret), nil
         })
-        
+
         if err == nil {
             return token, nil
         }
         lastErr = err
     }
-    
+
     return nil, lastErr
 }
 ```
@@ -432,7 +432,7 @@ docker service update \
 resource "aws_secretsmanager_secret" "db_password" {
   name = "inventory-service/db-password"
   description = "Database password for inventory service"
-  
+
   rotation_rules {
     automatically_after_days = 90
   }
@@ -470,18 +470,18 @@ spec:
   template:
     spec:
       containers:
-      - name: inventory-service
-        env:
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: inventory-service-secrets
-              key: db-password
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: inventory-service-secrets
-              key: jwt-secret
+        - name: inventory-service
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-service-secrets
+                  key: db-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-service-secrets
+                  key: jwt-secret
 ```
 
 ---
@@ -493,6 +493,7 @@ spec:
 #### Immediate Actions (First Hour)
 
 1. **Revoke Compromised Secret**
+
    ```bash
    # Rotate immediately
    docker secret rm compromised_secret
@@ -501,10 +502,11 @@ spec:
    ```
 
 2. **Check Access Logs**
+
    ```bash
    # Review authentication attempts
    docker service logs inventory-service | grep -i "auth\|fail\|unauthorized"
-   
+
    # Check database connections
    psql -c "SELECT * FROM pg_stat_activity WHERE datname='inventory_db';"
    ```
@@ -547,6 +549,7 @@ git commit --amend
 
 1. **Rotate the secret immediately**
 2. **Remove from Git history**
+
    ```bash
    # Use BFG Repo-Cleaner
    bfg --delete-files .env
@@ -565,12 +568,14 @@ git commit --amend
 ### Tools
 
 - **git-secrets**: Prevents committing secrets to Git
+
   ```bash
   git secrets --install
   git secrets --register-aws
   ```
 
 - **detect-secrets**: Scans codebase for secrets
+
   ```bash
   pip install detect-secrets
   detect-secrets scan > .secrets.baseline
@@ -590,11 +595,11 @@ git commit --amend
 
 ## Audit Log
 
-| Date | Event | Performed By | Notes |
-|------|-------|--------------|-------|
-| 2024-01-15 | Document created | DevOps Team | Initial version |
-| YYYY-MM-DD | Password rotation | | |
-| YYYY-MM-DD | Secret compromise | | |
+| Date       | Event             | Performed By | Notes           |
+| ---------- | ----------------- | ------------ | --------------- |
+| 2024-01-15 | Document created  | DevOps Team  | Initial version |
+| YYYY-MM-DD | Password rotation |              |                 |
+| YYYY-MM-DD | Secret compromise |              |                 |
 
 ---
 
