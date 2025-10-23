@@ -23,6 +23,7 @@ import (
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/repository/stub"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/scheduler"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/interfaces/http/handler"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/interfaces/http/middleware"
 )
 
 func main() {
@@ -40,6 +41,12 @@ func main() {
 	port := getEnv("PORT", "8080")
 	schedulerIntervalMinutes := getEnvAsInt("SCHEDULER_INTERVAL_MINUTES", 10)
 	env := getEnv("ENV", "development")
+	serviceAPIKeys := getEnv("SERVICE_API_KEYS", "")
+
+	// Validate that API keys are configured in production
+	if env == "production" && serviceAPIKeys == "" {
+		log.Fatal("SERVICE_API_KEYS must be configured in production environment")
+	}
 
 	// 3. Connect to PostgreSQL
 	db, err := database.NewPostgresDB(&cfg.Database, env)
@@ -72,7 +79,7 @@ func main() {
 	gin.SetMode(getEnv("GIN_MODE", gin.DebugMode))
 	router := gin.Default()
 
-	// 7. Health check básico
+	// 7. Health check básico (public endpoint - no auth required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":    "ok",
@@ -82,10 +89,10 @@ func main() {
 		})
 	})
 
-	// 8. Prometheus metrics endpoint
+	// 8. Prometheus metrics endpoint (public endpoint - no auth required)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	// 9. Ruta de bienvenida
+	// 9. Ruta de bienvenida (public endpoint - no auth required)
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Inventory Service API",
@@ -94,16 +101,35 @@ func main() {
 		})
 	})
 
-	// 10. Register admin endpoints (Epic 3.3)
-	adminGroup := router.Group("/admin")
-	{
-		// T3.3.1 - Reservation maintenance
-		adminGroup.POST("/reservations/release-expired", reservationMaintenanceHandler.ReleaseExpired)
+	// 10. Protected API routes (service-to-service authentication required)
+	// All /api/* and /admin/* routes require valid API key
+	if serviceAPIKeys != "" {
+		apiGroup := router.Group("/api")
+		apiGroup.Use(middleware.ServiceAuthMiddleware(serviceAPIKeys))
+		// TODO: Register API endpoints here in future tasks
 
-		// T3.3.3 - DLQ management
-		adminGroup.GET("/dlq", dlqAdminHandler.ListDLQMessages)
-		adminGroup.GET("/dlq/count", dlqAdminHandler.GetDLQCount)
-		adminGroup.POST("/dlq/:id/retry", dlqAdminHandler.RetryMessage)
+		adminGroup := router.Group("/admin")
+		adminGroup.Use(middleware.ServiceAuthMiddleware(serviceAPIKeys))
+		{
+			// T3.3.1 - Reservation maintenance
+			adminGroup.POST("/reservations/release-expired", reservationMaintenanceHandler.ReleaseExpired)
+
+			// T3.3.3 - DLQ management
+			adminGroup.GET("/dlq", dlqAdminHandler.ListDLQMessages)
+			adminGroup.GET("/dlq/count", dlqAdminHandler.GetDLQCount)
+			adminGroup.POST("/dlq/:id/retry", dlqAdminHandler.RetryMessage)
+		}
+		log.Println("🔒 Service-to-Service authentication enabled for /api and /admin routes")
+	} else {
+		// Development mode: admin endpoints without authentication
+		adminGroup := router.Group("/admin")
+		{
+			adminGroup.POST("/reservations/release-expired", reservationMaintenanceHandler.ReleaseExpired)
+			adminGroup.GET("/dlq", dlqAdminHandler.ListDLQMessages)
+			adminGroup.GET("/dlq/count", dlqAdminHandler.GetDLQCount)
+			adminGroup.POST("/dlq/:id/retry", dlqAdminHandler.RetryMessage)
+		}
+		log.Println("⚠️  WARNING: Running without service authentication (development mode)")
 	}
 
 	// 11. Start scheduler (T3.3.1 - auto-release expired reservations)
