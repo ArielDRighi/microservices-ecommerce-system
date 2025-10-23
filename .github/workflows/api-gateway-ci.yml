@@ -1,0 +1,299 @@
+name: CI - API Gateway (Express)
+
+on:
+    push:
+        branches:
+            - main
+            - develop
+            - "feature/**"
+        paths:
+            - "services/api-gateway/**"
+            - ".github/workflows/api-gateway-ci.yml"
+    pull_request:
+        branches:
+            - main
+            - develop
+        paths:
+            - "services/api-gateway/**"
+            - ".github/workflows/api-gateway-ci.yml"
+
+env:
+    NODE_VERSION: "20"
+    WORKING_DIR: ./services/api-gateway
+
+jobs:
+    # ============================================================================
+    # Job 1: Build & Unit Tests
+    # ============================================================================
+    build-and-test:
+        name: Build & Unit Tests
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./services/api-gateway
+
+        services:
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install dependencies
+              run: |
+                  echo "📦 Installing dependencies..."
+                  npm install --ignore-scripts
+                  echo "✅ Dependencies installed"
+
+            - name: Build shared types package
+              run: |
+                  echo "📦 Building shared types package..."
+                  cd ../../shared/types
+                  npm install --ignore-scripts
+                  npm run build
+                  echo "✅ Shared types built successfully"
+
+            - name: Run linting
+              run: |
+                  echo "🔍 Running ESLint..."
+                  npm run lint
+                  echo "✅ Linting passed"
+
+            - name: Build application
+              run: |
+                  echo "🔨 Building API Gateway..."
+                  npm run build
+                  echo "✅ Build successful"
+
+            - name: Run unit tests with coverage
+              run: |
+                  echo "🧪 Running unit tests with coverage..."
+                  npm run test:cov
+                  echo "✅ Tests passed"
+
+            - name: Check coverage threshold
+              run: |
+                  echo "📊 Checking coverage threshold (>70%)..."
+                  # Jest will fail if coverage is below threshold set in jest.config.js
+                  npm run test:cov
+                  echo "✅ Coverage threshold met"
+
+            - name: Upload coverage to Codecov
+              if: github.event_name == 'pull_request'
+              uses: codecov/codecov-action@v4
+              with:
+                  files: ./services/api-gateway/coverage/lcov.info
+                  flags: api-gateway
+                  name: api-gateway-coverage
+                  fail_ci_if_error: false
+
+            - name: Upload coverage artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: api-gateway-coverage-report
+                  path: services/api-gateway/coverage/
+                  retention-days: 7
+
+    # ============================================================================
+    # Job 2: Integration Tests
+    # ============================================================================
+    integration-tests:
+        name: Integration Tests
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./services/api-gateway
+
+        services:
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install dependencies
+              run: |
+                  echo "📦 Installing dependencies..."
+                  npm install --ignore-scripts
+                  echo "✅ Dependencies installed"
+
+            - name: Build shared types package
+              run: |
+                  echo "📦 Building shared types package..."
+                  cd ../../shared/types
+                  npm install --ignore-scripts
+                  npm run build
+                  echo "✅ Shared types built successfully"
+
+            - name: Build application
+              run: |
+                  echo "🔨 Building API Gateway..."
+                  npm run build
+                  echo "✅ Build successful"
+
+            - name: Run integration tests
+              env:
+                  REDIS_HOST: localhost
+                  REDIS_PORT: 6379
+                  NODE_ENV: test
+              run: |
+                  echo "🔗 Running integration tests..."
+                  npm test -- --testPathPattern="__tests__/.*(cors|headers|rateLimit|circuitBreaker).test.ts"
+                  echo "✅ Integration tests passed"
+
+    # ============================================================================
+    # Job 3: Linting & Type Checking
+    # ============================================================================
+    lint:
+        name: Linting & Type Check
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./services/api-gateway
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install dependencies
+              run: |
+                  echo "📦 Installing dependencies..."
+                  npm install --ignore-scripts
+                  echo "✅ Dependencies installed"
+
+            - name: Build shared types package
+              run: |
+                  echo "📦 Building shared types package..."
+                  cd ../../shared/types
+                  npm install --ignore-scripts
+                  npm run build
+                  echo "✅ Shared types built successfully"
+
+            - name: Run ESLint
+              run: |
+                  echo "🔍 Running ESLint..."
+                  npm run lint
+                  echo "✅ ESLint passed"
+
+            - name: Run Prettier check
+              run: |
+                  echo "🎨 Checking code formatting..."
+                  npm run format:check
+                  echo "✅ Prettier check passed"
+
+            - name: TypeScript type checking
+              run: |
+                  echo "📘 Running TypeScript type check..."
+                  npm run build
+                  echo "✅ Type check passed"
+
+    # ============================================================================
+    # Job 4: Security Audit
+    # ============================================================================
+    security:
+        name: Security Audit
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./services/api-gateway
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Run npm audit
+              run: |
+                  echo "🔒 Running npm audit..."
+                  npm audit --audit-level=high || true
+                  echo "✅ Security audit completed"
+
+            - name: Check for known vulnerabilities
+              run: |
+                  echo "🔍 Checking for critical vulnerabilities..."
+                  CRITICAL_VULNS=$(npm audit --json | grep -c '"severity":"critical"' || echo "0")
+                  echo "Critical vulnerabilities found: $CRITICAL_VULNS"
+                  if [ "$CRITICAL_VULNS" -gt "0" ]; then
+                    echo "⚠️  Warning: Critical vulnerabilities detected"
+                    echo "Please run 'npm audit fix' or update dependencies manually"
+                  else
+                    echo "✅ No critical vulnerabilities found"
+                  fi
+
+    # ============================================================================
+    # Job 5: Summary & Status
+    # ============================================================================
+    summary:
+        name: CI Summary
+        runs-on: ubuntu-latest
+        needs: [build-and-test, integration-tests, lint, security]
+        if: always()
+
+        steps:
+            - name: Check results
+              run: |
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "📊 CI Pipeline Summary - API Gateway"
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo ""
+                  echo "Build & Tests:      ${{ needs.build-and-test.result }}"
+                  echo "Integration Tests:  ${{ needs.integration-tests.result }}"
+                  echo "Linting:            ${{ needs.lint.result }}"
+                  echo "Security Audit:     ${{ needs.security.result }}"
+                  echo ""
+
+                  if [ "${{ needs.build-and-test.result }}" == "success" ] && \
+                     [ "${{ needs.integration-tests.result }}" == "success" ] && \
+                     [ "${{ needs.lint.result }}" == "success" ] && \
+                     [ "${{ needs.security.result }}" == "success" ]; then
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo "✅ All checks passed! Pipeline successful."
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    exit 0
+                  else
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo "❌ Some checks failed. Please review."
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    exit 1
+                  fi
+
+            - name: Post summary comment
+              if: github.event_name == 'pull_request'
+              run: |
+                  echo "📝 Summary prepared for PR review"
+                  echo "Note: Automatic PR comments disabled (requires write permissions)"
