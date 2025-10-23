@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/entity"
@@ -67,10 +68,22 @@ func (r *ReservationRepositoryImpl) Save(ctx context.Context, reservation *entit
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23505" {
 			return domainErrors.ErrReservationAlreadyExists
 		}
+		// Also check for GORM wrapping by checking error string
+		if errMsg := result.Error.Error(); errMsg != "" {
+			if containsReservationConstraintViolation(errMsg) {
+				return domainErrors.ErrReservationAlreadyExists
+			}
+		}
 		return fmt.Errorf("failed to save reservation: %w", result.Error)
 	}
 
 	return nil
+}
+
+// containsReservationConstraintViolation checks if error message contains PostgreSQL duplicate key constraint for reservations
+func containsReservationConstraintViolation(errMsg string) bool {
+	return strings.Contains(errMsg, "duplicate key value violates unique constraint") &&
+		(strings.Contains(errMsg, "idx_reservation_order") || strings.Contains(errMsg, "SQLSTATE 23505"))
 }
 
 // Update updates an existing reservation

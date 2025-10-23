@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/entity"
 	domainErrors "github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/domain/errors"
@@ -67,10 +68,22 @@ func (r *InventoryRepositoryImpl) Save(ctx context.Context, item *entity.Invento
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23505" {
 			return domainErrors.ErrInventoryItemAlreadyExists
 		}
+		// Also check for GORM wrapping by checking error string
+		if errMsg := result.Error.Error(); errMsg != "" {
+			if containsConstraintViolation(errMsg) {
+				return domainErrors.ErrInventoryItemAlreadyExists
+			}
+		}
 		return fmt.Errorf("failed to save inventory item: %w", result.Error)
 	}
 
 	return nil
+}
+
+// containsConstraintViolation checks if error message contains PostgreSQL duplicate key constraint
+func containsConstraintViolation(errMsg string) bool {
+	return strings.Contains(errMsg, "duplicate key value violates unique constraint") &&
+		(strings.Contains(errMsg, "idx_inventory_product") || strings.Contains(errMsg, "SQLSTATE 23505"))
 }
 
 // Update updates an existing inventory item using optimistic locking

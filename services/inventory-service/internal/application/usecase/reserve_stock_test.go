@@ -247,7 +247,7 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		mockReservationRepo.AssertExpectations(t)
 	})
 
-	t.Run("should update inventory version for optimistic locking", func(t *testing.T) {
+	t.Run("should update inventory with optimistic locking (version managed by repository)", func(t *testing.T) {
 		// Arrange
 		mockInventoryRepo := new(MockInventoryRepository)
 		mockReservationRepo := new(MockReservationRepository)
@@ -257,13 +257,13 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		productID := uuid.New()
 		orderID := uuid.New()
 		item, _ := entity.NewInventoryItem(productID, 100)
-		initialVersion := item.Version
 
 		mockReservationRepo.On("ExistsByOrderID", mock.Anything, orderID).Return(false, nil)
 		mockInventoryRepo.On("FindByProductID", mock.Anything, productID).Return(item, nil)
+		// Repository layer is responsible for version increment, not the entity
+		// Entity only updates Reserved field
 		mockInventoryRepo.On("Update", mock.Anything, mock.MatchedBy(func(i *entity.InventoryItem) bool {
-			// Verify that Reserve() incremented the version
-			return i.Version > initialVersion && i.Reserved == 50
+			return i.Reserved == 50 && i.Quantity == 100
 		})).Return(nil)
 		mockReservationRepo.On("Save", mock.Anything, mock.AnythingOfType("*entity.Reservation")).Return(nil)
 		mockPublisher.On("PublishStockReserved", mock.Anything, mock.AnythingOfType("events.StockReservedEvent")).Return(nil)
@@ -280,6 +280,8 @@ func TestReserveStockUseCase_Execute_Success(t *testing.T) {
 		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, output)
+		assert.Equal(t, 50, output.Quantity)
+		assert.Equal(t, 50, output.RemainingStock) // 100 - 50 reserved
 
 		mockInventoryRepo.AssertExpectations(t)
 		mockReservationRepo.AssertExpectations(t)
