@@ -146,9 +146,7 @@ func (r *RedisClient) Expire(ctx context.Context, key string, ttl time.Duration)
 }
 
 // Increment increments a counter in Redis and sets expiration if it's a new key
-func (r *RedisClient) Increment(key string, window time.Duration) (int64, error) {
-	ctx := context.Background()
-
+func (r *RedisClient) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
 	// Use a pipeline to ensure atomicity
 	pipe := r.client.Pipeline()
 	incrCmd := pipe.Incr(ctx, key)

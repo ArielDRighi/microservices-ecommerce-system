@@ -101,15 +101,16 @@ func main() {
 	// 6.5. Configure rate limiting middleware (T4.3.3)
 	if redisClient != nil {
 		redisAdapter := middleware.NewRedisClientAdapter(redisClient)
+		rateLimitWindowSeconds := getEnvAsInt("RATE_LIMIT_WINDOW_SECONDS", 60)
 		rateLimiterConfig := middleware.MethodBasedRateLimiterConfig{
 			Redis:      redisAdapter,
-			GetLimit:   200, // 200 requests per minute for GET/HEAD
-			WriteLimit: 100, // 100 requests per minute for POST/PUT/PATCH/DELETE
-			Window:     time.Minute,
+			GetLimit:   200, // 200 requests per window for GET/HEAD
+			WriteLimit: 100, // 100 requests per window for POST/PUT/PATCH/DELETE
+			Window:     time.Duration(rateLimitWindowSeconds) * time.Second,
 		}
 		rateLimiter := middleware.NewMethodBasedRateLimiter(rateLimiterConfig)
 		router.Use(rateLimiter.Middleware())
-		log.Println("🚦 Method-based rate limiting enabled (GET: 200/min, POST: 100/min)")
+		log.Printf("🚦 Method-based rate limiting enabled (GET: 200/window, POST: 100/window, window: %ds)", rateLimitWindowSeconds)
 	} else {
 		log.Println("⚠️  Rate limiting disabled (Redis unavailable)")
 	}

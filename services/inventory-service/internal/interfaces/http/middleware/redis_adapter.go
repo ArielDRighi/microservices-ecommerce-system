@@ -21,7 +21,8 @@ func NewRedisClientAdapter(client *cache.RedisClient) *RedisClientAdapter {
 
 // Increment increments a counter with TTL
 func (a *RedisClientAdapter) Increment(key string, ttl time.Duration) (int64, error) {
-	return a.client.Increment(key, ttl)
+	ctx := context.Background()
+	return a.client.Increment(ctx, key, ttl)
 }
 
 // Delete removes a key

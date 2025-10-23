@@ -42,20 +42,20 @@ echo ""
 
 ISSUES_FOUND=0
 
-# Patterns to search for
+# Patterns to search for (matches both double and single quotes)
 PATTERNS=(
-    'password\s*=\s*["\047][^"\047]{3,}'
-    'PASSWORD\s*=\s*["\047][^"\047]{3,}'
-    'secret\s*=\s*["\047][^"\047]{3,}'
-    'SECRET\s*=\s*["\047][^"\047]{3,}'
-    'api[_-]?key\s*=\s*["\047][^"\047]{8,}'
-    'API[_-]?KEY\s*=\s*["\047][^"\047]{8,}'
-    'token\s*=\s*["\047][^"\047]{10,}'
-    'TOKEN\s*=\s*["\047][^"\047]{10,}'
-    'jwt[_-]?secret\s*=\s*["\047][^"\047]{10,}'
-    'JWT[_-]?SECRET\s*=\s*["\047][^"\047]{10,}'
-    'db[_-]?password\s*=\s*["\047][^"\047]{3,}'
-    'DB[_-]?PASSWORD\s*=\s*["\047][^"\047]{3,}'
+    'password\s*=\s*['\''"]['\''"^]{3,}'
+    'PASSWORD\s*=\s*['\''"]['\''"^]{3,}'
+    'secret\s*=\s*['\''"]['\''"^]{3,}'
+    'SECRET\s*=\s*['\''"]['\''"^]{3,}'
+    'api[_-]?key\s*=\s*['\''"]['\''"^]{8,}'
+    'API[_-]?KEY\s*=\s*['\''"]['\''"^]{8,}'
+    'token\s*=\s*['\''"]['\''"^]{10,}'
+    'TOKEN\s*=\s*['\''"]['\''"^]{10,}'
+    'jwt[_-]?secret\s*=\s*['\''"]['\''"^]{10,}'
+    'JWT[_-]?SECRET\s*=\s*['\''"]['\''"^]{10,}'
+    'db[_-]?password\s*=\s*['\''"]['\''"^]{3,}'
+    'DB[_-]?PASSWORD\s*=\s*['\''"]['\''"^]{3,}'
 )
 
 # Exclude patterns (safe examples and placeholders)
