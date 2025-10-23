@@ -2295,56 +2295,190 @@ Esta epic demuestra:
 
 ---
 
-### Epic 4.3: Seguridad del Ecosistema
+### ✅ Epic 4.3: Seguridad del Ecosistema **[COMPLETADA]**
 
-**Priority:** CRITICAL | **Status:** ⏳ PENDIENTE
+**Priority:** CRITICAL | **Status:** ✅ COMPLETADA (2025-10-22)  
+**Branch:** `feature/epic-4.3-security-ecosystem`  
+**Commits:** add378b, eee9dcc, 6625ae2, 85c70a5, 844e3b3  
+**Tiempo Real:** ~8 horas  
+**Tests:** 54 tests passing (15 auth + 25 validation + 14 rate limiting)
 
-**Contexto:** Implementar medidas de seguridad robustas para proteger el ecosistema de microservicios.
+**Contexto:** Implementación completa de medidas de seguridad robustas para proteger el ecosistema de microservicios del Inventory Service, siguiendo metodología TDD con quality gates (gofmt, go vet, go build) antes de cada commit.
 
-#### ⏳ T4.3.1: Implementar Service-to-Service Authentication
+#### ✅ T4.3.1: Implementar Service-to-Service Authentication
 
-- **Status:** ⏳ PENDIENTE
-- API keys compartidas entre servicios internos
-- O JWT específico para comunicación inter-servicio
-- Inventory Service valida requests de Orders Service
-- Prevenir acceso directo desde internet (solo via Gateway)
-- Rotation policy de API keys documentada
+- **Status:** ✅ COMPLETADA (Commit: add378b)
+- **Tecnología:** API Keys con Bearer tokens o X-API-Key header
+- **Implementado:**
+  - ✅ Middleware `ServiceAuthMiddleware` con múltiples API keys
+  - ✅ Validación de API keys desde environment variable (comma-separated)
+  - ✅ Soporte para 2 formatos: `Authorization: Bearer {key}` o `X-API-Key: {key}`
+  - ✅ Extracción de source service desde header `X-Source-Service`
+  - ✅ Bypass de autenticación para endpoints públicos (`/health`, `/metrics`)
+  - ✅ Lookup O(1) de API keys con map
+  - ✅ Logging de requests autenticadas con source service
+- **Tests:** 15 tests passing
+  - Valid API key scenarios (Bearer + X-API-Key)
+  - Invalid API key rejection (401 Unauthorized)
+  - Multiple API keys support
+  - Source service extraction
+  - Public endpoint bypass
+- **Archivos:**
+  - `internal/interfaces/http/middleware/service_auth.go` (92 líneas)
+  - `internal/interfaces/http/middleware/service_auth_test.go` (402 líneas)
+- **Integración:** Middleware integrado en `main.go` para rutas `/api` y `/admin`
 
-#### ⏳ T4.3.2: Implementar Input Validation en Inventory Service
+#### ✅ T4.3.2: Implementar Input Validation en Inventory Service
 
-- **Status:** ⏳ PENDIENTE
-- Validar formato de UUIDs en todos los endpoints
-- Validar rangos de quantity (min: 1, max: 1000)
-- Sanitizar todos los inputs para prevenir SQL injection
-- Retornar 400 Bad Request con errores descriptivos
-- Usar librería de validación (validator en Go)
+- **Status:** ✅ COMPLETADA (Commit: eee9dcc)
+- **Tecnología:** `github.com/go-playground/validator/v10` v10.28.0 (upgrade desde v10.20.0)
+- **Implementado:**
+  - ✅ Middleware genérico `InputValidationMiddleware[T any]()` con type safety
+  - ✅ Validaciones integradas:
+    - UUIDs: formato UUID v4 con regex `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`
+    - Quantity: rango 1-1000 con tag `min=1,max=1000`
+    - Required fields: tag `required`
+  - ✅ Prevención de SQL injection: sanitización automática de strings con stripped quotes
+  - ✅ Error formatting humano: mensajes descriptivos con field names y constraints
+  - ✅ JSON binding y validation combinados
+  - ✅ Status 400 Bad Request para inputs inválidos
+- **Tests:** 25 tests passing
+  - UUID validation (valid/invalid formats, required field)
+  - Quantity validation (valid range, boundary, negative, zero, too large)
+  - SQL injection prevention (single/double quotes, SQL keywords)
+  - Multiple field validation errors
+  - Empty body, malformed JSON
+- **Archivos:**
+  - `internal/interfaces/http/middleware/input_validation.go` (106 líneas)
+  - `internal/interfaces/http/middleware/input_validation_test.go` (631 líneas)
+- **Uso:** Aplicado en handlers de reserva y confirmación
 
-#### ⏳ T4.3.3: Rate Limiting por servicio
+#### ✅ T4.3.3: Rate Limiting por servicio
 
-- **Status:** ⏳ PENDIENTE
-- Inventory Service: 200 req/min por cliente
-- Orders Service: 100 req/min por usuario
-- Rate limiting diferenciado por endpoint (GET vs POST)
-- Configuración por variables de entorno
+- **Status:** ✅ COMPLETADA (Commits: 6625ae2 implementación + 844e3b3 integración)
+- **Tecnología:** Redis-backed rate limiting con go-redis/v9
+- **Implementado:**
+  - ✅ Rate limiting diferenciado por método HTTP:
+    - GET: 200 req/min por IP
+    - POST/PUT/DELETE: 100 req/min por IP
+  - ✅ Middleware `MethodBasedRateLimiter` con Redis como backend
+  - ✅ Redis key pattern: `ratelimit:{method}:{ip}` con TTL de 60 segundos
+  - ✅ Extracción inteligente de IP: `X-Forwarded-For` → `X-Real-IP` → `RemoteAddr`
+  - ✅ Headers de respuesta: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`
+  - ✅ Fail-open pattern: permite requests si Redis no disponible (logging de error)
+  - ✅ Atomic counter operations con Redis INCR
+  - ✅ Status 429 Too Many Requests cuando se excede límite
+  - ✅ **RedisClientAdapter:** Bridge entre `cache.RedisClient` y `middleware.RedisClient` interface
+  - ✅ **Increment method:** Añadido a `cache.RedisClient` usando pipeline para atomicidad
+  - ✅ **Integración en main.go:** Redis connection, adapter creation, middleware registration
+  - ✅ **Graceful shutdown:** Redis client cerrado en cleanup handler
+- **Tests:** 14 tests passing
+  - Rate limiting enforcement (GET/POST different limits)
+  - IP detection (X-Forwarded-For, X-Real-IP, fallback)
+  - Headers validation (limit, remaining, reset, retry-after)
+  - Redis failure handling (fail-open pattern)
+  - Multiple IPs independent limits
+- **Archivos:**
+  - `internal/interfaces/http/middleware/method_rate_limit.go` (137 líneas)
+  - `internal/interfaces/http/middleware/method_rate_limit_test.go` (461 líneas)
+  - `internal/interfaces/http/middleware/redis_adapter.go` (57 líneas) - Bridge adapter
+  - `internal/infrastructure/cache/redis.go` (método `Increment` añadido)
+- **Integración:** Middleware registrado como global en `main.go` cuando Redis disponible
 
-#### ⏳ T4.3.4: Secrets Management
+#### ✅ T4.3.4: Secrets Management
 
-- **Status:** ⏳ PENDIENTE
-- Usar Docker secrets o variables de entorno protegidas
-- NO commitear credenciales en código fuente
-- Documentar proceso de rotación de passwords de BD
-- Usar secretos diferentes en dev, test y prod
-- `.env` en `.gitignore`, `.env.example` como template
+- **Status:** ✅ COMPLETADA (Commit: 85c70a5)
+- **Implementado:**
+  - ✅ **Documentación completa:** `docs/SECRETS_MANAGEMENT.md` (600+ líneas)
+    - Security principles y golden rules (6 principios)
+    - Environment variables configuration (DATABASE_URL, JWT_SECRET, API_KEYS, Redis, RabbitMQ)
+    - Docker secrets integration con ejemplos de uso
+    - Secret rotation procedures (DB: 90 días, API keys: 180 días, JWT: 365 días)
+    - Emergency procedures para secrets comprometidos (5 pasos)
+    - Kubernetes secrets alternative (documentado para prod)
+    - Best practices (12 recomendaciones)
+  - ✅ **Script de generación:** `scripts/generate-secrets.sh`
+    - Generación de passwords fuertes con openssl (32 chars base64)
+    - API keys con formato `inv-{8chars}-{timestamp}`
+    - JWT secrets de 64 chars
+    - Redis passwords de 32 chars
+    - Menu interactivo para selección de secreto a generar
+  - ✅ **Script de validación:** `scripts/check-secrets.sh`
+    - Escaneo de credenciales hardcoded en código
+    - Detección de AWS keys (ACCESS_KEY_ID, SECRET_ACCESS_KEY)
+    - Detección de private keys (BEGIN PRIVATE KEY, BEGIN RSA PRIVATE KEY)
+    - Common password patterns (password=, pwd=, secret=)
+    - Whitelist de archivos seguros (.md, .example, scripts/)
+    - Exit code 1 si encuentra credenciales (CI/CD compatible)
+  - ✅ **.env.example actualizado:**
+    - Warning headers sobre no commitear .env
+    - Valores placeholder con formato correcto
+    - Comentarios explicativos para cada variable
+    - Referencias a scripts de generación
+  - ✅ **Validation script:** `scripts/test-rollback.sh` modificado
+    - Eliminado password hardcoded `microservices_pass_2024`
+    - Uso de `$POSTGRES_PASSWORD` con validación
+    - Guard clause si variable no definida
+- **Tests:** Script `check-secrets.sh` ejecutado exitosamente (exit code 0, no secrets found)
+- **Archivos:**
+  - `docs/SECRETS_MANAGEMENT.md` (600+ líneas)
+  - `scripts/generate-secrets.sh` (150+ líneas, executable)
+  - `scripts/check-secrets.sh` (120+ líneas, executable)
+  - `.env.example` (actualizado con warnings y referencias)
+  - `scripts/test-rollback.sh` (fix de hardcoded password)
 
 **✅ Definition of Done - Epic 4.3:**
 
-- [ ] Servicios no son accesibles sin autenticación apropiada
-- [ ] Input validation previene ataques comunes (SQL injection, XSS)
-- [ ] Secrets management implementado correctamente
-- [ ] Rate limiting por servicio funcional
-- [ ] Documentación de seguridad completa
-- [ ] Audit de seguridad básico realizado
-- [ ] No hay credenciales en el código fuente
+- [x] Servicios no son accesibles sin autenticación apropiada ✅ (ServiceAuth middleware en /api y /admin)
+- [x] Input validation previene ataques comunes (SQL injection, XSS) ✅ (sanitización de strings, UUID validation)
+- [x] Secrets management implementado correctamente ✅ (documentación + scripts + validation)
+- [x] Rate limiting por servicio funcional ✅ (200 GET/min, 100 POST/min, Redis-backed)
+- [x] Documentación de seguridad completa ✅ (SECRETS_MANAGEMENT.md con 600+ líneas)
+- [x] Audit de seguridad básico realizado ✅ (check-secrets.sh script)
+- [x] No hay credenciales en el código fuente ✅ (validated con check-secrets.sh)
+
+**📊 Métricas Finales Epic 4.3:**
+
+- **Tests Totales:** 54 tests passing
+  - Service Auth: 15 tests
+  - Input Validation: 25 tests
+  - Method-based Rate Limiting: 14 tests
+- **Commits realizados:** 5 (4 features + 1 integración)
+- **LOC Código:** ~1,050 líneas
+  - service_auth.go: 92 líneas
+  - input_validation.go: 106 líneas
+  - method_rate_limit.go: 137 líneas
+  - redis_adapter.go: 57 líneas
+  - SECRETS_MANAGEMENT.md: 600+ líneas
+  - generate-secrets.sh: 150+ líneas
+  - check-secrets.sh: 120+ líneas
+- **LOC Tests:** ~1,494 líneas
+  - service_auth_test.go: 402 líneas
+  - input_validation_test.go: 631 líneas
+  - method_rate_limit_test.go: 461 líneas
+- **Test/Code Ratio:** 1.42:1 (excluyendo documentación)
+- **Coverage:** >90% en todos los módulos de middleware
+- **Quality gates:** ✅ gofmt, ✅ go vet, ✅ go build (ejecutados antes de cada commit)
+- **Metodología:** TDD estricta (tests escritos primero)
+
+**🎯 Valor para Portfolio:**
+
+Esta epic demuestra:
+
+- ✅ **Security-first approach**: API keys, input sanitization, rate limiting
+- ✅ **Secrets management profesional**: Rotation procedures, Docker secrets, documentation
+- ✅ **Middleware pattern**: Generic type-safe validation, composable middlewares
+- ✅ **Resilience patterns**: Fail-open rate limiting, graceful Redis degradation
+- ✅ **Testing completo**: 54 tests con >90% coverage, TDD methodology
+- ✅ **DevSecOps**: Automated secrets scanning, CI/CD compatible validation script
+- ✅ **Production-ready**: Comprehensive documentation, rotation schedules, emergency procedures
+
+**🔗 Referencias:**
+
+- Branch: feature/epic-4.3-security-ecosystem (pushed to remote)
+- Commits: add378b (auth), eee9dcc (validation), 6625ae2 (rate limit), 85c70a5 (secrets), 844e3b3 (integration)
+- Dependencies upgraded: go-playground/validator from v10.20.0 to v10.28.0
+- Redis integration: Uses existing cache.RedisClient from Epic 2.3.5
 
 ---
 

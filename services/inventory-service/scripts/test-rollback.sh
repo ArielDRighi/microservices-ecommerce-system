@@ -17,22 +17,35 @@ NC='\033[0m' # No Color
 # Default environment
 ENV="${1:-test}"
 
-# Load environment variables
+# Load environment variables from .env file if it exists
+if [ -f ".env" ]; then
+    source .env
+fi
+
+# Configure database connection based on environment
 if [ "$ENV" = "development" ]; then
-    DB_HOST="localhost"
-    DB_PORT="5433"
-    DB_NAME="microservices_inventory"
-    DB_USER="microservices_user"
-    DB_PASSWORD="microservices_password"
+    DB_HOST="${DB_HOST:-localhost}"
+    DB_PORT="${DB_PORT:-5433}"
+    DB_NAME="${DB_NAME:-microservices_inventory}"
+    DB_USER="${DB_USER:-microservices_user}"
+    DB_PASSWORD="${DB_PASSWORD:-}"
 elif [ "$ENV" = "test" ]; then
-    DB_HOST="localhost"
-    DB_PORT="5433"
-    DB_NAME="microservices_test"
-    DB_USER="microservices_user"
-    DB_PASSWORD="microservices_password"
+    DB_HOST="${TEST_DB_HOST:-localhost}"
+    DB_PORT="${TEST_DB_PORT:-5433}"
+    DB_NAME="${TEST_DB_NAME:-microservices_test}"
+    DB_USER="${TEST_DB_USER:-microservices_user}"
+    DB_PASSWORD="${TEST_DB_PASSWORD:-}"
 else
     echo -e "${RED}❌ Invalid environment: $ENV${NC}"
     echo "Usage: $0 [development|test]"
+    exit 1
+fi
+
+# Validate that password is set
+if [ -z "$DB_PASSWORD" ]; then
+    echo -e "${RED}❌ DB_PASSWORD not set!${NC}"
+    echo "Please set DB_PASSWORD environment variable or create a .env file"
+    echo "Example: export DB_PASSWORD='your-password-here'"
     exit 1
 fi
 

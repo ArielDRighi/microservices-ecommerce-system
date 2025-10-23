@@ -145,6 +145,20 @@ func (r *RedisClient) Expire(ctx context.Context, key string, ttl time.Duration)
 	return nil
 }
 
+// Increment increments a counter in Redis and sets expiration if it's a new key
+func (r *RedisClient) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
+	// Use a pipeline to ensure atomicity
+	pipe := r.client.Pipeline()
+	incrCmd := pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, window)
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		return 0, fmt.Errorf("failed to increment key %s: %w", key, err)
+	}
+
+	return incrCmd.Val(), nil
+}
+
 // Close closes the Redis connection
 func (r *RedisClient) Close() error {
 	if err := r.client.Close(); err != nil {

@@ -17,12 +17,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/application/usecase"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/cache"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/config"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/database"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/persistence/repository"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/repository/stub"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/infrastructure/scheduler"
 	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/interfaces/http/handler"
+	"github.com/ArielDRighi/microservices-ecommerce-system/services/inventory-service/internal/interfaces/http/middleware"
 )
 
 func main() {
@@ -40,6 +42,12 @@ func main() {
 	port := getEnv("PORT", "8080")
 	schedulerIntervalMinutes := getEnvAsInt("SCHEDULER_INTERVAL_MINUTES", 10)
 	env := getEnv("ENV", "development")
+	serviceAPIKeys := getEnv("SERVICE_API_KEYS", "")
+
+	// Validate that API keys are configured in production
+	if env == "production" && serviceAPIKeys == "" {
+		log.Fatal("SERVICE_API_KEYS must be configured in production environment")
+	}
 
 	// 3. Connect to PostgreSQL
 	db, err := database.NewPostgresDB(&cfg.Database, env)
@@ -47,6 +55,24 @@ func main() {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 	log.Println("Successfully connected to PostgreSQL")
+
+	// 3.5. Connect to Redis (optional - for rate limiting and caching)
+	var redisClient *cache.RedisClient
+	redisConfig := &cache.RedisConfig{
+		Host:     getEnv("REDIS_HOST", "localhost"),
+		Port:     getEnvAsInt("REDIS_PORT", 6379),
+		Password: getEnv("REDIS_PASSWORD", ""),
+		DB:       getEnvAsInt("REDIS_DB", 0),
+	}
+
+	redisClient, err = cache.NewRedisClient(redisConfig, 5*time.Minute)
+	if err != nil {
+		log.Printf("⚠️  WARNING: Redis connection failed: %v", err)
+		log.Println("⚠️  Rate limiting will be disabled (fail-open mode)")
+		redisClient = nil // Ensure it's nil for fail-open behavior
+	} else {
+		log.Println("✅ Successfully connected to Redis")
+	}
 
 	// 4. Initialize repositories (PostgreSQL implementations)
 	inventoryRepo := repository.NewInventoryRepository(db)
@@ -72,7 +98,24 @@ func main() {
 	gin.SetMode(getEnv("GIN_MODE", gin.DebugMode))
 	router := gin.Default()
 
-	// 7. Health check básico
+	// 6.5. Configure rate limiting middleware (T4.3.3)
+	if redisClient != nil {
+		redisAdapter := middleware.NewRedisClientAdapter(redisClient)
+		rateLimitWindowSeconds := getEnvAsInt("RATE_LIMIT_WINDOW_SECONDS", 60)
+		rateLimiterConfig := middleware.MethodBasedRateLimiterConfig{
+			Redis:      redisAdapter,
+			GetLimit:   200, // 200 requests per window for GET/HEAD
+			WriteLimit: 100, // 100 requests per window for POST/PUT/PATCH/DELETE
+			Window:     time.Duration(rateLimitWindowSeconds) * time.Second,
+		}
+		rateLimiter := middleware.NewMethodBasedRateLimiter(rateLimiterConfig)
+		router.Use(rateLimiter.Middleware())
+		log.Printf("🚦 Method-based rate limiting enabled (GET: 200/window, POST: 100/window, window: %ds)", rateLimitWindowSeconds)
+	} else {
+		log.Println("⚠️  Rate limiting disabled (Redis unavailable)")
+	}
+
+	// 7. Health check básico (public endpoint - no auth required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":    "ok",
@@ -82,10 +125,10 @@ func main() {
 		})
 	})
 
-	// 8. Prometheus metrics endpoint
+	// 8. Prometheus metrics endpoint (public endpoint - no auth required)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	// 9. Ruta de bienvenida
+	// 9. Ruta de bienvenida (public endpoint - no auth required)
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Inventory Service API",
@@ -94,16 +137,35 @@ func main() {
 		})
 	})
 
-	// 10. Register admin endpoints (Epic 3.3)
-	adminGroup := router.Group("/admin")
-	{
-		// T3.3.1 - Reservation maintenance
-		adminGroup.POST("/reservations/release-expired", reservationMaintenanceHandler.ReleaseExpired)
+	// 10. Protected API routes (service-to-service authentication required)
+	// All /api/* and /admin/* routes require valid API key
+	if serviceAPIKeys != "" {
+		apiGroup := router.Group("/api")
+		apiGroup.Use(middleware.ServiceAuthMiddleware(serviceAPIKeys))
+		// TODO: Register API endpoints here in future tasks
 
-		// T3.3.3 - DLQ management
-		adminGroup.GET("/dlq", dlqAdminHandler.ListDLQMessages)
-		adminGroup.GET("/dlq/count", dlqAdminHandler.GetDLQCount)
-		adminGroup.POST("/dlq/:id/retry", dlqAdminHandler.RetryMessage)
+		adminGroup := router.Group("/admin")
+		adminGroup.Use(middleware.ServiceAuthMiddleware(serviceAPIKeys))
+		{
+			// T3.3.1 - Reservation maintenance
+			adminGroup.POST("/reservations/release-expired", reservationMaintenanceHandler.ReleaseExpired)
+
+			// T3.3.3 - DLQ management
+			adminGroup.GET("/dlq", dlqAdminHandler.ListDLQMessages)
+			adminGroup.GET("/dlq/count", dlqAdminHandler.GetDLQCount)
+			adminGroup.POST("/dlq/:id/retry", dlqAdminHandler.RetryMessage)
+		}
+		log.Println("🔒 Service-to-Service authentication enabled for /api and /admin routes")
+	} else {
+		// Development mode: admin endpoints without authentication
+		adminGroup := router.Group("/admin")
+		{
+			adminGroup.POST("/reservations/release-expired", reservationMaintenanceHandler.ReleaseExpired)
+			adminGroup.GET("/dlq", dlqAdminHandler.ListDLQMessages)
+			adminGroup.GET("/dlq/count", dlqAdminHandler.GetDLQCount)
+			adminGroup.POST("/dlq/:id/retry", dlqAdminHandler.RetryMessage)
+		}
+		log.Println("⚠️  WARNING: Running without service authentication (development mode)")
 	}
 
 	// 11. Start scheduler (T3.3.1 - auto-release expired reservations)
@@ -156,6 +218,16 @@ func main() {
 		log.Printf("⚠️  Error closing database: %v", err)
 	} else {
 		log.Println("✅ Database connection closed")
+	}
+
+	// Close Redis connection
+	if redisClient != nil {
+		log.Println("⏳ Closing Redis connection...")
+		if err := redisClient.Close(); err != nil {
+			log.Printf("⚠️  Error closing Redis: %v", err)
+		} else {
+			log.Println("✅ Redis connection closed")
+		}
 	}
 
 	log.Println("✅ Server exited gracefully")
